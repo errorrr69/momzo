@@ -5,6 +5,7 @@ import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/why_it_matters.dart';
 import '../../services/ai_service.dart';
 import '../../services/child_service.dart';
+import 'refer_out_screen.dart';
 
 /// 11 · Ask · grounded answer — RAG-grounded chat with cited sources (Task 14).
 ///
@@ -23,8 +24,7 @@ class _ChatMsg {
   final bool isUser;
   final String text;
   final List<({String cardId, String title})> citations;
-  final bool referOut;
-  _ChatMsg(this.isUser, this.text, {this.citations = const [], this.referOut = false});
+  _ChatMsg(this.isUser, this.text, {this.citations = const []});
 }
 
 class _AiChatScreenState extends State<AiChatScreen> {
@@ -84,10 +84,20 @@ class _AiChatScreenState extends State<AiChatScreen> {
       if (!mounted) return;
       setState(() {
         _conversationId = a.conversationId;
-        _messages.add(_ChatMsg(false, a.answer, citations: a.citations, referOut: a.isReferOut));
         _sending = false;
       });
-      _scrollToEnd();
+      if (a.isReferOut) {
+        // Safety/medical/developmental signal -> dedicated warm refer-out screen.
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ReferOutScreen(userMessage: text, message: a.answer),
+          ),
+        );
+      } else {
+        setState(() => _messages.add(_ChatMsg(false, a.answer, citations: a.citations)));
+        _scrollToEnd();
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -195,7 +205,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
         constraints: const BoxConstraints(maxWidth: 290),
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          color: m.referOut ? MomzoColors.coralTint : Colors.white,
+          color: Colors.white,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(18),
             topRight: Radius.circular(18),

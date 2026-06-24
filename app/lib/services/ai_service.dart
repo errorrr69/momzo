@@ -5,7 +5,7 @@ class AiAnswer {
   final String conversationId;
   final String answer;
   final List<({String cardId, String title})> citations;
-  final String? flagged; // 'refer_out' when the safety classifier fired
+  final String? flagged; // refer-out category ('safety'|'medical'|'developmental') or null
 
   const AiAnswer({
     required this.conversationId,
@@ -14,7 +14,7 @@ class AiAnswer {
     this.flagged,
   });
 
-  bool get isReferOut => flagged == 'refer_out';
+  bool get isReferOut => flagged != null && flagged!.isNotEmpty;
 }
 
 /// Calls the server-side `ai-chat` function (Task 14). All AI keys + RAG logic
@@ -27,10 +27,12 @@ class AiService {
     required String question,
     required String childId,
     String? conversationId,
+    String mode = 'qa', // 'qa' | 'situational'
   }) async {
     final res = await supabase.functions.invoke('ai-chat', body: {
       'question': question,
       'child_id': childId,
+      'mode': mode,
       if (conversationId != null) 'conversation_id': conversationId,
     });
     final d = res.data;

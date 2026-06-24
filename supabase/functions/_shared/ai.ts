@@ -46,20 +46,37 @@ export async function mistralChat(
   return (j.choices?.[0]?.message?.content ?? '').trim();
 }
 
-// Refer-out classifier (Hard Rule #7): a deterministic safety net for topics the
-// app must NEVER advise on — route to professional help instead of an AI answer.
-// Deliberately high-recall on genuine-risk language; nuance is handled by the
-// system prompt ("never diagnose").
-const REFER_OUT = [
-  /suicid|kill (my|him|her|them)self|end (my|his|her) life|self[-\s]?harm|cutting (my|him|her)self/i,
-  /\b(abuse|abused|molest|beat(s|en)? (him|her|them)|hitting (his|her) head)\b/i,
-  /not breathing|won'?t wake|unconscious|seizure|overdose|swallowed|bleeding (a lot|badly)|emergency/i,
-  /\b(diagnos|autis|adhd|bipolar|medication|dosage|prescri)/i,
-];
+// Refer-out classifier (Hard Rules #7 / PRD §6.3): a deterministic safety net that
+// runs on EVERY turn. On genuine safety / medical / clinical-developmental signals
+// the app refers to a professional instead of advising or diagnosing. Tuned for
+// high recall on real risk, but NOT on ordinary parenting questions ("is it normal
+// that he's shy", "won't share") — those get a grounded answer. The system prompt
+// is the softer second layer ("never diagnose").
+const REFER_OUT: Record<string, RegExp[]> = {
+  // (a) child-safety / self-harm / abuse
+  safety: [
+    // self-harm / suicidal ideation — incl. third-person and "doesn't want to be here"
+    /suicid|kill (my|him|her|them)self|end (my|his|her|their) life|self[-\s]?harm|hurt (him|her|them|my)self|cutting (him|her|my)self|harm (him|her|them)self|want(s|ing)? to (die|disappear)|(does ?n'?t|do ?n'?t|doesnt|dont|not) want(ing)? to (be here|live|be alive)|wish(es|ed)? (he|she|they|i) (was|were)n'?t (here|alive|born)|better off (without|dead)/i,
+    // abuse: named terms
+    /\b(abuse|abused|abusing|molest|sexually|neglect|shaken baby|hitting (his|her|the) head)\b/i,
+    // abuse: an adult described hitting/beating the child
+    /\b(i|we|my (partner|husband|wife|boyfriend|girlfriend|mom|mum|mother|dad|father|stepdad|stepmom|in[- ]?law)) (hit|hits|hitting|beat|beats|beating|slap|slaps|spank|spanks|punch|punches|whip|whips|hurt|hurts) (him|her|them|the (kid|child|baby|boy|girl))\b/i,
+  ],
+  // (b) medical emergency / clinical
+  medical: [
+    /not breathing|won'?t wake|unconscious|seizure|convuls|overdose|swallowed (a|some|something)|poison|bleeding (a lot|badly|heavily)|high fever|won'?t stop (crying|vomiting)|emergency|chok(e|ing)/i,
+    /\b(medication|dosage|how much (medicine|tylenol|ibuprofen)|prescri|antibiotic)\b/i,
+  ],
+  // (c) clinical / developmental concern (seeking a diagnosis) — NOT casual "is this normal"
+  developmental: [
+    /\b(autis|asperger|adhd|on the spectrum|bipolar|ocd|disorder|developmental delay|speech delay|global delay|regress|not (talk|speak|walk)ing at all|isn'?t (talking|speaking|walking) (yet|at all)|behind on (his|her|their)? ?(milestones|development)|should i (be )?(worried|concerned) (that|about|he|she)|something (is )?wrong with (him|her|my))/i,
+  ],
+};
 
+// Returns the category ('safety' | 'medical' | 'developmental') or null.
 export function referOutReason(question: string): string | null {
-  for (const re of REFER_OUT) {
-    if (re.test(question)) return 'refer_out';
+  for (const [category, patterns] of Object.entries(REFER_OUT)) {
+    if (patterns.some((re) => re.test(question))) return category;
   }
   return null;
 }

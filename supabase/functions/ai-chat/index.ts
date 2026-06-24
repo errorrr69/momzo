@@ -30,11 +30,13 @@ Deno.serve(async (req) => {
   let question = '';
   let childId = '';
   let conversationId: string | null = null;
+  let mode = 'qa';
   try {
     const b = await req.json();
     question = (b?.question ?? '').toString().trim();
     childId = (b?.child_id ?? '').toString();
     conversationId = b?.conversation_id ?? null;
+    mode = b?.mode === 'situational' ? 'situational' : 'qa';
   } catch { /* validated below */ }
   if (!question || !childId) return json(400, { ok: false, error: 'question and child_id required' });
 
@@ -56,7 +58,7 @@ Deno.serve(async (req) => {
     if (!conversationId) {
       const [c] = await sql`
         insert into ai_conversations (user_id, child_id, mode)
-        values (${user.id}, ${childId}, 'qa') returning id`;
+        values (${user.id}, ${childId}, ${mode}) returning id`;
       conversationId = c.id;
     }
 
@@ -85,19 +87,27 @@ Deno.serve(async (req) => {
     const excerpts = hits.map((h: { title: string; chunk: string }, i: number) =>
       `[${i + 1}] (${h.title})\n${h.chunk}`).join('\n\n');
 
-    const system =
-      `You are Momzo, a warm, calm guide for the mother of a ${age}-year-old child. ` +
+    const childCtx =
+      `Child context — age ${age}; temperament: ${fmt(temperament)}; working on: ${fmt(struggles)}.`;
+    const grounding =
       `Use ONLY: (1) the excerpts below from vetted parenting guides, and (2) well-established, ` +
       `mainstream child-development knowledge. If the excerpts don't cover it and you're not ` +
       `confident, say so gently — never invent specifics. Never diagnose or give medical advice; ` +
-      `suggest a professional for those. Warm and concrete, under 130 words, no guilt or shame, ` +
-      `never imply she's failing. Refer to the child as "your child" (never use a name).\n\n` +
-      `Child context — age ${age}; temperament: ${fmt(temperament)}; working on: ${fmt(struggles)}.\n\n` +
-      `EXCERPTS:\n${excerpts || '(none found)'}`;
+      `suggest a professional for those. No guilt or shame, never imply she's failing. Refer to ` +
+      `the child as "your child" (never use a name).`;
+
+    const system = mode === 'situational'
+      // In-the-moment: a SHORT calm script she can act on in the next minute (#9 short cap).
+      ? `You are Momzo, helping a mother THROUGH a hard moment happening RIGHT NOW with her ` +
+        `${age}-year-old. Give a brief, calm script: 2–4 concrete steps she can do or say in the ` +
+        `next minute. Plain and warm, no preamble, under 90 words; end with ONE short reassuring ` +
+        `line. ${grounding}\n\n${childCtx}\n\nEXCERPTS:\n${excerpts || '(none found)'}`
+      : `You are Momzo, a warm, calm guide for the mother of a ${age}-year-old child. ${grounding} ` +
+        `Warm and concrete, under 130 words.\n\n${childCtx}\n\nEXCERPTS:\n${excerpts || '(none found)'}`;
 
     const answer = await mistralChat(
       [{ role: 'system', content: system }, { role: 'user', content: question }],
-      { maxTokens: 450, temperature: 0.4 },
+      { maxTokens: mode === 'situational' ? 280 : 450, temperature: 0.4 },
     );
 
     await persist(sql, user.id, conversationId!, question, answer, topCitations.map((c) => c.card_id), null);

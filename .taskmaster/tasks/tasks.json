@@ -668,7 +668,7 @@
         "id": "15",
         "title": "[Phase 1] AI situational 'right now' mode",
         "description": "In-the-moment mode returning a short, calm, actionable script (not an essay) for live moments like a meltdown.",
-        "status": "pending",
+        "status": "done",
         "priority": "high",
         "dependencies": [
           "14"
@@ -680,29 +680,32 @@
             "id": 1,
             "title": "Add situational system prompt + short-output cap",
             "description": "Brief calm script format.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T16:54:32.715Z"
           },
           {
             "id": 2,
             "title": "Wire situational_screen",
             "description": "Distinct entry from Q&A; mode flag.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T16:54:32.721Z"
           }
-        ]
+        ],
+        "updatedAt": "2026-06-24T16:54:32.721Z"
       },
       {
         "id": "16",
         "title": "[Phase 1] AI safety refer-out classifier + guardrails",
         "description": "A classifier that runs on EVERY AI turn; on safety/medical/developmental-concern signals the AI refers to a professional and does NOT advise. Never diagnoses. Cross-cutting, non-negotiable.",
-        "status": "pending",
+        "status": "done",
         "priority": "high",
         "dependencies": [
           "14"
@@ -714,34 +717,38 @@
             "id": 1,
             "title": "Implement refer-out classifier on every turn",
             "description": "3 signal categories; runs pre-answer.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T16:54:32.724Z"
           },
           {
             "id": 2,
             "title": "Refer-out response + scope fence + flag logging",
             "description": "Warm redirect; ai_messages.flagged; dashboard.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T16:54:32.728Z"
           },
           {
             "id": 3,
             "title": "Wire refer_out_screen + safety-probe test battery",
             "description": "Verify on probe set.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               2
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T16:54:32.731Z"
           }
-        ]
+        ],
+        "updatedAt": "2026-06-24T16:54:32.731Z"
       },
       {
         "id": "17",
@@ -1186,9 +1193,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-24T12:42:42.407Z",
+      "lastModified": "2026-06-24T16:54:32.731Z",
       "taskCount": 37,
-      "completedCount": 12,
+      "completedCount": 14,
       "tags": [
         "master"
       ]

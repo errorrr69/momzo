@@ -5,8 +5,19 @@ import '../../core/widgets/momzo_buttons.dart';
 
 /// 13 · Safety · refer-out — on a safety/medical/developmental signal, the AI
 /// leads with warmth and directs to a professional. It never diagnoses.
+/// Shown when the ai-chat classifier flags a turn (Task 16); defaults preserve
+/// the designed sample for gallery preview.
 class ReferOutScreen extends StatelessWidget {
-  const ReferOutScreen({super.key});
+  final String userMessage;
+  final String message;
+  const ReferOutScreen({
+    super.key,
+    this.userMessage =
+        "He's been talking about not wanting to be here anymore and it's scaring me.",
+    this.message =
+        "Thank you for telling me — you're doing the right thing by taking it "
+        "seriously. This is beyond what I can help with, and a person should hear it today.",
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +85,7 @@ class ReferOutScreen extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        "He's been talking about not wanting to be here anymore and it's scaring me.",
+                        userMessage,
                         style: MomzoText.sans(14.5,
                             color: Colors.white, weight: FontWeight.w600, height: 1.45),
                       ),
@@ -146,7 +157,7 @@ class ReferOutScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              "Thank you for telling me — you're doing the right thing by taking it seriously. This is beyond what I can help with, and a person should hear it today.",
+              message,
               style: MomzoText.sans(14.5,
                   color: MomzoColors.ink, weight: FontWeight.w600, height: 1.6),
             ),

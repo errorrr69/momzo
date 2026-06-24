@@ -121,12 +121,23 @@ class _ChildBasicsScreenState extends State<ChildBasicsScreen> {
               const Spacer(),
               MomzoButton(
                 'Next',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) =>
-                          ChildTemperamentScreen(childName: _name.text)),
-                ),
+                onTap: () {
+                  if (_name.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please add a name or nickname.')),
+                    );
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChildTemperamentScreen(
+                        childName: _name.text.trim(),
+                        childAge: _age,
+                      ),
+                    ),
+                  );
+                },
               ),
               const SizedBox(height: 30),
             ],

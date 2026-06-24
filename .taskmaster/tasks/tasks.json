@@ -468,7 +468,7 @@
         "id": "11",
         "title": "[Phase 1] Content corpus seeding pipeline (chunk + embed + seed)",
         "description": "Ingest expert-provided source material, structure it into content_cards, chunk + embed into content_embeddings (pgvector), and seed via migrations. Feeds BOTH daily cards and the RAG knowledge base.",
-        "status": "pending",
+        "status": "done",
         "priority": "high",
         "dependencies": [
           "3"
@@ -480,40 +480,44 @@
             "id": 1,
             "title": "Define content_cards authoring format + why_it_matters convention",
             "description": "Map expert material -> card fields incl. behavior-at-home tie-in.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T10:03:15.076Z"
           },
           {
             "id": 2,
             "title": "Build chunk + embed pipeline (Gemini embeddings) -> content_embeddings",
             "description": "Deterministic chunking; store vectors.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T10:03:15.080Z"
           },
           {
             "id": 3,
             "title": "Seed corpus via migration + verify similarity retrieval",
             "description": "published cards; sample pgvector query.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               2
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T10:03:15.085Z"
           }
-        ]
+        ],
+        "updatedAt": "2026-06-24T10:03:15.085Z"
       },
       {
         "id": "12",
         "title": "[Phase 1] Onboarding + child profile",
         "description": "Wire the onboarding screens to create a child profile (name, age 6-10, temperament, struggles) — the personalization engine. Gated behind consent.",
-        "status": "pending",
+        "status": "done",
         "priority": "high",
         "dependencies": [
           "5",
@@ -526,34 +530,38 @@
             "id": 1,
             "title": "Wire child_basics + child_temperament -> children insert",
             "description": "Age 6-10 validation; temperament/struggles arrays.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T11:53:48.638Z"
           },
           {
             "id": 2,
             "title": "Wire all_set + home; load selected child into app context",
             "description": "Single child for Phase 1; child selector deferred.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T11:53:48.643Z"
           },
           {
             "id": 3,
             "title": "RLS test: children rows are family-isolated",
             "description": "Extend harness from task 4.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T11:53:48.650Z"
           }
-        ]
+        ],
+        "updatedAt": "2026-06-24T11:53:48.650Z"
       },
       {
         "id": "13",
@@ -1170,9 +1178,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-24T07:34:06.008Z",
+      "lastModified": "2026-06-24T11:53:48.650Z",
       "taskCount": 37,
-      "completedCount": 8,
+      "completedCount": 10,
       "tags": [
         "master"
       ]

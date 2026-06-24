@@ -1,13 +1,57 @@
 import 'package:flutter/material.dart';
+import '../../core/env/app_env.dart';
+import '../../core/supabase/supabase_init.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_bottom_nav.dart';
+import '../../services/auth_service.dart';
+import '../../services/child_service.dart';
 import '../daily/daily_card_screen.dart';
 
 /// 06 · Home · Today — greeting, today's read, two quick actions.
 /// One hero, never cluttered.
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // Defaults keep the gallery / UI-only preview looking right; real values load
+  // from the signed-in parent's profile + child (Task 12).
+  String _parentName = 'Priya';
+  String _childName = 'Aarav';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContext();
+  }
+
+  Future<void> _loadContext() async {
+    if (!AppEnv.hasSupabase) return;
+    try {
+      final child = ChildService.current ?? await ChildService.loadMyChild();
+      String? parent;
+      final uid = AuthService.currentUser?.id;
+      if (uid != null) {
+        final row = await supabase
+            .from('users')
+            .select('display_name')
+            .eq('id', uid)
+            .maybeSingle();
+        parent = row?['display_name'] as String?;
+      }
+      if (!mounted) return;
+      setState(() {
+        if (child != null) _childName = child.name;
+        if (parent != null && parent.isNotEmpty) _parentName = parent;
+      });
+    } catch (_) {
+      // Keep defaults on any load failure.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +75,7 @@ class HomeScreen extends StatelessWidget {
                         Text('Good morning,',
                             style: MomzoText.serif(19,
                                 color: MomzoColors.muted, italic: true)),
-                        Text('Priya',
+                        Text(_parentName,
                             style: MomzoText.sans(24,
                                 color: MomzoColors.ink, weight: FontWeight.w900)),
                       ],
@@ -123,7 +167,7 @@ class HomeScreen extends StatelessWidget {
             child: const Icon(Icons.face_rounded, color: MomzoColors.honey, size: 18),
           ),
           const SizedBox(width: 7),
-          Text('Aarav',
+          Text(_childName,
               style: MomzoText.sans(14,
                   color: MomzoColors.ink, weight: FontWeight.w800)),
           const SizedBox(width: 2),
@@ -175,7 +219,7 @@ class HomeScreen extends StatelessWidget {
             ),
             child: Text.rich(
               TextSpan(
-                text: 'Why this matters for Aarav · ',
+                text: 'Why this matters for $_childName · ',
                 style: MomzoText.sans(12,
                     color: MomzoColors.coralDeep, weight: FontWeight.w700),
                 children: [

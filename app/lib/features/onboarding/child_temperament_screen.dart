@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
+import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_buttons.dart';
 import '../../core/widgets/momzo_chip.dart';
+import '../../services/child_service.dart';
 import 'all_set_screen.dart';
 
 /// 04 · Temperament & focus — multi-select intake. Step 2 of 3.
+/// On "Next" this is where the child profile is actually created (Task 12).
 class ChildTemperamentScreen extends StatefulWidget {
   final String childName;
-  const ChildTemperamentScreen({super.key, required this.childName});
+  final int childAge;
+  const ChildTemperamentScreen({
+    super.key,
+    required this.childName,
+    this.childAge = 8,
+  });
 
   @override
   State<ChildTemperamentScreen> createState() => _ChildTemperamentScreenState();
@@ -23,6 +31,41 @@ class _ChildTemperamentScreenState extends State<ChildTemperamentScreen> {
   ];
   final _selTemp = {'Shy', 'A bit anxious'};
   final _selStr = {'Big emotions', 'Screen time'};
+  bool _busy = false;
+
+  Future<void> _finish() async {
+    if (_busy) return;
+    // UI-only preview mode: no backend to write to — just continue.
+    if (!AppEnv.hasSupabase) {
+      _goToAllSet();
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await ChildService.createChild(
+        name: widget.childName,
+        age: widget.childAge,
+        temperament: _selTemp.toList(),
+        struggles: _selStr.toList(),
+      );
+      _goToAllSet();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save the profile. Please try again.')),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _goToAllSet() {
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => AllSetScreen(childName: widget.childName)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,12 +141,8 @@ class _ChildTemperamentScreenState extends State<ChildTemperamentScreen> {
               ),
               const Spacer(),
               MomzoButton(
-                'Next',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => AllSetScreen(childName: widget.childName)),
-                ),
+                _busy ? 'Saving…' : 'Next',
+                onTap: _busy ? null : _finish,
               ),
               const SizedBox(height: 30),
             ],

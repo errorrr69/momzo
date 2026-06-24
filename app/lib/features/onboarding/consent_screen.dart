@@ -4,7 +4,9 @@ import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_buttons.dart';
+import '../../services/child_service.dart';
 import '../../services/consent_service.dart';
+import '../home/home_screen.dart';
 import 'child_basics_screen.dart';
 import 'privacy_policy_screen.dart';
 
@@ -38,13 +40,27 @@ class _ConsentScreenState extends State<ConsentScreen> {
     }
     try {
       if (await ConsentService.hasConsent()) {
-        _goToChildBasics();
+        // Already consented: returning parents with a child skip onboarding.
+        final child = await ChildService.loadMyChild();
+        if (child != null) {
+          _goToHome();
+        } else {
+          _goToChildBasics();
+        }
         return;
       }
     } catch (_) {
       // Fall through to showing the consent UI on any check failure.
     }
     if (mounted) setState(() => _checking = false);
+  }
+
+  void _goToHome() {
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
+    );
   }
 
   void _toast(String message) {

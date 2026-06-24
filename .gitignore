@@ -21,6 +21,11 @@ env.json
 # Loose credentials note (contains the DB password + anon key) — never commit.
 supabase deets.md
 
+# Firebase service account (private key) — server-side only, never commit.
+*-firebase-adminsdk-*.json
+google-services.json
+GoogleService-Info.plist
+
 # Redundant duplicate of the canonical app/ (original mock-screen source). Kept
 # locally but out of git; delete or un-ignore if you want it tracked.
 Momzo app UI designs/

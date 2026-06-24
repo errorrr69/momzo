@@ -1,0 +1,74 @@
+You are kicking off the build of "Momzo", a Flutter + Supabase mobile app. This first
+session is PLANNING ONLY. Do NOT write or scaffold any application code yet. Your job
+is to understand the project deeply, ask me what's unclear, and produce a complete task
+plan in Taskmaster AI. You will only start building after I review and approve the plan.
+supabase deets:
+- project name: Momzo
+- project id - nngjqhrxbhugnafyviqj
+- tell me which env file to add password in so you can access and let me know if you need any api key 
+AI model for ai chat
+- we will use the free version of gminin for now so let me know where to addd api key
+
+== INPUTS (read these in full, in this order) ==
+1. "D:\momzo\Momzo_PRD.md"   — the product spec (all features, prioritized P0/P1/P2, phasing in §14)
+2. "D:\momzo\Momzo_BuildGuide.md"   — the tech stack, architecture, and the §6 "Hard Rules" (treat these as non-negotiable constraints)
+3. "D:\momzo\Momzo UI Design Guide.dc.html"  — the design guide + UI designs for each screen
+4. "D:\momzo\Momzo app UI designs\app\lib\features"  — the frontend code I've already written for each screen (this is the UI source of truth)
+   (If any of these paths are wrong or missing, ask me before continuing.)
+
+== STEP 1: INGEST & UNDERSTAND ==
+- Read the PRD end to end. Build a mental model of: the core hypothesis, the P0 core
+  loop, the AI grounding + safety design (§6 of the PRD), notifications (§7), data
+  models (§8), and the build phasing (§14).
+- Read the Build Guide end to end. Pay special attention to the §6 Hard Rules, the
+  three failure modes in §3 (connection pooling, RLS performance, realtime), and the
+  build order in §8. Every task you create must respect these.
+- Read the design guide and go through EVERY screen design.
+- Inventory the frontend code in ./app_screens/. For each screen, map it to the
+  feature(s) it implements in the PRD. Treat my frontend code as the UI source of
+  truth — plan to integrate and wire it up, not rebuild it. Where my code diverges
+  from the design guide or the PRD, note it; don't silently "fix" it.
+
+== STEP 2: REPORT YOUR UNDERSTANDING ==
+Before any task creation, give me a concise written summary of:
+- The core loop and what Phase 1 must contain.
+- A screen-to-feature coverage map: which PRD features have a design + code, which
+  designs/screens have no matching PRD feature, and which PRD features have no screen
+  yet. Flag every gap and mismatch.
+- The top architectural constraints you'll enforce (from the Hard Rules).
+
+== STEP 3: ASK ME QUESTIONS (use your ask-user / clarification tool) ==
+Batch your questions and WAIT for my answers before creating tasks. Do not assume on
+anything that affects architecture, scope, cost, or child-data handling. At minimum,
+resolve the open questions the PRD itself flags, and anything you found in Step 2.
+Likely topics: launch geography (DPDP vs COPPA primary), whether monetization/billing
+is in Phase 1 or deferred, who authors/curates the vetted child-development content
+that feeds the daily cards AND the RAG knowledge base, which AI provider keys I have
+(Gemini default + escalation model), the design tokens (fonts/colors/spacing), whether
+a WhatsApp WABA exists yet and Cloud-API-direct vs a BSP, and confirmation of the
+Phase 1 scope lock. Add your own.
+
+== STEP 4: CREATE TASKS IN TASKMASTER AI ==
+Only after my answers. Structure the plan to mirror the Build Guide phasing exactly:
+- Top level = Phases 0 → 1 → 2 → 3 (Build Guide §8 / PRD §14). Phase 0 (foundation:
+  auth, schema, RLS + indexes, Edge Function scaffold, pooler config, FCM, observability)
+  comes first and blocks everything else — set dependencies so later phases can't start
+  until Phase 0 tasks are done.
+- Under each phase, one parent task per feature; expand each into concrete sub-tasks
+  (DB migration + RLS + indexes, Edge Function, Flutter wiring to my existing screen,
+  tests).
+- Every task must carry: (a) the relevant Hard Rules it must honor, (b) a clear
+  done-criterion (use the Build Guide §8 done-criteria where given), and (c) its
+  dependencies.
+- Add explicit tasks for the cross-cutting requirements: an RLS test (no cross-family
+  reads) for every feature touching family data, the AI refer-out/safety guardrail,
+  reminder idempotency, and the "no guilt/shame" copy review.
+- Sequence within a phase by dependency, not by feature number.
+
+== STEP 5: STOP ==
+Present the Taskmaster plan and a recommended first task to start on. Then STOP and
+wait for my approval before writing any code.
+
+Constraints for this whole session: no application code, no scaffolding, no migrations
+yet. Plan first. If you're unsure whether something is a question or an assumption,
+make it a question.

@@ -1,0 +1,33 @@
+# Supabase project config (source of truth for local dev + CLI).
+# Project id: nngjqhrxbhugnafyviqj  (project name: Momzo)
+# Schema/RLS changes go through supabase/migrations only (Hard Rule #19) —
+# never hand-edited in the dashboard.
+
+project_id = "nngjqhrxbhugnafyviqj"
+
+[db]
+# Local dev Postgres major version — match prod. The Supabase project provisioned
+# on PostgreSQL 17 (verified 2026-06-23), so local dev mirrors 17.
+major_version = 17
+
+[db.pooler]
+# Hard Rule #2: Edge Functions / serverless connect via the transaction pooler
+# (port 6543) with prepared statements OFF. Direct 5432 is only for long-lived
+# servers, which we don't have.
+enabled = true
+port = 6543
+pool_mode = "transaction"
+
+[functions]
+# Edge Functions hold ALL secrets (service_role, LLM, WhatsApp, FCM). The app
+# never holds them (Build Guide §5). Functions added in later phases:
+#   ai-chat (Task 14), send-due-reminders (Task 20), whatsapp-send (Task 29).
+
+[functions.hello-world]
+# Phase 0 template/smoke test — auth optional so it returns 200 unauthenticated.
+# Real functions keep verify_jwt = true (the default) and require a valid JWT.
+verify_jwt = false
+
+[auth]
+# Email + Google/Apple social login wired in Task 5.
+enable_signup = true

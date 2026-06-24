@@ -1,0 +1,1181 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": "1",
+        "title": "[Phase 0] Monorepo & tooling scaffold",
+        "description": "Stand up the monorepo skeleton (app/ Flutter + supabase/ + docs/ + CI) so app and backend stay in lockstep. No features yet.",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [],
+        "details": "Mirror Build Guide §4 layout: app/ (Flutter: lib/features, lib/core, lib/models, lib/services), supabase/ (migrations, functions, seed, config.toml), docs/, .github/workflows/. Import the existing 25 mock screens from 'Momzo app UI designs/app/lib/features' into app/lib/features unchanged (UI source of truth — wire, don't rebuild). Move Momzo_PRD.md + Momzo_BuildGuide.md into docs/. Add .gitignore (.env ignored).\nHard Rules: #19 schema/RLS only via supabase/migrations (set up the directory + CLI now). Secrets layout per §5 (anon key in app; service_role/LLM/WhatsApp/FCM server-side only).",
+        "testStrategy": "Repo builds: `flutter pub get` succeeds, Supabase CLI recognizes the project (`supabase status`), CI workflow file lints. Existing mock screens compile.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create monorepo folder structure (app/, supabase/, docs/, .github/)",
+            "description": "Build the Build Guide §4 tree; add config.toml, .gitignore.",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-22T14:23:08.069Z"
+          },
+          {
+            "id": 2,
+            "title": "Import existing 25 mock screens into app/lib/features unchanged",
+            "description": "Copy from 'Momzo app UI designs/app/lib/features'; ensure they compile.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-22T14:23:08.087Z"
+          },
+          {
+            "id": 3,
+            "title": "Scaffold lib/core (supabase client, theme, routing, env, push)",
+            "description": "Empty wiring stubs; theme uses design-guide tokens.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-22T14:23:08.111Z"
+          },
+          {
+            "id": 4,
+            "title": "Add CI workflow skeleton (migrations, functions deploy, RLS test)",
+            "description": "GitHub Actions placeholders per §4.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-22T14:23:08.121Z"
+          }
+        ],
+        "updatedAt": "2026-06-22T14:23:08.121Z"
+      },
+      {
+        "id": "2",
+        "title": "[Phase 0] Supabase project config, transaction pooler & secrets",
+        "description": "Connect the Supabase project (id nngjqhrxbhugnafyviqj), configure the transaction pooler, and establish the secrets model.",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "1"
+        ],
+        "details": "DECISION (2026-06-23): project runs on Supabase FREE tier, not Pro (Build Guide §1 assumed Pro). Verified the full Momzo architecture works on Free: RLS+indexes, Supavisor transaction pooler (6543, prepared statements OFF), pgvector, pg_cron, Edge Functions, Realtime, Storage signed URLs. Free-tier consequences: NO automated daily backups (see backups TODO below) and 7-day inactivity auto-pause. All server-side DB access via the transaction pooler on port 6543 with prepared statements OFF (Supavisor transaction mode). Direct 5432 not used. Env established: anon key in app/env.json; service_role + LLM keys ONLY in supabase/.env (git-ignored). BACKUPS TODO (pre-launch, before real family data): either upgrade to Pro for daily backups or schedule a pg_dump cron — track as a Phase 3 / launch-readiness item.\nHard Rules: #2 pooler 6543 + prepared statements off; #5 service_role server-side only; §5 secrets matrix.",
+        "testStrategy": "A server-side test query succeeds through the 6543 pooler with prepared statements disabled; service_role key confirmed absent from app bundle + repo. (Pro/backups requirement dropped — Free tier; backups deferred to launch-readiness.)",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Link Supabase project (Free tier) & note backups deferred",
+            "description": "supabase link; Free tier confirmed — no daily backups (deferred to launch-readiness).",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-23T15:51:30.420Z"
+          },
+          {
+            "id": 2,
+            "title": "Configure transaction pooler (6543), prepared statements off",
+            "description": "Use the Supavisor shared transaction pooler (Free tier); sane pool fraction so Auth keeps headroom.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-23T15:51:30.427Z"
+          },
+          {
+            "id": 3,
+            "title": "Set up secrets: .env (git-ignored) + Function secrets matrix",
+            "description": "anon in app; service_role/LLM/WhatsApp/FCM server-side only; separate dev/prod keys.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-23T05:47:25.080Z"
+          }
+        ],
+        "updatedAt": "2026-06-23T15:51:30.427Z"
+      },
+      {
+        "id": "3",
+        "title": "[Phase 0] Core database schema + RLS + indexes (migrations)",
+        "description": "Author the full Postgres schema (PRD §8) with RLS enabled on every table and an index on every policy-filtered column. Version-controlled SQL only.",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "2"
+        ],
+        "details": "Create all tables from PRD §8: users, children, family_members(P2), content_cards, content_embeddings(pgvector), daily_assignments, activities, activity_logs, ai_conversations, ai_messages, questions, question_responses, wishes, scheduled_events, reminders, milestones. Enable pgvector. created_at/updated_at on all. Validate child age 6-10. Enable RLS on EVERY public table with simple, fast policies: USING ((select auth.uid()) = owner_id) style; for child-scoped rows resolve ownership via the owning parent. Index every column any policy filters on (owner_id, child_id, user_id, etc.). Keep policies as direct comparisons, no IN-subqueries (defer membership lookups to P2 security-definer fn).\nHard Rules: #1 RLS+index every table; #3 direct comparisons, wrap auth.uid(); #19 migrations only.",
+        "testStrategy": "All migrations apply cleanly via `supabase db push`. `EXPLAIN ANALYZE` on typical per-family queries stays <50ms and uses the index. RLS is enabled on every public table (verified by query against pg_class).",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Enable pgvector + create core identity/profile tables (users, children)",
+            "description": "Age 6-10 check constraint; temperament/struggles text[].",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-23T10:30:45.213Z"
+          },
+          {
+            "id": 2,
+            "title": "Create content + learning tables (content_cards, content_embeddings, daily_assignments, activities, activity_logs)",
+            "description": "vector column on content_embeddings.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-23T10:30:45.216Z"
+          },
+          {
+            "id": 3,
+            "title": "Create AI + bonding + scheduling tables (ai_conversations, ai_messages, questions, question_responses, wishes, scheduled_events, reminders, milestones, family_members)",
+            "description": "reminders has sent_at for idempotency.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-23T10:30:45.221Z"
+          },
+          {
+            "id": 4,
+            "title": "Enable RLS + write fast policies on every table",
+            "description": "Direct comparison, (select auth.uid()); child rows via owning parent.",
+            "status": "done",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-23T10:30:45.225Z"
+          },
+          {
+            "id": 5,
+            "title": "Add btree indexes on every policy-filtered column + verify <50ms",
+            "description": "owner_id/child_id/user_id; EXPLAIN ANALYZE.",
+            "status": "done",
+            "dependencies": [
+              4
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-23T10:30:45.230Z"
+          }
+        ],
+        "updatedAt": "2026-06-23T10:30:45.230Z"
+      },
+      {
+        "id": "4",
+        "title": "[Phase 0] RLS cross-family test harness",
+        "description": "Automated test proving a user can never read or write another family's rows. Required before any family-data feature is 'done'.",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "3"
+        ],
+        "details": "Seed two families (A, B). For every table holding family data, assert: user A's session cannot SELECT/UPDATE/DELETE family B's rows, and vice versa. Run in CI on every migration change. This is the reusable harness referenced by Hard Rule #20 for all later features.\nHard Rules: #20 RLS test before 'done'; #1 RLS on every table.",
+        "testStrategy": "CI test suite: 0 cross-family rows ever returned/mutated across all tables; suite fails the build if a new table lacks coverage.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Build two-family seed + dual authed test clients",
+            "description": "Fixtures for family A and B.",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T05:53:39.314Z"
+          },
+          {
+            "id": 2,
+            "title": "Assert no cross-family read/write per table; wire into CI",
+            "description": "Parametrized over all family tables; fails on uncovered table.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T05:53:39.329Z"
+          }
+        ],
+        "updatedAt": "2026-06-24T05:53:39.329Z"
+      },
+      {
+        "id": "5",
+        "title": "[Phase 0] Auth: email + Google/Apple (wire welcome & sign-in)",
+        "description": "Supabase Auth with email + Google/Apple social login; wire the existing welcome_screen and sign_in_screen; create the users profile row on first sign-in.",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "2",
+          "3"
+        ],
+        "details": "Supabase Auth, short-lived JWT + refresh. On first sign-in, upsert the public.users profile (display_name, timezone). Wire existing screens: onboarding/welcome_screen.dart, onboarding/sign_in_screen.dart. Client uses anon key only.\nHard Rules: #5 service_role never in app; #1 users table RLS (self-only).",
+        "testStrategy": "Build-order done-criterion (Phase 0): an authed user can sign in (email + Google + Apple), a users profile row is created, and the session persists across app restart.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Configure Supabase Auth providers (email, Google, Apple)",
+            "description": "EMAIL: done & verified (signups on; jwt 3600). Google/Apple: BLOCKED — disabled in dashboard; need OAuth client credentials (Apple also needs a paid Apple Developer account). DEV NOTE: mailer_autoconfirm enabled 2026-06-24 for dev so sign-up returns a session without an email click — REVERT before launch (real SMTP + confirmation, alongside COPPA consent).",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T07:09:32.639Z"
+          },
+          {
+            "id": 2,
+            "title": "Wire welcome_screen + sign_in_screen to Supabase client",
+            "description": "Use existing UI; anon key; session persistence.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T06:55:27.308Z"
+          },
+          {
+            "id": 3,
+            "title": "Upsert public.users profile on first sign-in + RLS self-only",
+            "description": "display_name, timezone, quiet_hours defaults.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T06:55:27.313Z"
+          }
+        ],
+        "updatedAt": "2026-06-24T07:09:32.639Z"
+      },
+      {
+        "id": "6",
+        "title": "[Phase 0] Edge Function scaffold + pooler pattern (hello-world)",
+        "description": "Deno/TypeScript Edge Function scaffold with the correct pooled DB connection pattern and a deployable hello-world.",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "2"
+        ],
+        "details": "Set up supabase/functions with a shared DB client that connects via the transaction pooler (6543) with prepared statements OFF. Shared helpers for auth (verify JWT), structured logging with NO PII (no child names / AI bodies). Deploy hello-world via CLI/CI. This is the template every later function (ai-chat, send-due-reminders, whatsapp-send) copies.\nHard Rules: #2 pooler + prepared statements off; #5 service_role server-side only; §5 no PII in logs.",
+        "testStrategy": "Phase 0 done-criterion: a hello-world Edge Function runs via the pooler (6543) and returns 200; logs contain no PII.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create functions/ shared pooled DB client (6543, prepared stmts off)",
+            "description": "Reusable across all functions.",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T07:12:43.431Z"
+          },
+          {
+            "id": 2,
+            "title": "Add JWT-verify + no-PII structured logging helpers",
+            "description": "Shared auth + logging utilities.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T07:12:43.435Z"
+          },
+          {
+            "id": 3,
+            "title": "Deploy hello-world function via CI",
+            "description": "supabase functions deploy; smoke test 200.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T07:12:43.443Z"
+          }
+        ],
+        "updatedAt": "2026-06-24T07:12:43.443Z"
+      },
+      {
+        "id": "7",
+        "title": "[Phase 0] FCM push wiring",
+        "description": "Firebase Cloud Messaging integrated in Flutter; device tokens stored; a test push arrives.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "1",
+          "2"
+        ],
+        "details": "Add FCM to the Flutter app (iOS + Android), request notification permission, store device tokens for the user. FCM server key lives in Edge Function/Firebase env only — never in the app. This is the primary (and Phase 1 only) reminder channel; WhatsApp is Phase 2.\nHard Rules: #11 push first; #5/§5 FCM server key server-side only.",
+        "testStrategy": "Phase 0 done-criterion: a test push sent from the server arrives on a real device; token stored against the user.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add FCM SDK + permission flow (iOS/Android)",
+            "description": "flutter firebase_messaging setup.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Store device tokens per user; send + receive a test push",
+            "description": "Token table/column; server-side test send.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "8",
+        "title": "[Phase 0] Observability: Sentry + slow-query monitoring",
+        "description": "Sentry for Flutter + Edge Functions; pg_stat_statements on; AI cost + refer-out dashboards stubbed.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          "2",
+          "6"
+        ],
+        "details": "Wire Sentry in app and functions (no PII in events). Enable pg_stat_statements for slow-query monitoring. Stand up dashboards for AI cost/turn and refer-out events (filled by Phase 1 AI tasks). Watch the connection-pool graph.\nHard Rules: §5 no PII in logs; NFR observability (§11).",
+        "testStrategy": "An induced error appears in Sentry from both app and a function; pg_stat_statements returns rows; cost/refer-out dashboards exist (even if empty).",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Integrate Sentry (Flutter + Edge Functions), scrub PII",
+            "description": "beforeSend strips child names / message bodies.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Enable pg_stat_statements + stub AI cost/refer-out dashboards",
+            "description": "Slow-query view; cost & safety dashboards.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "9",
+        "title": "[Phase 0] COPPA verifiable parental consent flow",
+        "description": "Build a verifiable parental consent gate (COPPA-first, US primary) that must pass BEFORE any child data is collected. No screen exists yet — design then build.",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "3",
+          "5"
+        ],
+        "details": "Per locked decision (COPPA-first): kids are 6-10 (under 13) so verifiable parental consent is required before creating a child profile. Record consent (version, timestamp, method) on the users/consent record; block child-profile creation until granted; surface the privacy policy. NO existing UI screen — design a flow consistent with the design guide, then build. Pairs with task 10 (delete) for parental rights.\nHard Rules: #14 child has no independent account, parent-owned + consent-based; #15 minimal data, no child ads/tracking, no precise location.",
+        "testStrategy": "Child-profile creation is impossible until consent is recorded; consent record (version + timestamp) is stored and auditable; privacy policy reachable from the flow.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design consent flow + consent data model/migration",
+            "description": "Consent record: version, method, timestamp; no UI exists yet.",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T07:29:59.473Z"
+          },
+          {
+            "id": 2,
+            "title": "Build consent UI + gate child-profile creation on it",
+            "description": "Hard block until granted; link privacy policy.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T07:29:59.478Z"
+          }
+        ],
+        "updatedAt": "2026-06-24T07:29:59.478Z"
+      },
+      {
+        "id": "10",
+        "title": "[Phase 0] Delete-my-child-and-all-data flow",
+        "description": "Parent can delete a child profile and ALL associated data (Hard Rule #17, COPPA right to delete). No screen exists yet.",
+        "status": "done",
+        "priority": "high",
+        "dependencies": [
+          "3",
+          "5"
+        ],
+        "details": "Implement a complete cascade delete of a child and every dependent row (daily_assignments, activity_logs, ai_conversations/messages, question_responses, wishes, scheduled_events, milestones, reminders) plus Storage objects (photos). Server-side (Edge Function with service_role) so it's reliable and auditable; confirm nothing orphaned. NO existing UI screen — design + build a clear, guarded confirmation.\nHard Rules: #17 delete-all-data; #14 parent-owned; #16 remove private Storage objects too.",
+        "testStrategy": "After delete, zero rows for that child remain in any table and no Storage objects remain; action is logged (no PII); RLS still prevents deleting another family's child.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Build cascade-delete Edge Function (all tables + Storage)",
+            "description": "service_role, transactional, audited, no orphans.",
+            "status": "done",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T07:34:06.001Z"
+          },
+          {
+            "id": 2,
+            "title": "Build guarded delete UI + confirm full erasure",
+            "description": "Clear confirmation; verify zero residual rows/objects.",
+            "status": "done",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T07:34:06.008Z"
+          }
+        ],
+        "updatedAt": "2026-06-24T07:34:06.008Z"
+      },
+      {
+        "id": "11",
+        "title": "[Phase 1] Content corpus seeding pipeline (chunk + embed + seed)",
+        "description": "Ingest expert-provided source material, structure it into content_cards, chunk + embed into content_embeddings (pgvector), and seed via migrations. Feeds BOTH daily cards and the RAG knowledge base.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "3"
+        ],
+        "details": "Per locked decision: Florie/an expert provides the source material; Claude structures, chunks, embeds, and seeds it via migrations. One corpus serves daily cards (content_cards: title, body, slides, age_min/max, tags, why_it_matters, source, published) and RAG (content_embeddings chunks + vectors). Use Gemini embeddings (free GOOGLE_API_KEY). BLOCKER FOR FLORIE: source material not yet provided.\nHard Rules: #6 AI grounded in vetted content_cards; #19 seed via migrations.",
+        "testStrategy": "content_cards seeded + published; every card has >=1 embedding; a sample pgvector similarity query returns the expected card; age/tag targeting fields populated.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define content_cards authoring format + why_it_matters convention",
+            "description": "Map expert material -> card fields incl. behavior-at-home tie-in.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Build chunk + embed pipeline (Gemini embeddings) -> content_embeddings",
+            "description": "Deterministic chunking; store vectors.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Seed corpus via migration + verify similarity retrieval",
+            "description": "published cards; sample pgvector query.",
+            "status": "pending",
+            "dependencies": [
+              2
+            ],
+            "details": "",
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "12",
+        "title": "[Phase 1] Onboarding + child profile",
+        "description": "Wire the onboarding screens to create a child profile (name, age 6-10, temperament, struggles) — the personalization engine. Gated behind consent.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "5",
+          "9"
+        ],
+        "details": "Wire existing screens: onboarding/child_basics_screen.dart, child_temperament_screen.dart, all_set_screen.dart, home/home_screen.dart. Write to children (owner_id, name, age check 6-10, temperament[], struggles[]). Profile drives daily cards, activities, and AI context. Must be blocked until COPPA consent (task 9) is granted. Multiple children is Phase 2 (task 23).\nHard Rules: #14 parent-owned child data; #20 RLS test (reuse harness) before done; #15 data minimization.",
+        "testStrategy": "Phase 1 criterion: a real mom completes onboarding and a child profile is created; age constrained to 6-10; RLS test confirms no cross-family read of children; onboarding completion measurable (target >=70%).",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Wire child_basics + child_temperament -> children insert",
+            "description": "Age 6-10 validation; temperament/struggles arrays.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Wire all_set + home; load selected child into app context",
+            "description": "Single child for Phase 1; child selector deferred.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "RLS test: children rows are family-isolated",
+            "description": "Extend harness from task 4.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "13",
+        "title": "[Phase 1] Daily card + 'why it matters'",
+        "description": "Assign and render one daily card per child (age + struggles targeted), with the behavior-at-home 'why it matters' tie-in. Mark read.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "11",
+          "12"
+        ],
+        "details": "Assign a content_card to the child each day (daily_assignments: child_id, card_id, date, read_at) selected by age_min/max + tags vs the child's struggles. Wire existing screens: daily/daily_card_screen.dart, daily/daily_slides_screen.dart (carousel for slides jsonb). Surface why_it_matters and source. Save/bookmark + library are Phase 2 (task 24).\nHard Rules: #6 content from vetted cards; #18 no guilt/shame copy; #20 RLS test.",
+        "testStrategy": "Phase 1 criterion: a mom opens today's card relevant to her child's age/struggles, sees the 'why it matters' tie-in, and read_at is recorded; slide decks render.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Daily assignment logic (age + struggles targeting)",
+            "description": "Pick + record daily_assignments row.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Wire daily_card + daily_slides screens; render why_it_matters + source",
+            "description": "Carousel from slides jsonb; mark read_at.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "14",
+        "title": "[Phase 1] AI Q&A chat — RAG grounded + citations",
+        "description": "The /ai-chat Edge Function: embed question + child context, retrieve top-K vetted chunks via pgvector, answer from approved knowledge only, cite source card(s).",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "6",
+          "11",
+          "12"
+        ],
+        "details": "Build ai-chat Edge Function: embed the question, retrieve small-K relevant content_embeddings, pass chunks + child profile (age/temperament/struggles) + strict system prompt to Gemini 3.5 Flash; answer ONLY from provided material + well-established knowledge, say so if uncovered. Persist ai_conversations/ai_messages with cited_card_ids. Wire existing screens: ai/ai_home_screen.dart, ai/ai_chat_screen.dart (show citations 'based on Momzo's guide on ...'). Keys server-side only. CAVEAT (locked decision): Gemini free tier may train on prompts — before real-mom launch, pseudonymize/strip child identifiers server-side OR move to paid tier (see task 22).\nHard Rules: #6 RAG-grounded + cite; #10 AI keys never leave the function; #2 pooled DB.",
+        "testStrategy": "Phase 1 criterion: a mom asks a question and gets a grounded, cited answer; cited_card_ids match retrieved chunks; off-corpus questions are acknowledged rather than hallucinated; AI first-token <2s.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Build retrieval (embed query -> top-K pgvector) + strict system prompt",
+            "description": "Small K; child profile injected.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Call Gemini Flash; persist messages with cited_card_ids",
+            "description": "ai_conversations/ai_messages; mode='qa'.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Wire ai_home + ai_chat screens with source citation display",
+            "description": "Show which card(s) grounded the answer.",
+            "status": "pending",
+            "dependencies": [
+              2
+            ],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Strip/pseudonymize child identifiers before LLM call",
+            "description": "COPPA caveat on free Gemini tier.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "15",
+        "title": "[Phase 1] AI situational 'right now' mode",
+        "description": "In-the-moment mode returning a short, calm, actionable script (not an essay) for live moments like a meltdown.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "14"
+        ],
+        "details": "Add mode='situational' to ai-chat: same RAG grounding, but a system prompt + tight max_output_tokens that yields a brief, step-by-step calm script. Wire existing screen ai/situational_screen.dart.\nHard Rules: #6 grounded; #9 cap max_output_tokens; #18 warm, non-judgmental tone.",
+        "testStrategy": "Phase 1 criterion: a situational query returns a short actionable script (not a long article), grounded + within the token cap.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add situational system prompt + short-output cap",
+            "description": "Brief calm script format.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Wire situational_screen",
+            "description": "Distinct entry from Q&A; mode flag.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "16",
+        "title": "[Phase 1] AI safety refer-out classifier + guardrails",
+        "description": "A classifier that runs on EVERY AI turn; on safety/medical/developmental-concern signals the AI refers to a professional and does NOT advise. Never diagnoses. Cross-cutting, non-negotiable.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "14"
+        ],
+        "details": "On every ai-chat turn, run a refer-out classifier for: (a) possible developmental delay/clinical concern, (b) child-safety/abuse/self-harm, (c) medical issues. On detection, respond with warmth + direct to the right professional (pediatrician, child psychologist, helpline); do NOT advise or diagnose. Scope-fence to parenting/child-development; decline off-topic/unsafe. Log the event (flag only, no sensitive content) to ai_messages.flagged + the refer-out dashboard. Wire existing screen ai/refer_out_screen.dart.\nHard Rules: #7 refer-out every turn, never diagnose; #6 grounded; §6.3 PRD safety.",
+        "testStrategy": "A battery of safety probes (abuse, self-harm, medical, delay) each trigger refer-out (no advice, no diagnosis); off-topic requests are declined; events logged with flag only (no PII). This gate must pass before Phase 1 ship.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement refer-out classifier on every turn",
+            "description": "3 signal categories; runs pre-answer.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Refer-out response + scope fence + flag logging",
+            "description": "Warm redirect; ai_messages.flagged; dashboard.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Wire refer_out_screen + safety-probe test battery",
+            "description": "Verify on probe set.",
+            "status": "pending",
+            "dependencies": [
+              2
+            ],
+            "details": "",
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "17",
+        "title": "[Phase 1] AI cost controls: routing, caps, caching, rate limit",
+        "description": "Keep AI cheap and safe at scale: cap output tokens, cache the system prompt, per-user rate limit, route cheap-by-default with escalation.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "14"
+        ],
+        "details": "Default Gemini 3.5 Flash; escalate to Gemini Pro only on sensitive/low-confidence-retrieval turns (locked decision: single GOOGLE_API_KEY free tier, no second paid provider in Phase 1). Cap max_output_tokens; cache the large static system prompt; small retrieval K; per-user soft rate limit with friendly messaging. Feed the AI cost dashboard (task 8). Target <$0.10 AI cost/active user/month.\nHard Rules: #8 cheap-by-default + escalate; #9 cap tokens, cache prompt, rate limit; #10 keys server-side.",
+        "testStrategy": "90%+ of turns stay on Flash; output tokens capped; system prompt cached (verified via token accounting); rate limit triggers friendly message; cost dashboard shows per-user trend under target.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Model routing Flash->Pro on sensitive/low-confidence turns",
+            "description": "Confidence + sensitivity signal.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Token cap + system-prompt caching + small-K retrieval",
+            "description": "Cost levers per Build Guide §7.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Per-user rate limit with friendly messaging",
+            "description": "Soft cap; abuse/cost guard.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "18",
+        "title": "[Phase 1] Activities + time filter + 'did it'",
+        "description": "Age/skill-targeted activities filterable by time (5/15/30 min), location, materials; step-by-step 'how to do it'; one-tap 'did it' logging.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "3",
+          "12"
+        ],
+        "details": "Seed activities (title, steps jsonb, skill, age_min/max, duration_min buckets 5/15/30, location[], materials[]) via migration. Wire existing screens: activities/activities_list_screen.dart (time/location/materials filters), activity_detail_screen.dart (steps), activity_complete_screen.dart ('did it' -> activity_logs). The time filter is the key differentiator. Post-activity photo/note is Phase 2 (task 28).\nHard Rules: #20 RLS test on activity_logs; #18 no-guilt copy; #19 seed via migration.",
+        "testStrategy": "Phase 1 criterion: a mom filters activities to '10 minutes', opens steps, and taps 'did it'; an activity_logs row is written; filters work for location/materials; target >=1 'did it'/activated user/week measurable.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Seed activities corpus via migration",
+            "description": "duration buckets, location, materials, skill.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Wire activities_list with time/location/materials filters",
+            "description": "Time filter primary.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Wire activity_detail (steps) + activity_complete ('did it' -> activity_logs)",
+            "description": "One-tap completion.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "19",
+        "title": "[Phase 1] Shared Question of the Day",
+        "description": "One light daily question both mom and child answer; reveal each other's answers. The Phase 1 bonding action.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "3",
+          "12"
+        ],
+        "details": "Serve a daily question (questions type='daily', age-targeted). Both parent and child (via parent-unlocked kid mode operating under the parent session) submit question_responses (respondent 'parent'/'child'); reveal both after both answer. Wire existing screen bonding/daily_question_screen.dart. Realtime NOT required for Phase 1 (poll/refresh on reveal); Realtime reveal is Phase 2 quiz (task 25). Kid mode can only write wishes + question_responses for its own family.\nHard Rules: #4 Realtime only where needed (not here); #20 RLS test; #14 child under parent session.",
+        "testStrategy": "Phase 1 criterion: mom answers the daily question, child answers via kid mode, both answers reveal; question_responses isolated per family (RLS test); bonding action measurable (target >=1/user/week).",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Daily question selection + question_responses writes",
+            "description": "parent + child respondents.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Wire daily_question_screen with reveal-after-both",
+            "description": "No Realtime; refresh-based reveal.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "20",
+        "title": "[Phase 1] Gentle daily nudge + quiet hours (push)",
+        "description": "A kind, non-shaming push nudge to read/do, scheduled via pg_cron -> send-due-reminders Edge Function, honoring quiet hours; idempotent.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "7",
+          "12"
+        ],
+        "details": "Build send-due-reminders Edge Function invoked by pg_cron: query reminders due in window, dispatch via FCM push, mark sent_at (idempotent — check before send). Respect users.quiet_hours + timezone + frequency control. Wire existing screen reminders/reminders_screen.dart (quiet hours + frequency settings). Push only in Phase 1; WhatsApp is Phase 2 (task 29).\nHard Rules: #11 push first; #13 idempotent (check sent_at, mark after); #18 NO streak-shaming/guilt; #2 pooled DB in function.",
+        "testStrategy": "Phase 1 criterion: a mom receives a gentle nudge at an allowed time; nudges never fire in quiet hours; re-running the cron never double-sends (sent_at honored); copy reviewed for tone.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "send-due-reminders Edge Function + pg_cron schedule",
+            "description": "Window query; FCM dispatch.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Idempotency (sent_at) + quiet-hours/timezone honoring",
+            "description": "Never double-send; never in quiet hours.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Wire reminders_screen (quiet hours + frequency); tone pass",
+            "description": "Non-shaming nudge copy.",
+            "status": "pending",
+            "dependencies": [
+              1
+            ],
+            "details": "",
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "21",
+        "title": "[Phase 1] No-guilt/shame copy & tone review (cross-cutting)",
+        "description": "Review ALL Phase 1 copy and notifications for tone: celebrate small wins, never shame a miss. Required before ship.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          "13",
+          "18",
+          "19",
+          "20"
+        ],
+        "details": "Audit every user-facing string and every notification across daily card, activities, shared question, nudges, and AI responses. Enforce the tone rule: no streak-shaming, no guilt; celebrate small wins ('you connected 3 days this week'); never punish a miss.\nHard Rules: #18 no guilt/shame anywhere in copy or notifications.",
+        "testStrategy": "A tone checklist passes across all Phase 1 surfaces; at least the nudge + recap + streak strings reviewed; sign-off recorded.",
+        "subtasks": []
+      },
+      {
+        "id": "22",
+        "title": "[Phase 1] Ship-readiness gate (pre-launch checklist subset)",
+        "description": "Verify the Build Guide §9 checklist items relevant to Phase 1 before shipping to a small group of real moms.",
+        "status": "pending",
+        "priority": "high",
+        "dependencies": [
+          "10",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16",
+          "17",
+          "18",
+          "19",
+          "20",
+          "21"
+        ],
+        "details": "Gate Phase 1 launch on: RLS enabled+tested on every table + indexes present; service_role absent from app/repo; functions on pooler with prepared statements off; AI grounded+cites + refer-out verified on probes; AI rate-limited + token-capped + prompt cached + cost dashboard live; reminders idempotent + quiet hours + pg_cron verified; consent flow + delete-all-data working; private Storage + signed URLs (where used); Sentry capturing app+function errors; Supabase on Pro + a restore tested; tone reviewed; load sanity check (few hundred concurrent, pool graph well under limit). RESOLVE the Gemini-free-tier COPPA caveat before real-mom launch (pseudonymize child identifiers server-side OR move ai-chat to paid tier).\nHard Rules: all of §6 verified end-to-end; Build Guide §9.",
+        "testStrategy": "Phase 1 done-criterion (Build Guide): a real mom can onboard, read today's card, get a grounded+cited AI answer (and a refer-out on a safety probe), filter+do an activity, answer the daily question, and receive a gentle nudge — with the checklist green. THEN ship to a small group.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Run security/RLS/secrets checklist",
+            "description": "RLS+indexes all tables; service_role absent; pooler.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Run AI safety+cost checklist (probes, cites, caps, dashboard)",
+            "description": "Refer-out verified; cost under target.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Resolve Gemini free-tier COPPA caveat (pseudonymize or paid)",
+            "description": "Decision + implementation before real moms.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Ops: Pro tier, backups+restore test, Sentry, load sanity check",
+            "description": "Pool graph under limit at a few hundred concurrent.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "parentId": "undefined"
+          }
+        ]
+      },
+      {
+        "id": "23",
+        "title": "[Phase 2] Multiple children + edit profile",
+        "description": "Add >1 child with per-child content/activity switching; edit/update struggles over time.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          "12"
+        ],
+        "details": "Child selector in home; all queries scope to the selected child. Edit profile to keep struggles current. Wire into home_screen.\nHard Rules: #20 RLS test for multi-child isolation; #14 parent-owned.",
+        "testStrategy": "A mom adds a second child, switches between them (content/activities change), and edits struggles; RLS isolation holds.",
+        "subtasks": []
+      },
+      {
+        "id": "24",
+        "title": "[Phase 2] Save/bookmark + topic library",
+        "description": "Bookmark cards into a personal library; browse past + categorized content on demand.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          "13"
+        ],
+        "details": "daily_assignments.saved flag + a library view over content_cards by tag/topic. Wire existing screen daily/library_screen.dart.\nHard Rules: #6 vetted content; #20 RLS test.",
+        "testStrategy": "A mom saves a card and finds it in the library; can browse categorized past content.",
+        "subtasks": []
+      },
+      {
+        "id": "25",
+        "title": "[Phase 2] Know-each-other quiz + games library",
+        "description": "Mom and child answer the same questions separately, then reveal matches (flagship bonding game) + a small co-play games library.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          "19"
+        ],
+        "details": "questions type='know_each_other'/'game'; both answer separately; reveal match. Wire existing screens bonding/quiz_match_screen.dart, bonding/together_hub_screen.dart. This is where Realtime IS justified for the live reveal — enable Realtime ONLY on the relevant table, filtered to the one family.\nHard Rules: #4 Realtime only on this table, filtered to family; #20 RLS test (SELECT policy covers expected realtime rows).",
+        "testStrategy": "Mom + child complete a quiz, matches reveal live; Realtime is scoped to one family; cross-family rows never delivered.",
+        "subtasks": []
+      },
+      {
+        "id": "26",
+        "title": "[Phase 2] Kid wish wall + kid mode",
+        "description": "Safe kid-facing surface (parent-unlocked) to add things they'd like to do with a parent.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          "12"
+        ],
+        "details": "wishes (child_id, text, created_by 'child'/'parent', status). Kid mode is a client-side gated view under the parent session that can ONLY write wishes + question_responses for that family. Wire existing screen wishes/wish_wall_screen.dart.\nHard Rules: #14 child no independent account, under parent session; #15 minimal data; #20 RLS test.",
+        "testStrategy": "Kid mode can add a wish and answer a question but cannot access or write anything else; wishes are family-isolated.",
+        "subtasks": []
+      },
+      {
+        "id": "27",
+        "title": "[Phase 2] Schedule wish -> calendar + in-app calendar",
+        "description": "Turn a wish into a scheduled together-time; view upcoming together-times and activities.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          "26"
+        ],
+        "details": "scheduled_events (child_id, wish_id?, activity_id?, title, starts_at, tip). Wire existing screens wishes/schedule_wish_screen.dart, wishes/calendar_screen.dart.\nHard Rules: #20 RLS test.",
+        "testStrategy": "A mom converts a wish to a scheduled event with a tip and sees it on the calendar.",
+        "subtasks": []
+      },
+      {
+        "id": "28",
+        "title": "[Phase 2] Playdate/activity reminders + post-activity photo/note",
+        "description": "Push reminders ahead of scheduled together-times/activities (with a 'how to make it special' tip); optional post-activity photo/note into private Storage.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          "18",
+          "20",
+          "27"
+        ],
+        "details": "Extend send-due-reminders to playdate/activity reminder types referencing scheduled_events. Add optional photo/note on activity_complete -> activity_logs.photo_url/note, stored in a PRIVATE Storage bucket served via signed URLs, with a file-size cap (e.g. 10MB). Feeds the memory timeline (task 30).\nHard Rules: #13 idempotent reminders; #16 private Storage + signed URLs + size cap; #18 tone.",
+        "testStrategy": "A scheduled playdate fires a reminder once (idempotent) with a tip; a post-activity photo uploads to a private bucket and is only viewable via signed URL by the family.",
+        "subtasks": []
+      },
+      {
+        "id": "29",
+        "title": "[Phase 2] WhatsApp utility reminders (opt-in)",
+        "description": "Deliver playdate/activity/recap reminders via WhatsApp Cloud API using pre-approved utility templates; opt-in + opt-out.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          "20"
+        ],
+        "details": "Set up WABA + WhatsApp Cloud API; build whatsapp-send Edge Function. Submit + get approval for a small set of UTILITY templates (playdate reminder, activity reminder, weekly recap nudge) — never marketing. Capture + store explicit opt-in (users.whatsapp_opt_in, whatsapp_number E.164); honor opt-out. send-due-reminders routes to WhatsApp only for opted-in users; personalization via template variables. BLOCKER FOR FLORIE: confirm a WABA exists and Cloud-API-direct vs BSP.\nHard Rules: #11 push first/WhatsApp opt-in; #12 utility templates only; #13 idempotent.",
+        "testStrategy": "An opted-in mom receives a utility-template reminder on WhatsApp; opt-out stops them; templates are approved as Utility; non-opted users only get push.",
+        "subtasks": []
+      },
+      {
+        "id": "30",
+        "title": "[Phase 2] Memory timeline + milestones",
+        "description": "Private, scrollable feed of photos/notes from activities + milestones; capture developmental wins as a keepsake.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          "28"
+        ],
+        "details": "Aggregate activity_logs (photo/note) + milestones (title, note, photo_url, date) into a timeline. Wire existing screen timeline/memory_timeline_screen.dart. Photos in private Storage + signed URLs.\nHard Rules: #16 private Storage + signed URLs; #20 RLS test; #15 minimal data.",
+        "testStrategy": "A mom sees a private timeline of her activity photos/notes + milestones; nothing is visible to other families.",
+        "subtasks": []
+      },
+      {
+        "id": "31",
+        "title": "[Phase 2] Weekly recap",
+        "description": "A gentle weekly summary: what you learned + did, plus one small thing to try next week.",
+        "status": "pending",
+        "priority": "medium",
+        "dependencies": [
+          "13",
+          "18"
+        ],
+        "details": "Summarize the week's reads + activities + bonding actions; suggest one next step. Wire existing screen timeline/weekly_recap_screen.dart. Can be delivered as a nudge (push, later WhatsApp recap template).\nHard Rules: #18 celebrate, never shame; #13 idempotent if pushed.",
+        "testStrategy": "A mom receives a warm weekly recap with one suggested next step; tone reviewed.",
+        "subtasks": []
+      },
+      {
+        "id": "32",
+        "title": "[Phase 2] Gentle streak / consistency",
+        "description": "Soft, encouraging consistency indicator — never harsh.",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [
+          "18",
+          "19"
+        ],
+        "details": "A gentle streak surface celebrating small wins; never punishes a miss or shames a break.\nHard Rules: #18 no streak-shaming (this feature is the main risk for it).",
+        "testStrategy": "Streak celebrates wins and shows no negative/guilt messaging on a missed day; tone sign-off.",
+        "subtasks": []
+      },
+      {
+        "id": "33",
+        "title": "[Phase 3] Co-parent / caregiver sharing (multi-member RLS)",
+        "description": "Invite dad/grandparent to share a child profile and take part. Adds multi-member RLS via a security-definer membership check.",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [
+          "4",
+          "12"
+        ],
+        "details": "Activate family_members; invite + accept flow (status invited/active). Membership-based access uses a SECURITY DEFINER function for the lookup (not a join-in-policy), structured as id IN (select ... where user = uid) to stay fast. Co-parent cannot delete the child or remove the owner.\nHard Rules: #3 security-definer membership fn; #1 RLS+index; #20 RLS test for multi-member isolation.",
+        "testStrategy": "An invited co-parent sees the shared child + participates; cannot delete the child/owner; non-members still excluded; membership query stays <50ms.",
+        "subtasks": []
+      },
+      {
+        "id": "34",
+        "title": "[Phase 3] Audio letters",
+        "description": "Mom and kid record short voice messages for each other / 'future you'.",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [
+          "25"
+        ],
+        "details": "Voice recordings stored in private Storage + signed URLs, size-capped.\nHard Rules: #16 private Storage; #15 minimal data.",
+        "testStrategy": "A recorded audio letter is private to the family and playable via signed URL.",
+        "subtasks": []
+      },
+      {
+        "id": "35",
+        "title": "[Phase 3] Voice input for AI",
+        "description": "Speech-to-text for hands-full moments in the AI chat/situational modes.",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [
+          "14"
+        ],
+        "details": "Add STT to the AI surfaces (after text works well). Same RAG + safety pipeline applies to transcribed input.\nHard Rules: #7 refer-out still runs; #10 keys server-side.",
+        "testStrategy": "Spoken questions are transcribed and answered through the same grounded + safety-checked pipeline.",
+        "subtasks": []
+      },
+      {
+        "id": "36",
+        "title": "[Phase 3] Small moderated community (only if validated)",
+        "description": "A small, expert-moderated community — built ONLY if retention/validation justifies it. Currently Out of Scope.",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [],
+        "details": "Deliberately deferred (PRD §13): a forum risks recreating the social-media overwhelm Momzo exists to escape. Build only if validated, and only as small + expert-moderated.",
+        "testStrategy": "Gated on a go/no-go from real-user validation; not started otherwise.",
+        "subtasks": []
+      },
+      {
+        "id": "37",
+        "title": "[Phase 3] Billing / subscriptions (freemium)",
+        "description": "Add IAP subscriptions + feature-gating AFTER retention is proven. Deferred entirely from Phase 1 (locked decision).",
+        "status": "pending",
+        "priority": "low",
+        "dependencies": [],
+        "details": "Locked decision: billing deferred entirely, no feature-gating/IAP in Phase 1 — validate retention first. When added: Apple/Google IAP for the digital subscription; gate features by tier in-app AND enforce server-side in Edge Functions/RLS (proposed Free vs Momzo+ tiers, PRD §12).\nHard Rules: server-side enforcement of any gating (don't trust the client).",
+        "testStrategy": "Tier entitlements enforced both in-app and server-side; purchase/restore works on iOS + Android.",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2026-06-24T07:34:06.008Z",
+      "taskCount": 37,
+      "completedCount": 8,
+      "tags": [
+        "master"
+      ]
+    }
+  }
+}

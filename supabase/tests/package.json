@@ -1,0 +1,14 @@
+{
+  "name": "momzo-rls-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "RLS cross-family isolation harness (Hard Rule #20). Run before any family-data feature is 'done'.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "pg": "^8.12.0"
+  }
+}

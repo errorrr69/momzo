@@ -1,0 +1,65 @@
+name: CI
+
+# Monorepo CI skeleton (Build Guide §4): lint/test the Flutter app, apply
+# migrations, deploy Edge Functions, and run the RLS cross-family test.
+# Steps are scaffolded here and filled in by their owning Phase 0 tasks:
+#   - Migrations + RLS test  -> Tasks 3 & 4
+#   - Edge Functions deploy  -> Task 6
+# Secrets (SUPABASE_ACCESS_TOKEN, DB password, etc.) come from GitHub Actions
+# secrets — never committed (Hard Rule, Build Guide §5).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  app:
+    name: Flutter app — analyze & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  backend:
+    name: Supabase — migrations, RLS test, functions deploy
+    runs-on: ubuntu-latest
+    env:
+      # Secrets live in GitHub Actions secrets — never committed (Build Guide §5).
+      SUPABASE_ACCESS_TOKEN:     ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF:      nngjqhrxbhugnafyviqj
+      SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY:         ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_DB_PASSWORD:      ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_POOLER_HOST:      ${{ secrets.SUPABASE_POOLER_HOST }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Apply migrations to the linked project (Task 3).
+      - run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+      - run: supabase db push --include-all
+
+      # RLS cross-family isolation suite — fails the build on ANY cross-family
+      # read/write, or if a new owner_id/user_id table lacks coverage (Hard Rule #20).
+      - working-directory: supabase/tests
+        run: npm install && npm test
+
+      # Deploy Edge Functions (Task 6+). Function secrets (DB_POOL_URL, etc.) are
+      # set on the project via `supabase secrets set` — not in this workflow.
+      - if: github.ref == 'refs/heads/main'
+        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"

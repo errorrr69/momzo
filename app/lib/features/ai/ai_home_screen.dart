@@ -2,12 +2,37 @@ import 'package:flutter/material.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_bottom_nav.dart';
+import '../../services/child_service.dart';
 import 'ai_chat_screen.dart';
 import 'situational_screen.dart';
 
 /// 10 · Ask · home — entry to grounded Q&A, "right now" mode, suggested asks.
-class AiHomeScreen extends StatelessWidget {
+class AiHomeScreen extends StatefulWidget {
   const AiHomeScreen({super.key});
+
+  @override
+  State<AiHomeScreen> createState() => _AiHomeScreenState();
+}
+
+class _AiHomeScreenState extends State<AiHomeScreen> {
+  final _composer = TextEditingController();
+  String get _childName => ChildService.current?.name ?? 'Aarav';
+
+  @override
+  void dispose() {
+    _composer.dispose();
+    super.dispose();
+  }
+
+  void _ask(String question) {
+    final q = question.trim();
+    if (q.isEmpty) return;
+    _composer.clear();
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => AiChatScreen(initialQuestion: q)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +80,7 @@ class AiHomeScreen extends StatelessWidget {
                         style: MomzoText.serif(27, color: MomzoColors.ink, height: 1.3),
                         children: [
                           TextSpan(
-                            text: 'Aarav',
+                            text: _childName,
                             style: MomzoText.serif(27,
                                 color: MomzoColors.skyText, italic: true, height: 1.3),
                           ),
@@ -131,7 +156,7 @@ class AiHomeScreen extends StatelessWidget {
               // Composer
               Padding(
                 padding: const EdgeInsets.fromLTRB(22, 0, 22, 14),
-                child: _composer(context),
+                child: _composerBar(context),
               ),
             ],
           ),
@@ -142,10 +167,7 @@ class AiHomeScreen extends StatelessWidget {
 
   Widget _suggested(BuildContext context, String q) {
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const AiChatScreen()),
-      ),
+      onTap: () => _ask(q),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
@@ -160,7 +182,7 @@ class AiHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _composer(BuildContext context) {
+  Widget _composerBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 8, 8, 8),
       decoration: BoxDecoration(
@@ -174,26 +196,22 @@ class AiHomeScreen extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text('Type your question…',
-                style: MomzoText.sans(14,
-                    color: MomzoColors.faint, weight: FontWeight.w600)),
-          ),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: MomzoColors.cream,
-              shape: BoxShape.circle,
-              border: Border.all(color: MomzoColors.cardBorder, width: 1.5),
+            child: TextField(
+              controller: _composer,
+              textInputAction: TextInputAction.send,
+              onSubmitted: _ask,
+              style: MomzoText.sans(14, color: MomzoColors.ink, weight: FontWeight.w600),
+              decoration: InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                hintText: 'Type your question…',
+                hintStyle: MomzoText.sans(14, color: MomzoColors.faint, weight: FontWeight.w600),
+              ),
             ),
-            child: const Icon(Icons.mic_none_rounded, color: MomzoColors.sky, size: 20),
           ),
           const SizedBox(width: 8),
           GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AiChatScreen()),
-            ),
+            onTap: () => _ask(_composer.text),
             child: Container(
               width: 44,
               height: 44,

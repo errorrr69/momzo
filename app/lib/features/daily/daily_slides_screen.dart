@@ -3,18 +3,28 @@ import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 
 /// 08 · Card · slide format — swipeable, focused carousel for bite-sized lessons.
+/// Renders a card's `slides` jsonb ([{text, image?}]) when provided; otherwise
+/// shows the designed sample deck (no seeded card has slides yet).
 class DailySlidesScreen extends StatefulWidget {
-  const DailySlidesScreen({super.key});
+  final List<dynamic>? slides;
+  const DailySlidesScreen({super.key, this.slides});
 
   @override
   State<DailySlidesScreen> createState() => _DailySlidesScreenState();
 }
 
 class _DailySlidesScreenState extends State<DailySlidesScreen> {
-  static const _total = 4;
-  int _index = 1; // 0-based; showing slide 2
+  late final bool _real = widget.slides != null && widget.slides!.isNotEmpty;
+  int get _total => _real ? widget.slides!.length : 4;
+  late int _index = _real ? 0 : 1; // sample deck previews slide 2
 
   void _next() => setState(() => _index = (_index + 1) % _total);
+
+  String? get _slideText {
+    if (!_real) return null;
+    final s = widget.slides![_index];
+    return s is Map ? s['text']?.toString() : s?.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,31 +78,38 @@ class _DailySlidesScreenState extends State<DailySlidesScreen> {
                                   color: Colors.white, weight: FontWeight.w900)),
                         ),
                         const SizedBox(height: 30),
-                        Text.rich(
-                          TextSpan(
-                            text: 'Name the feeling ',
-                            style: MomzoText.serif(32,
-                                color: Colors.white, height: 1.3),
-                            children: [
-                              TextSpan(
-                                text: 'before',
-                                style: MomzoText.serif(32,
-                                    color: const Color(0xFFF5C76B),
-                                    italic: true,
-                                    height: 1.3),
-                              ),
-                              const TextSpan(text: ' you fix the problem.'),
-                            ],
+                        if (_real)
+                          Text(
+                            _slideText ?? '',
+                            style: MomzoText.serif(26, color: Colors.white, height: 1.4),
+                          )
+                        else ...[
+                          Text.rich(
+                            TextSpan(
+                              text: 'Name the feeling ',
+                              style: MomzoText.serif(32,
+                                  color: Colors.white, height: 1.3),
+                              children: [
+                                TextSpan(
+                                  text: 'before',
+                                  style: MomzoText.serif(32,
+                                      color: const Color(0xFFF5C76B),
+                                      italic: true,
+                                      height: 1.3),
+                                ),
+                                const TextSpan(text: ' you fix the problem.'),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 18),
-                        Text(
-                          '"You really wanted more time, and stopping felt unfair." Naming lowers the storm faster than logic ever will.',
-                          style: MomzoText.sans(17,
-                              color: const Color(0xFFC7C0D0),
-                              weight: FontWeight.w400,
-                              height: 1.6),
-                        ),
+                          const SizedBox(height: 18),
+                          Text(
+                            '"You really wanted more time, and stopping felt unfair." Naming lowers the storm faster than logic ever will.',
+                            style: MomzoText.sans(17,
+                                color: const Color(0xFFC7C0D0),
+                                weight: FontWeight.w400,
+                                height: 1.6),
+                          ),
+                        ],
                       ],
                     ),
                   ),

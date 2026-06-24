@@ -34,8 +34,8 @@ const CATEGORY = {
 };
 const DEFAULT_CAT = { tags: ['parenting'], age: [4, 10] };
 
-const EMBED_MODEL = 'gemini-embedding-001';
-const GEN_MODEL = 'gemini-2.0-flash'; // no "thinking" tokens — predictable short output
+const EMBED_MODEL = 'gemini-embedding-001';      // embeddings via Gemini (768d)
+const GEN_MODEL = 'mistral-small-latest';         // text generation via Mistral (cheap default)
 
 // ---- config (supabase/.env or process.env) ----
 function parseEnv(path) {
@@ -58,7 +58,8 @@ function parseEnv(path) {
 const env = parseEnv(join(here, '..', '.env'));
 const SUPABASE_URL = process.env.SUPABASE_URL || env.SUPABASE_URL;
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
-const GKEY = process.env.GOOGLE_API_KEY || env.GOOGLE_API_KEY;
+const GKEY = process.env.GOOGLE_API_KEY || env.GOOGLE_API_KEY;          // embeddings
+const MKEY = process.env.MISTRAL_API_KEY || env.MISTRAL_API_KEY;        // generation
 if (!SUPABASE_URL || !SERVICE || !GKEY) {
   throw new Error('Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / GOOGLE_API_KEY.');
 }
@@ -135,29 +136,29 @@ async function embed(text) {
 }
 
 async function whyItMatters(title, body) {
+  if (!MKEY) return null;
   const prompt =
     'You are helping a parenting app for mothers of 6-10 year olds. In ONE warm, ' +
     'concrete sentence (max 30 words), finish the thought "Why this matters at home:" ' +
     '— connect the article to something a parent notices day to day. Output only the ' +
     `sentence, no preamble or quotes.\n\nTitle: ${title}\n\nArticle:\n${body.slice(0, 4000)}`;
-  // Fail fast (single attempt): this project currently has 0 generateContent
-  // quota, so retrying is pointless. Returns null -> backfilled on a later run
-  // once generation quota is enabled (also unblocks Task 14 AI chat).
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEN_MODEL}:generateContent?key=${GKEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 120, temperature: 0.7 } }),
-      },
-    );
+  for (let i = 0; i < 4; i++) {
+    const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${MKEY}` },
+      body: JSON.stringify({
+        model: GEN_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 90,
+        temperature: 0.6,
+      }),
+    });
+    if (res.status === 429 || res.status >= 500) { await sleep(2500 * (i + 1)); continue; }
     if (!res.ok) return null;
     const j = await res.json();
-    return j.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
-  } catch {
-    return null;
+    return j.choices?.[0]?.message?.content?.trim() || null;
   }
+  return null;
 }
 
 // ---- main ----
@@ -178,9 +179,22 @@ for (const abs of files) {
   const { data: existing } = await admin
     .from('content_cards').select('id,body,why_it_matters').eq('slug', slug).maybeSingle();
 
-  if (existing && existing.body === body && existing.why_it_matters) {
-    console.log('· unchanged:', slug);
-    skipped++; cards++;
+  if (existing && existing.body === body) {
+    if (existing.why_it_matters) {
+      console.log('· unchanged:', slug);
+      skipped++; cards++;
+      continue;
+    }
+    // Body unchanged, only the tie-in is missing -> backfill it (no re-embedding).
+    const why = await whyItMatters(title, body);
+    await sleep(400);
+    if (why) {
+      await admin.from('content_cards').update({ why_it_matters: why }).eq('id', existing.id);
+      console.log('+ why backfilled:', slug);
+    } else {
+      console.log('· still no why:', slug);
+    }
+    cards++;
     continue;
   }
 

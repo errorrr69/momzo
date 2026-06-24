@@ -4,8 +4,10 @@ import '../../core/supabase/supabase_init.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_bottom_nav.dart';
+import '../../models/daily_card.dart';
 import '../../services/auth_service.dart';
 import '../../services/child_service.dart';
+import '../../services/daily_service.dart';
 import '../daily/daily_card_screen.dart';
 
 /// 06 · Home · Today — greeting, today's read, two quick actions.
@@ -22,6 +24,15 @@ class _HomeScreenState extends State<HomeScreen> {
   // from the signed-in parent's profile + child (Task 12).
   String _parentName = 'Priya';
   String _childName = 'Aarav';
+  DailyCard? _card; // today's real card, when loaded
+  bool _haveCard = false;
+
+  // Preview mode shows the sample tie-in; a real card shows it only when the
+  // why_it_matters line exists (it's null until backfilled — Gemini key issue).
+  bool get _showWhy => !_haveCard || (_card?.whyItMatters?.isNotEmpty ?? false);
+  String get _whyText => _haveCard
+      ? (_card?.whyItMatters ?? '')
+      : "He's still learning to ride big feelings without melting down.";
 
   @override
   void initState() {
@@ -43,10 +54,16 @@ class _HomeScreenState extends State<HomeScreen> {
             .maybeSingle();
         parent = row?['display_name'] as String?;
       }
+      DailyCard? card;
+      if (child != null) card = await DailyService.todaysCard(child);
       if (!mounted) return;
       setState(() {
         if (child != null) _childName = child.name;
         if (parent != null && parent.isNotEmpty) _parentName = parent;
+        if (card != null) {
+          _card = card;
+          _haveCard = true;
+        }
       });
     } catch (_) {
       // Keep defaults on any load failure.
@@ -207,35 +224,36 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          Text('When "no" turns into a meltdown',
+          Text(_haveCard ? _card!.title : 'When "no" turns into a meltdown',
               style: MomzoText.sans(21,
                   color: MomzoColors.ink, weight: FontWeight.w900, spacing: -.3, height: 1.25)),
           const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-            decoration: BoxDecoration(
-              color: MomzoColors.coralTint,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text.rich(
-              TextSpan(
-                text: 'Why this matters for $_childName · ',
-                style: MomzoText.sans(12,
-                    color: MomzoColors.coralDeep, weight: FontWeight.w700),
-                children: [
-                  TextSpan(
-                    text:
-                        "He's still learning to ride big feelings without melting down.",
-                    style: MomzoText.sans(13,
-                        color: MomzoColors.coralText,
-                        weight: FontWeight.w600,
-                        height: 1.4),
-                  ),
-                ],
+          if (_showWhy) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              decoration: BoxDecoration(
+                color: MomzoColors.coralTint,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text.rich(
+                TextSpan(
+                  text: 'Why this matters for $_childName · ',
+                  style: MomzoText.sans(12,
+                      color: MomzoColors.coralDeep, weight: FontWeight.w700),
+                  children: [
+                    TextSpan(
+                      text: _whyText,
+                      style: MomzoText.sans(13,
+                          color: MomzoColors.coralText,
+                          weight: FontWeight.w600,
+                          height: 1.4),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 14),
+            const SizedBox(height: 14),
+          ],
           GestureDetector(
             onTap: () => Navigator.push(
               context,

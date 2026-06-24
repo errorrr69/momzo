@@ -567,7 +567,7 @@
         "id": "13",
         "title": "[Phase 1] Daily card + 'why it matters'",
         "description": "Assign and render one daily card per child (age + struggles targeted), with the behavior-at-home 'why it matters' tie-in. Mark read.",
-        "status": "pending",
+        "status": "done",
         "priority": "high",
         "dependencies": [
           "11",
@@ -580,29 +580,32 @@
             "id": 1,
             "title": "Daily assignment logic (age + struggles targeting)",
             "description": "Pick + record daily_assignments row.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T12:11:01.780Z"
           },
           {
             "id": 2,
             "title": "Wire daily_card + daily_slides screens; render why_it_matters + source",
             "description": "Carousel from slides jsonb; mark read_at.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T12:11:01.784Z"
           }
-        ]
+        ],
+        "updatedAt": "2026-06-24T12:11:01.784Z"
       },
       {
         "id": "14",
         "title": "[Phase 1] AI Q&A chat — RAG grounded + citations",
         "description": "The /ai-chat Edge Function: embed question + child context, retrieve top-K vetted chunks via pgvector, answer from approved knowledge only, cite source card(s).",
-        "status": "pending",
+        "status": "done",
         "priority": "high",
         "dependencies": [
           "6",
@@ -616,45 +619,50 @@
             "id": 1,
             "title": "Build retrieval (embed query -> top-K pgvector) + strict system prompt",
             "description": "Small K; child profile injected.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T12:42:42.385Z"
           },
           {
             "id": 2,
             "title": "Call Gemini Flash; persist messages with cited_card_ids",
             "description": "ai_conversations/ai_messages; mode='qa'.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T12:42:42.399Z"
           },
           {
             "id": 3,
             "title": "Wire ai_home + ai_chat screens with source citation display",
             "description": "Show which card(s) grounded the answer.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               2
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T12:42:42.403Z"
           },
           {
             "id": 4,
             "title": "Strip/pseudonymize child identifiers before LLM call",
             "description": "COPPA caveat on free Gemini tier.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T12:42:42.406Z"
           }
-        ]
+        ],
+        "updatedAt": "2026-06-24T12:42:42.406Z"
       },
       {
         "id": "15",
@@ -1178,9 +1186,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-24T11:53:48.650Z",
+      "lastModified": "2026-06-24T12:42:42.407Z",
       "taskCount": 37,
-      "completedCount": 10,
+      "completedCount": 12,
       "tags": [
         "master"
       ]

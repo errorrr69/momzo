@@ -754,7 +754,7 @@
         "id": "17",
         "title": "[Phase 1] AI cost controls: routing, caps, caching, rate limit",
         "description": "Keep AI cheap and safe at scale: cap output tokens, cache the system prompt, per-user rate limit, route cheap-by-default with escalation.",
-        "status": "pending",
+        "status": "done",
         "priority": "high",
         "dependencies": [
           "14"
@@ -766,30 +766,34 @@
             "id": 1,
             "title": "Model routing Flash->Pro on sensitive/low-confidence turns",
             "description": "Confidence + sensitivity signal.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T16:59:29.304Z"
           },
           {
             "id": 2,
             "title": "Token cap + system-prompt caching + small-K retrieval",
             "description": "Cost levers per Build Guide §7.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T16:59:29.309Z"
           },
           {
             "id": 3,
             "title": "Per-user rate limit with friendly messaging",
             "description": "Soft cap; abuse/cost guard.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-24T16:59:29.312Z"
           }
-        ]
+        ],
+        "updatedAt": "2026-06-24T16:59:29.312Z"
       },
       {
         "id": "18",
@@ -1193,9 +1197,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-24T16:54:32.731Z",
+      "lastModified": "2026-06-24T16:59:29.312Z",
       "taskCount": 37,
-      "completedCount": 14,
+      "completedCount": 15,
       "tags": [
         "master"
       ]

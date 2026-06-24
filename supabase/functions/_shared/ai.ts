@@ -25,17 +25,24 @@ export async function embedQuery(text: string): Promise<number[]> {
 
 export interface ChatMsg { role: 'system' | 'user' | 'assistant'; content: string }
 
+// Cheap-by-default routing (Hard Rule #8). Most turns use SMALL; only low-retrieval-
+// confidence or emotionally-sensitive turns escalate to MEDIUM.
+export const MODEL_DEFAULT = 'mistral-small-latest';
+export const MODEL_ESCALATE = 'mistral-medium-latest';
+
+export interface ChatResult { text: string; usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null }
+
 export async function mistralChat(
   messages: ChatMsg[],
   opts: { model?: string; maxTokens?: number; temperature?: number } = {},
-): Promise<string> {
+): Promise<ChatResult> {
   const key = Deno.env.get('MISTRAL_API_KEY');
   if (!key) throw new Error('MISTRAL_API_KEY not set');
   const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: opts.model ?? 'mistral-small-latest', // cheap default (Hard Rule #8)
+      model: opts.model ?? MODEL_DEFAULT,
       messages,
       max_tokens: opts.maxTokens ?? 450,           // cap tokens (Hard Rule #9)
       temperature: opts.temperature ?? 0.4,
@@ -43,8 +50,12 @@ export async function mistralChat(
   });
   if (!res.ok) throw new Error(`mistral failed: ${res.status}`);
   const j = await res.json();
-  return (j.choices?.[0]?.message?.content ?? '').trim();
+  return { text: (j.choices?.[0]?.message?.content ?? '').trim(), usage: j.usage ?? null };
 }
+
+// Emotionally-heavy (but not refer-out) topics worth a more careful model.
+const SENSITIVE = /\b(divorce|separat|grief|griev|died|death|passed away|funeral|bully|bullied|bullying|trauma|scared|terrified|panic|nightmare|moving (house|away)|new baby|deployment)\b/i;
+export function isSensitive(q: string): boolean { return SENSITIVE.test(q); }
 
 // Refer-out classifier (Hard Rules #7 / PRD §6.3): a deterministic safety net that
 // runs on EVERY turn. On genuine safety / medical / clinical-developmental signals

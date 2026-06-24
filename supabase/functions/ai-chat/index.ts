@@ -2,7 +2,17 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { db } from '../_shared/db.ts';
 import { log } from '../_shared/log.ts';
 import { getUser } from '../_shared/auth.ts';
-import { embedQuery, mistralChat, referOutReason, REFER_OUT_MESSAGE } from '../_shared/ai.ts';
+import {
+  embedQuery, mistralChat, referOutReason, REFER_OUT_MESSAGE,
+  MODEL_DEFAULT, MODEL_ESCALATE, isSensitive,
+} from '../_shared/ai.ts';
+
+// Per-user soft rate limit (Hard Rule #9): abuse/cost guard. Refer-out is exempt
+// (safety always gets through) — only the LLM-generating path is limited.
+const RATE_LIMIT_PER_HOUR = 40;
+const RATE_LIMIT_MESSAGE =
+  "You've asked a lot in the last hour — I love that you're so engaged! Let's take a "
+  + "short breather and pick this back up in a little while. 💛";
 
 // ai-chat (Task 14): RAG-grounded parenting Q&A.
 //   1. require a valid JWT; verify the caller owns the child
@@ -70,6 +80,16 @@ Deno.serve(async (req) => {
       return json(200, { ok: true, conversation_id: conversationId, answer: REFER_OUT_MESSAGE, citations: [], flagged });
     }
 
+    // Per-user rate limit (after refer-out, so safety is never blocked).
+    const [{ count }] = await sql`
+      select count(*)::int as count from ai_messages
+      where owner_id = ${user.id} and role = 'user'
+        and created_at > now() - interval '1 hour'`;
+    if (count >= RATE_LIMIT_PER_HOUR) {
+      log.warn('ai_chat_rate_limited', { count, duration_ms: Date.now() - startedAt });
+      return json(200, { ok: true, conversation_id: conversationId, answer: RATE_LIMIT_MESSAGE, citations: [], flagged: null });
+    }
+
     // Retrieve top-K vetted chunks.
     const emb = await embedQuery(question);
     const lit = `[${emb.join(',')}]`;
@@ -105,19 +125,32 @@ Deno.serve(async (req) => {
       : `You are Momzo, a warm, calm guide for the mother of a ${age}-year-old child. ${grounding} ` +
         `Warm and concrete, under 130 words.\n\n${childCtx}\n\nEXCERPTS:\n${excerpts || '(none found)'}`;
 
-    const answer = await mistralChat(
+    // Cheap-by-default routing (Hard Rule #8): escalate only when retrieval is weak
+    // or the topic is emotionally sensitive (Q&A only; situational stays short+cheap).
+    const topSim = hits.length ? Math.max(...hits.map((h: { similarity: number }) => Number(h.similarity))) : 0;
+    const escalate = mode === 'qa' && (topSim < 0.5 || isSensitive(question));
+    const model = escalate ? MODEL_ESCALATE : MODEL_DEFAULT;
+
+    const { text: answer, usage } = await mistralChat(
       [{ role: 'system', content: system }, { role: 'user', content: question }],
-      { maxTokens: mode === 'situational' ? 280 : 450, temperature: 0.4 },
+      { model, maxTokens: mode === 'situational' ? 280 : 450, temperature: 0.4 },
     );
 
     await persist(sql, user.id, conversationId!, question, answer, topCitations.map((c) => c.card_id), null);
 
+    // Cost-dashboard feed (Task 8): model + token usage, no PII.
     log.info('ai_chat_ok', {
+      mode,
+      model,
+      escalated: escalate,
+      top_similarity: Number(topSim.toFixed(3)),
+      prompt_tokens: usage?.prompt_tokens ?? null,
+      completion_tokens: usage?.completion_tokens ?? null,
       chunks: hits.length,
       cited: topCitations.length,
       duration_ms: Date.now() - startedAt,
     });
-    return json(200, { ok: true, conversation_id: conversationId, answer, citations: topCitations, flagged: null });
+    return json(200, { ok: true, conversation_id: conversationId, answer, citations: topCitations, flagged: null, model });
   } catch (e) {
     log.error('ai_chat_error', { duration_ms: Date.now() - startedAt, message: String(e) });
     return json(500, { ok: false });

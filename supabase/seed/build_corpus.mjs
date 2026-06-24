@@ -10,7 +10,7 @@
 //
 // Run:  cd supabase/seed && npm install && node build_corpus.mjs [--limit N]
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative, extname, dirname } from 'node:path';
+import { join, relative, extname, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 
@@ -18,7 +18,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..', '..');
 
 // New top-level content folders get added here. Sub-folders are walked automatically.
-const ROOTS = ['Preschoolers (4-7)', 'emotional development'];
+const ROOTS = ['Preschoolers (4-7)', 'emotional development', 'knowledge base'];
 
 // Category (matched against any path segment) -> tags + age targeting. The app's
 // daily-card targeting (6-10) surfaces the overlapping ones; RAG uses all.
@@ -31,6 +31,12 @@ const CATEGORY = {
   'reading & literacy': { tags: ['reading', 'literacy'], age: [3, 7] },
   'milestones': { tags: ['milestones', 'development'], age: [4, 6] },
   'emotional development': { tags: ['emotional', 'feelings', 'temperament'], age: [4, 10] },
+  // knowledge base/ (2026-06-24 additions)
+  'behaviour': { tags: ['behavior', 'self-control'], age: [3, 10] },
+  'child development': { tags: ['development', 'milestones'], age: [3, 10] },
+  'discipling children': { tags: ['discipline', 'behavior'], age: [3, 10] },
+  'emotional development (1)': { tags: ['emotional', 'feelings', 'temperament'], age: [4, 10] },
+  'reading': { tags: ['reading', 'literacy'], age: [3, 8] },
 };
 const DEFAULT_CAT = { tags: ['parenting'], age: [4, 10] };
 
@@ -87,39 +93,71 @@ function categorize(relPath) {
   return DEFAULT_CAT;
 }
 
-function parseDoc(text) {
-  const lines = text.split(/\r?\n/);
-  let title = '';
-  for (const l of lines) {
-    const t = l.trim();
-    if (t) { title = t.replace(/^#+\s*/, '').trim(); break; }
-  }
-  return { title: title || 'Untitled', body: text.trim() };
+function humanize(file) {
+  return file.replace(/\.(md|txt)$/i, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function parseDoc(text, file) {
+  const lines = text.split(/\r?\n/);
+  let first = '';
+  for (const l of lines) {
+    const t = l.trim();
+    if (t) { first = t.replace(/^#+\s*/, '').trim(); break; }
+  }
+  // If the first "line" is actually a whole paragraph (single-block .txt), it's a
+  // bad title — fall back to the (descriptive) filename.
+  const title = (!first || first.length > 110 || first.split(/\s+/).length > 16)
+    ? humanize(file)
+    : first;
+  return { title: title || humanize(file), body: text.trim() };
+}
+
+// Split into embed-sized chunks. Paragraphs first; any paragraph with no blank
+// lines (single-block docs) is further split by sentence so no chunk is so large
+// the embedding API silently truncates it.
 function chunk(body) {
   const paras = body.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
+  const units = [];
+  for (const p of paras) {
+    if (p.length <= 1200) { units.push(p); continue; }
+    let cur = '';
+    for (const s of p.split(/(?<=[.!?])\s+/)) {
+      // A "sentence" with no internal breaks can still be huge (text with no
+      // sentence-ending punctuation) — hard-split it by words so no unit blows
+      // past the embedding token limit.
+      if (s.length > 1500) {
+        if (cur) { units.push(cur.trim()); cur = ''; }
+        const words = s.split(/\s+/);
+        for (let i = 0; i < words.length; i += 200) units.push(words.slice(i, i + 200).join(' '));
+        continue;
+      }
+      if ((cur + ' ' + s).length > 1000 && cur) { units.push(cur.trim()); cur = ''; }
+      cur += (cur ? ' ' : '') + s;
+    }
+    if (cur.trim()) units.push(cur.trim());
+  }
   const chunks = [];
   let cur = '';
   let words = 0;
-  for (const p of paras) {
-    const w = p.split(/\s+/).length;
+  for (const u of units) {
+    const w = u.split(/\s+/).length;
     if (words + w > 280 && cur) { chunks.push(cur.trim()); cur = ''; words = 0; }
-    cur += (cur ? '\n\n' : '') + p;
+    cur += (cur ? '\n\n' : '') + u;
     words += w;
   }
   if (cur.trim()) chunks.push(cur.trim());
-  return chunks.length ? chunks : [body];
+  return chunks.length ? chunks : [body.slice(0, 4000)];
 }
 
-async function gFetch(url, body, tries = 5) {
+async function gFetch(url, body, tries = 7) {
   for (let i = 0; i < tries; i++) {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    if (res.status === 429 || res.status >= 500) { await sleep(2500 * (i + 1)); continue; }
+    if (res.status === 429 || res.status >= 500) { await sleep(5000 * (i + 1)); continue; }
     const j = await res.json();
     if (!res.ok) throw new Error(`${res.status} ${JSON.stringify(j).slice(0, 200)}`);
     return j;
@@ -174,18 +212,30 @@ for (const abs of files) {
   const rel = relative(repoRoot, abs);
   const slug = rel.replace(/[\\/]/g, '/').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const cat = categorize(rel);
-  const { title, body } = parseDoc(readFileSync(abs, 'utf8'));
+  const { title, body } = parseDoc(readFileSync(abs, 'utf8'), basename(abs));
 
   const { data: existing } = await admin
-    .from('content_cards').select('id,body,why_it_matters').eq('slug', slug).maybeSingle();
+    .from('content_cards').select('id,title,body,why_it_matters').eq('slug', slug).maybeSingle();
 
-  if (existing && existing.body === body) {
-    if (existing.why_it_matters) {
-      console.log('· unchanged:', slug);
-      skipped++; cards++;
-      continue;
-    }
-    // Body unchanged, only the tie-in is missing -> backfill it (no re-embedding).
+  // How many embeddings already exist? (A prior run may have died mid-embed.)
+  let embCount = 0;
+  if (existing) {
+    const { count } = await admin.from('content_embeddings')
+      .select('id', { count: 'exact', head: true }).eq('card_id', existing.id);
+    embCount = count ?? 0;
+  }
+  const bodySame = existing && existing.body === body;
+  const titleSame = existing && existing.title === title;
+
+  // Truly unchanged: body + title same, tie-in present, embeddings intact.
+  if (bodySame && titleSame && existing.why_it_matters && embCount > 0) {
+    console.log('· unchanged:', slug);
+    skipped++; cards++;
+    continue;
+  }
+
+  // Body + title + embeddings intact, only the tie-in missing -> backfill (no re-embed).
+  if (bodySame && titleSame && embCount > 0 && !existing.why_it_matters) {
     const why = await whyItMatters(title, body);
     await sleep(400);
     if (why) {
@@ -198,8 +248,10 @@ for (const abs of files) {
     continue;
   }
 
-  const why = await whyItMatters(title, body);
-  await sleep(600);
+  // New, changed body, or MISSING embeddings -> full (re)build. Reuse the tie-in
+  // if we already have one (don't burn a generation call on a re-embed).
+  const why = existing?.why_it_matters || await whyItMatters(title, body);
+  await sleep(500);
 
   const up = await admin.from('content_cards').upsert({
     slug, title, body, why_it_matters: why,
@@ -213,7 +265,7 @@ for (const abs of files) {
   const chunks = chunk(body);
   for (const ch of chunks) {
     const v = await embed(ch);
-    await sleep(250);
+    await sleep(900); // stay under the Gemini embedding per-minute limit
     const ins = await admin.from('content_embeddings').insert({ card_id: cardId, chunk: ch, embedding: vecLiteral(v) });
     if (ins.error) throw new Error(`embed insert ${slug}: ${ins.error.message}`);
     embeds++;

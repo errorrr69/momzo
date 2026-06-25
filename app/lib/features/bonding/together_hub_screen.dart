@@ -1,14 +1,48 @@
 import 'package:flutter/material.dart';
+import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_bottom_nav.dart';
+import '../../services/child_service.dart';
+import '../../services/question_service.dart';
 import 'daily_question_screen.dart';
 import 'quiz_match_screen.dart';
 import '../wishes/wish_wall_screen.dart';
 
 /// 17 · Together · hub — small ways to feel close, the child's voice included.
-class TogetherHubScreen extends StatelessWidget {
+class TogetherHubScreen extends StatefulWidget {
   const TogetherHubScreen({super.key});
+
+  @override
+  State<TogetherHubScreen> createState() => _TogetherHubScreenState();
+}
+
+class _TogetherHubScreenState extends State<TogetherHubScreen> {
+  String _prompt = 'If our family was an animal, which one would we be?';
+  String _status = 'Tap to answer together';
+
+  String get _childName => ChildService.current?.name ?? 'Aarav';
+
+  @override
+  void initState() {
+    super.initState();
+    if (AppEnv.hasSupabase && ChildService.current != null) _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final q = await QuestionService.todaysQuestion();
+      if (q == null) return;
+      final answers = await QuestionService.todaysResponses(q.id);
+      if (!mounted) return;
+      setState(() {
+        _prompt = q.prompt;
+        _status = answers.containsKey('parent') && answers.containsKey('child')
+            ? 'Answered today 💜'
+            : 'Tap to answer together';
+      });
+    } catch (_) {/* keep defaults */}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +67,7 @@ class TogetherHubScreen extends StatelessWidget {
                   style: MomzoText.sans(26,
                       color: MomzoColors.ink, weight: FontWeight.w900)),
               const SizedBox(height: 4),
-              Text('Small ways to feel close to Aarav.',
+              Text('Small ways to feel close to $_childName.',
                   style: MomzoText.serif(16, color: MomzoColors.muted)),
               const SizedBox(height: 18),
               // Daily question card
@@ -61,13 +95,13 @@ class TogetherHubScreen extends StatelessWidget {
                       Text('QUESTION OF THE DAY',
                           style: MomzoText.eyebrow(color: Colors.white70)),
                       const SizedBox(height: 8),
-                      Text('If our family was an animal, which one would we be?',
+                      Text(_prompt,
                           style: MomzoText.serif(20, color: Colors.white, height: 1.3)),
                       const SizedBox(height: 14),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Aarav already answered 💜',
+                          Text(_status,
                               style: MomzoText.sans(12,
                                   color: Colors.white70, weight: FontWeight.w700)),
                           Container(
@@ -77,7 +111,7 @@ class TogetherHubScreen extends StatelessWidget {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text('Your turn',
+                            child: Text('Open',
                                 style: MomzoText.sans(13,
                                     color: MomzoColors.lavenderText,
                                     weight: FontWeight.w800)),

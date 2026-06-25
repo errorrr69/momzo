@@ -14,6 +14,8 @@ class WhyItMatters extends StatelessWidget {
   Widget build(BuildContext context) {
     // A left accent bar via a clipped Row (a left-only Border with a
     // borderRadius is illegal in Flutter and throws at paint time).
+    // IntrinsicHeight gives the stretch-aligned accent bar a height to match in
+    // an unbounded-height scroll view (otherwise it fails to lay out on device).
     return Container(
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
@@ -21,7 +23,8 @@ class WhyItMatters extends StatelessWidget {
         color: MomzoColors.coralTint,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: Row(
+      child: IntrinsicHeight(
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(width: 4, color: MomzoColors.coral),
@@ -49,6 +52,7 @@ class WhyItMatters extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -324,7 +324,7 @@
         "id": "7",
         "title": "[Phase 0] FCM push wiring",
         "description": "Firebase Cloud Messaging integrated in Flutter; device tokens stored; a test push arrives.",
-        "status": "in-progress",
+        "status": "done",
         "priority": "high",
         "dependencies": [
           "1",
@@ -347,15 +347,16 @@
             "id": 2,
             "title": "Store device tokens per user; send + receive a test push",
             "description": "Token table/column; server-side test send.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-25T10:37:08.086Z"
           }
         ],
-        "updatedAt": "2026-06-25T09:37:30.783Z"
+        "updatedAt": "2026-06-25T10:37:08.086Z"
       },
       {
         "id": "8",
@@ -848,7 +849,7 @@
         "id": "19",
         "title": "[Phase 1] Shared Question of the Day",
         "description": "One light daily question both mom and child answer; reveal each other's answers. The Phase 1 bonding action.",
-        "status": "pending",
+        "status": "done",
         "priority": "high",
         "dependencies": [
           "3",
@@ -877,7 +878,8 @@
             "details": "",
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-06-25T10:43:55.561Z"
       },
       {
         "id": "20",
@@ -1200,9 +1202,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-25T09:37:30.783Z",
+      "lastModified": "2026-06-25T10:43:55.561Z",
       "taskCount": 37,
-      "completedCount": 16,
+      "completedCount": 18,
       "tags": [
         "master"
       ]

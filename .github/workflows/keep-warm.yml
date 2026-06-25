@@ -1,0 +1,34 @@
+name: Keep Warm
+
+# Task 2(b): lightweight keep-alive. Supabase Free pauses a project after ~7 days
+# of inactivity. This pings the REST API a few times a day so ordinary inactivity
+# doesn't pause us. MITIGATION, NOT A GUARANTEE: GitHub also delays/disables
+# scheduled workflows when a repo itself goes inactive (~60 days), so this reduces
+# the chance of a pause — it can't eliminate it. See docs/OPERATIONS.md.
+
+on:
+  schedule:
+    - cron: '0 */8 * * *' # every 8 hours
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Touch the database via REST
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          # limit=1 select hits Postgres (RLS just filters rows) → counts as activity.
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            "${SUPABASE_URL}/rest/v1/content_cards?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+          echo "REST ping HTTP $code"
+          # 2xx/4xx both mean the project is awake and serving; only a hard failure is bad.
+          if [ "$code" -ge 500 ] || [ "$code" -eq 000 ]; then
+            echo "::error::Keep-warm ping failed (HTTP $code) — project may be paused or down."
+            exit 1
+          fi

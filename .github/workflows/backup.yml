@@ -1,0 +1,61 @@
+name: DB Backup
+
+# Task 2(a): automated off-platform logical backup of the whole database.
+# Supabase Free tier has NO automated backups — this is the safety net before any
+# real family data lands. Runs daily; dumps via the session pooler (port 5432,
+# which supports pg_dump) using secrets already in the repo; stores the dump as a
+# GitHub Actions artifact (off-platform) with a rolling 14-day retention.
+#
+# Restore procedure: docs/OPERATIONS.md.
+#
+# Required secrets (already used by ci.yml): SUPABASE_DB_PASSWORD, SUPABASE_POOLER_HOST.
+
+on:
+  schedule:
+    - cron: '17 3 * * *' # daily at 03:17 UTC
+  workflow_dispatch: {} # lets you run a manual backup on demand
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_REF: nngjqhrxbhugnafyviqj
+      # Pooler host isn't secret; fall back to the known value if the secret is unset.
+      POOLER_HOST: ${{ secrets.SUPABASE_POOLER_HOST || 'aws-1-us-west-1.pooler.supabase.com' }}
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - name: Install PostgreSQL 17 client (match server major version)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Dump database (custom format, compressed)
+        run: |
+          set -euo pipefail
+          if [ -z "${POOLER_HOST:-}" ] || [ -z "${PGPASSWORD:-}" ]; then
+            echo "::error::SUPABASE_POOLER_HOST and SUPABASE_DB_PASSWORD secrets must be set."
+            exit 1
+          fi
+          STAMP="$(date -u +%Y%m%d-%H%M%S)"
+          OUT="momzo-${STAMP}.dump"
+          echo "BACKUP_FILE=$OUT" >> "$GITHUB_ENV"
+          # Session pooler (5432) holds the connection so pg_dump works on Free tier.
+          pg_dump \
+            -h "$POOLER_HOST" -p 5432 -U "postgres.${PROJECT_REF}" -d postgres \
+            --no-owner --no-privileges --format=custom \
+            -f "$OUT"
+          ls -lh "$OUT"
+
+      - name: Upload backup artifact (off-platform, 14-day retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_FILE }}
+          path: ${{ env.BACKUP_FILE }}
+          retention-days: 14
+          if-no-files-found: error

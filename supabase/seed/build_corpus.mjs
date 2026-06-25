@@ -74,14 +74,21 @@ const admin = createClient(SUPABASE_URL, SERVICE, { auth: { persistSession: fals
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const vecLiteral = (v) => '[' + v.join(',') + ']';
 
+// Folders that are NOT knowledge cards (seeded by their own pipelines).
+const SKIP_DIRS = new Set(['activities', 'questions']);
+
 function walk(dir) {
   const out = [];
   let entries;
   try { entries = readdirSync(dir); } catch { return out; }
   for (const name of entries) {
     const p = join(dir, name);
-    if (statSync(p).isDirectory()) out.push(...walk(p));
-    else if (['.md', '.txt'].includes(extname(p).toLowerCase())) out.push(p);
+    if (statSync(p).isDirectory()) {
+      if (SKIP_DIRS.has(name.toLowerCase())) continue;
+      out.push(...walk(p));
+    } else if (['.md', '.txt'].includes(extname(p).toLowerCase())) {
+      out.push(p);
+    }
   }
   return out;
 }

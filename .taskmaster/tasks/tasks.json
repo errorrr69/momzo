@@ -799,7 +799,7 @@
         "id": "18",
         "title": "[Phase 1] Activities + time filter + 'did it'",
         "description": "Age/skill-targeted activities filterable by time (5/15/30 min), location, materials; step-by-step 'how to do it'; one-tap 'did it' logging.",
-        "status": "pending",
+        "status": "done",
         "priority": "high",
         "dependencies": [
           "3",
@@ -839,7 +839,8 @@
             "details": "",
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-06-25T07:11:43.961Z"
       },
       {
         "id": "19",
@@ -1197,9 +1198,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-24T16:59:29.312Z",
+      "lastModified": "2026-06-25T07:11:43.961Z",
       "taskCount": 37,
-      "completedCount": 15,
+      "completedCount": 16,
       "tags": [
         "master"
       ]

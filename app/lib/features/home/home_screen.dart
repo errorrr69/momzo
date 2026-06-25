@@ -8,6 +8,8 @@ import '../../models/daily_card.dart';
 import '../../services/auth_service.dart';
 import '../../services/child_service.dart';
 import '../../services/daily_service.dart';
+import '../activities/activities_list_screen.dart';
+import '../ai/ai_home_screen.dart';
 import '../daily/daily_card_screen.dart';
 
 /// 06 · Home · Today — greeting, today's read, two quick actions.
@@ -141,6 +143,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           fg: const Color(0xFF2E6675),
                           icon: Icons.chat_bubble_outline_rounded,
                           label: 'Need help\nright now?',
+                          onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const AiHomeScreen())),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -150,6 +154,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           fg: const Color(0xFF3F6B52),
                           icon: Icons.timer_outlined,
                           label: "I've got\n10 minutes",
+                          onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => const ActivitiesListScreen())),
                         ),
                       ),
                     ],
@@ -282,8 +288,12 @@ class _HomeScreenState extends State<HomeScreen> {
     required Color fg,
     required IconData icon,
     required String label,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: bg,
@@ -297,6 +307,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(label,
               style: MomzoText.sans(14, color: fg, weight: FontWeight.w800, height: 1.2)),
         ],
+      ),
       ),
     );
   }

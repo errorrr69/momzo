@@ -35,7 +35,7 @@ const g = {
 const TABLES = [
   'users', 'consents', 'children', 'daily_assignments', 'activity_logs',
   'ai_conversations', 'ai_messages', 'question_responses', 'wishes',
-  'scheduled_events', 'reminders', 'milestones', 'family_members',
+  'scheduled_events', 'reminders', 'milestones', 'family_members', 'device_tokens',
 ];
 
 const families = {
@@ -66,6 +66,7 @@ async function seedFamily(key) {
     reminders: randomUUID(),
     milestones: randomUUID(),
     family_members: randomUUID(),
+    device_tokens: randomUUID(),
   };
   const now = new Date().toISOString();
   await ins('users', { id: owner, display_name: `Parent ${key}` });
@@ -82,6 +83,7 @@ async function seedFamily(key) {
   await ins('reminders', { id: f.rows.reminders, user_id: owner, type: 'nudge', channel: 'push', send_at: now });
   await ins('milestones', { id: f.rows.milestones, owner_id: owner, child_id: childId, title: 'First' });
   await ins('family_members', { id: f.rows.family_members, child_id: childId, user_id: owner, relationship: 'parent', status: 'active' });
+  await ins('device_tokens', { id: f.rows.device_tokens, user_id: owner, token: `tok-${key}-${owner}`, platform: 'android' });
 }
 
 async function deleteTestUsers() {

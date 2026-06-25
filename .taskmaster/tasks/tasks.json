@@ -324,7 +324,7 @@
         "id": "7",
         "title": "[Phase 0] FCM push wiring",
         "description": "Firebase Cloud Messaging integrated in Flutter; device tokens stored; a test push arrives.",
-        "status": "pending",
+        "status": "in-progress",
         "priority": "high",
         "dependencies": [
           "1",
@@ -337,10 +337,11 @@
             "id": 1,
             "title": "Add FCM SDK + permission flow (iOS/Android)",
             "description": "flutter firebase_messaging setup.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-25T09:37:30.783Z"
           },
           {
             "id": 2,
@@ -353,7 +354,8 @@
             "details": "",
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2026-06-25T09:37:30.783Z"
       },
       {
         "id": "8",
@@ -1198,7 +1200,7 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-25T07:11:43.961Z",
+      "lastModified": "2026-06-25T09:37:30.783Z",
       "taskCount": 37,
       "completedCount": 16,
       "tags": [

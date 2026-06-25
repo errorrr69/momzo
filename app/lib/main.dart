@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'core/push/push_service.dart';
 import 'core/supabase/supabase_init.dart';
 import 'core/theme/momzo_colors.dart';
 import 'core/theme/momzo_text.dart';
@@ -47,6 +48,8 @@ Future<void> main() async {
   final connected = await initSupabase();
   // Keep the parent's profile row in sync on every sign-in (Task 5).
   if (connected) AuthService.startProfileSync();
+  // FCM registration (Task 7) — best-effort; no-ops where push can't run.
+  await PushService.init();
   runApp(const MomzoApp());
 }
 

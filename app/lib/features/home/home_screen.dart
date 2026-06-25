@@ -3,7 +3,6 @@ import '../../core/env/app_env.dart';
 import '../../core/supabase/supabase_init.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
-import '../../core/widgets/momzo_bottom_nav.dart';
 import '../../models/daily_card.dart';
 import '../../services/auth_service.dart';
 import '../../services/child_service.dart';
@@ -76,7 +75,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MomzoColors.cream,
-      bottomNavigationBar: const MomzoBottomNav(MomzoTab.home),
       body: SafeArea(
         bottom: false,
         child: Column(

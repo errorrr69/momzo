@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
-import '../../core/widgets/momzo_bottom_nav.dart';
 import '../../services/notification_service.dart';
 
 /// 25 · Reminders & quiet hours — the mom is always in control of when & how
@@ -75,7 +74,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MomzoColors.cream,
-      bottomNavigationBar: const MomzoBottomNav(MomzoTab.me),
       body: SafeArea(
         bottom: false,
         child: ListView(

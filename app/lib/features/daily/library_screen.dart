@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
-import '../../core/widgets/momzo_bottom_nav.dart';
 
 /// 09 · Learn · library — saved + browse past content by topic.
 class LibraryScreen extends StatelessWidget {
@@ -11,7 +10,6 @@ class LibraryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MomzoColors.cream,
-      bottomNavigationBar: const MomzoBottomNav(MomzoTab.learn),
       body: SafeArea(
         bottom: false,
         child: ListView(

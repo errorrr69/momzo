@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_buttons.dart';
-import '../home/home_screen.dart';
+import '../shell/main_shell.dart';
 
 /// 05 · All set — personalization confirmed, warm hand-off into the app.
 class AllSetScreen extends StatelessWidget {
@@ -85,7 +85,7 @@ class AllSetScreen extends StatelessWidget {
                   'Take me in',
                   onTap: () => Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (_) => const HomeScreen()),
+                    MaterialPageRoute(builder: (_) => const MainShell()),
                     (route) => false,
                   ),
                 ),

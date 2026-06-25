@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
-import '../../core/widgets/momzo_bottom_nav.dart';
 import '../../services/child_service.dart';
 import 'ai_chat_screen.dart';
 import 'situational_screen.dart';
@@ -38,7 +37,6 @@ class _AiHomeScreenState extends State<AiHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MomzoColors.cream,
-      bottomNavigationBar: const MomzoBottomNav(MomzoTab.ask),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(

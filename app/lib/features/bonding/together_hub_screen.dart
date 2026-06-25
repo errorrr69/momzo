@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
-import '../../core/widgets/momzo_bottom_nav.dart';
 import '../../services/child_service.dart';
 import '../../services/question_service.dart';
 import 'daily_question_screen.dart';
@@ -48,7 +47,6 @@ class _TogetherHubScreenState extends State<TogetherHubScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MomzoColors.cream,
-      bottomNavigationBar: const MomzoBottomNav(MomzoTab.together),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(

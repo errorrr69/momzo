@@ -6,7 +6,7 @@ import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_buttons.dart';
 import '../../services/child_service.dart';
 import '../../services/consent_service.dart';
-import '../home/home_screen.dart';
+import '../shell/main_shell.dart';
 import 'child_basics_screen.dart';
 import 'privacy_policy_screen.dart';
 
@@ -59,7 +59,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      MaterialPageRoute(builder: (_) => const MainShell()),
     );
   }
 

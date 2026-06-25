@@ -89,11 +89,14 @@ class ActivityDetailScreen extends StatelessWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
             decoration: const BoxDecoration(
               color: Colors.white,
               border: Border(top: BorderSide(color: Color(0xFFF3E9DD))),
             ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
             child: Row(
               children: [
                 Container(
@@ -117,6 +120,8 @@ class ActivityDetailScreen extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+              ),
             ),
           ),
         ],

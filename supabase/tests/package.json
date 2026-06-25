@@ -5,7 +5,8 @@
   "type": "module",
   "description": "RLS cross-family isolation harness (Hard Rule #20). Run before any family-data feature is 'done'.",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "integrity": "node check_corpus_integrity.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

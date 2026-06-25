@@ -17,8 +17,9 @@ import { createClient } from '@supabase/supabase-js';
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..', '..');
 
-// New top-level content folders get added here. Sub-folders are walked automatically.
-const ROOTS = ['Preschoolers (4-7)', 'emotional development', 'knowledge base'];
+// All source content lives under knowledge base/ (sub-folders walked automatically;
+// activities/ and questions/ are skipped — they have their own seeders).
+const ROOTS = ['knowledge base'];
 
 // Category (matched against any path segment) -> tags + age targeting. The app's
 // daily-card targeting (6-10) surfaces the overlapping ones; RAG uses all.
@@ -214,15 +215,43 @@ let files = ROOTS.flatMap((r) => walk(join(repoRoot, r))).sort();
 if (Number.isFinite(limit)) files = files.slice(0, limit);
 console.log(`Ingesting ${files.length} file(s)…\n`);
 
-let cards = 0, embeds = 0, skipped = 0;
+// Self-heal index: body -> card. A moved file computes a new slug; rather than
+// inserting a duplicate, we re-key the existing card (same body) to the new slug.
+// Keyed on body in memory (PostgREST can't filter on very large bodies).
+const { data: allCards } = await admin.from('content_cards').select('id,slug,body');
+const cardByBody = new Map((allCards || []).map((c) => [c.body, c]));
+
+// Guard against duplicate source files (byte-identical content under two names):
+// process each unique body once so we never create or flip-flop a duplicate card.
+const seenBodies = new Set();
+
+let cards = 0, embeds = 0, skipped = 0, rekeyed = 0, dupes = 0;
 for (const abs of files) {
   const rel = relative(repoRoot, abs);
   const slug = rel.replace(/[\\/]/g, '/').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const cat = categorize(rel);
   const { title, body } = parseDoc(readFileSync(abs, 'utf8'), basename(abs));
 
-  const { data: existing } = await admin
+  if (seenBodies.has(body)) { console.log('· duplicate content (skipped):', slug); dupes++; continue; }
+  seenBodies.add(body);
+
+  let { data: existing } = await admin
     .from('content_cards').select('id,title,body,why_it_matters').eq('slug', slug).maybeSingle();
+
+  // Self-heal: no card at this slug, but a card with identical content exists (a
+  // moved file). Re-key it to the new slug — UUID + embeddings untouched, so
+  // daily_assignments / cited_card_ids stay valid — instead of inserting a dupe.
+  if (!existing) {
+    const moved = cardByBody.get(body);
+    if (moved) {
+      await admin.from('content_cards').update({ slug }).eq('id', moved.id);
+      const { data: re } = await admin.from('content_cards')
+        .select('id,title,body,why_it_matters').eq('id', moved.id).single();
+      existing = re;
+      rekeyed++;
+      console.log('~ re-keyed:', slug);
+    }
+  }
 
   // How many embeddings already exist? (A prior run may have died mid-embed.)
   let embCount = 0;
@@ -281,4 +310,4 @@ for (const abs of files) {
   cards++;
 }
 
-console.log(`\nDone. cards: ${cards} (skipped unchanged: ${skipped}), embeddings written: ${embeds}`);
+console.log(`\nDone. cards: ${cards} (skipped unchanged: ${skipped}, re-keyed: ${rekeyed}, duplicate files: ${dupes}), embeddings written: ${embeds}`);

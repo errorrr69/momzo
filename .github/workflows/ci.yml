@@ -59,6 +59,11 @@ jobs:
       - working-directory: supabase/tests
         run: npm install && npm test
 
+      # Corpus & citation integrity (Task 1c) — fails if any daily_assignments.card_id
+      # or ai_messages.cited_card_ids is dangling, or a published card has no embedding.
+      - working-directory: supabase/tests
+        run: npm run integrity
+
       # Deploy Edge Functions (Task 6+). Function secrets (DB_POOL_URL, etc.) are
       # set on the project via `supabase secrets set` — not in this workflow.
       - if: github.ref == 'refs/heads/main'

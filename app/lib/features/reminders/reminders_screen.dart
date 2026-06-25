@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_bottom_nav.dart';
+import '../../services/notification_service.dart';
 
 /// 25 · Reminders & quiet hours — the mom is always in control of when & how
-/// often. Tone is kind, never a guilt-trip.
+/// often. Tone is kind, never a guilt-trip (Hard Rule #18). Persists to her
+/// profile; the server dispatcher honours these (Task 20).
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
 
@@ -12,10 +15,61 @@ class RemindersScreen extends StatefulWidget {
   State<RemindersScreen> createState() => _RemindersScreenState();
 }
 
+const _slotToLabel = {'morning': 'Morning', 'noon': 'Noon', 'evening': 'Evening'};
+const _labelToSlot = {'Morning': 'morning', 'Noon': 'noon', 'Evening': 'evening'};
+
 class _RemindersScreenState extends State<RemindersScreen> {
   bool _dailyNudge = true;
   bool _whatsApp = false;
   String _bestTime = 'Morning';
+  int? _quietStart = 21;
+  int? _quietEnd = 7;
+
+  bool get _live => AppEnv.hasSupabase;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_live) _load();
+  }
+
+  Future<void> _load() async {
+    final p = await NotificationService.load();
+    if (!mounted) return;
+    setState(() {
+      _dailyNudge = p.dailyNudge;
+      _bestTime = _slotToLabel[p.nudgeSlot] ?? 'Morning';
+      _quietStart = p.quietStart;
+      _quietEnd = p.quietEnd;
+    });
+  }
+
+  String _fmtHour(int? h) {
+    if (h == null) return '—';
+    final am = h < 12;
+    final hr = h % 12 == 0 ? 12 : h % 12;
+    return '$hr:00 ${am ? 'AM' : 'PM'}';
+  }
+
+  Future<void> _editQuietHours() async {
+    final start = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: _quietStart ?? 21, minute: 0),
+      helpText: 'Quiet hours start',
+    );
+    if (start == null || !mounted) return;
+    final end = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: _quietEnd ?? 7, minute: 0),
+      helpText: 'Quiet hours end',
+    );
+    if (end == null) return;
+    setState(() {
+      _quietStart = start.hour;
+      _quietEnd = end.hour;
+    });
+    if (_live) NotificationService.save(quietStart: start.hour, quietEnd: end.hour);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,8 +104,10 @@ class _RemindersScreenState extends State<RemindersScreen> {
                       ],
                     ),
                   ),
-                  _toggle(_dailyNudge, MomzoColors.sage,
-                      () => setState(() => _dailyNudge = !_dailyNudge)),
+                  _toggle(_dailyNudge, MomzoColors.sage, () {
+                    setState(() => _dailyNudge = !_dailyNudge);
+                    if (_live) NotificationService.save(dailyNudge: _dailyNudge);
+                  }),
                 ],
               ),
             ),
@@ -76,25 +132,32 @@ class _RemindersScreenState extends State<RemindersScreen> {
               ),
             ),
             const SizedBox(height: 13),
-            _card(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Quiet hours',
-                            style: MomzoText.sans(15,
-                                color: MomzoColors.ink, weight: FontWeight.w800)),
-                        Text('9:00 PM – 7:30 AM · no pings',
-                            style: MomzoText.sans(12,
-                                color: MomzoColors.muted, weight: FontWeight.w700)),
-                      ],
+            GestureDetector(
+              onTap: _editQuietHours,
+              behavior: HitTestBehavior.opaque,
+              child: _card(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Quiet hours',
+                              style: MomzoText.sans(15,
+                                  color: MomzoColors.ink, weight: FontWeight.w800)),
+                          Text(
+                              (_quietStart == null || _quietEnd == null)
+                                  ? 'Off · tap to set'
+                                  : '${_fmtHour(_quietStart)} – ${_fmtHour(_quietEnd)} · no pings',
+                              style: MomzoText.sans(12,
+                                  color: MomzoColors.muted, weight: FontWeight.w700)),
+                        ],
+                      ),
                     ),
-                  ),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: MomzoColors.faint, size: 22),
-                ],
+                    const Icon(Icons.chevron_right_rounded,
+                        color: MomzoColors.faint, size: 22),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 13),
@@ -156,7 +219,10 @@ class _RemindersScreenState extends State<RemindersScreen> {
   Widget _timePill(String t) {
     final sel = t == _bestTime;
     return GestureDetector(
-      onTap: () => setState(() => _bestTime = t),
+      onTap: () {
+        setState(() => _bestTime = t);
+        if (_live) NotificationService.save(nudgeSlot: _labelToSlot[t]);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(

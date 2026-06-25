@@ -28,6 +28,11 @@ pool_mode = "transaction"
 # Real functions keep verify_jwt = true (the default) and require a valid JWT.
 verify_jwt = false
 
+[functions.send-due-reminders]
+# Invoked by pg_cron, not a user — authenticates via the x-cron-secret header
+# (CRON_SECRET) instead of a JWT.
+verify_jwt = false
+
 [auth]
 # Email + Google/Apple social login wired in Task 5.
 enable_signup = true

@@ -885,7 +885,7 @@
         "id": "20",
         "title": "[Phase 1] Gentle daily nudge + quiet hours (push)",
         "description": "A kind, non-shaming push nudge to read/do, scheduled via pg_cron -> send-due-reminders Edge Function, honoring quiet hours; idempotent.",
-        "status": "pending",
+        "status": "done",
         "priority": "high",
         "dependencies": [
           "7",
@@ -898,34 +898,38 @@
             "id": 1,
             "title": "send-due-reminders Edge Function + pg_cron schedule",
             "description": "Window query; FCM dispatch.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-25T11:06:48.993Z"
           },
           {
             "id": 2,
             "title": "Idempotency (sent_at) + quiet-hours/timezone honoring",
             "description": "Never double-send; never in quiet hours.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-25T11:06:48.999Z"
           },
           {
             "id": 3,
             "title": "Wire reminders_screen (quiet hours + frequency); tone pass",
             "description": "Non-shaming nudge copy.",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               1
             ],
             "details": "",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-06-25T11:06:49.004Z"
           }
-        ]
+        ],
+        "updatedAt": "2026-06-25T11:06:49.004Z"
       },
       {
         "id": "21",
@@ -1202,9 +1206,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-25T10:43:55.561Z",
+      "lastModified": "2026-06-25T11:06:49.004Z",
       "taskCount": 37,
-      "completedCount": 18,
+      "completedCount": 19,
       "tags": [
         "master"
       ]

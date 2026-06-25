@@ -59,8 +59,10 @@ class AuthService {
 
     final row = <String, dynamic>{
       'id': user.id,
-      // Best-effort starting timezone; the scheduling/quiet-hours work refines it.
+      // Timezone for scheduling. The numeric offset is what the reminder
+      // dispatcher uses for reliable local-time math (Task 20).
       'timezone': DateTime.now().timeZoneName,
+      'tz_offset_minutes': DateTime.now().timeZoneOffset.inMinutes,
     };
 
     // Seed a friendly default name from the email local part on first creation.

@@ -935,7 +935,7 @@
         "id": "21",
         "title": "[Phase 1] No-guilt/shame copy & tone review (cross-cutting)",
         "description": "Review ALL Phase 1 copy and notifications for tone: celebrate small wins, never shame a miss. Required before ship.",
-        "status": "pending",
+        "status": "done",
         "priority": "medium",
         "dependencies": [
           "13",
@@ -945,7 +945,8 @@
         ],
         "details": "Audit every user-facing string and every notification across daily card, activities, shared question, nudges, and AI responses. Enforce the tone rule: no streak-shaming, no guilt; celebrate small wins ('you connected 3 days this week'); never punish a miss.\nHard Rules: #18 no guilt/shame anywhere in copy or notifications.",
         "testStrategy": "A tone checklist passes across all Phase 1 surfaces; at least the nudge + recap + streak strings reviewed; sign-off recorded.",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-25T11:08:59.958Z"
       },
       {
         "id": "22",
@@ -1206,9 +1207,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-25T11:06:49.004Z",
+      "lastModified": "2026-06-25T11:08:59.958Z",
       "taskCount": 37,
-      "completedCount": 19,
+      "completedCount": 20,
       "tags": [
         "master"
       ]

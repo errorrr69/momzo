@@ -19,10 +19,15 @@ class MomzoBottomNav extends StatelessWidget {
         color: MomzoColors.white,
         border: Border(top: BorderSide(color: Color(0xFFF3E9DD))),
       ),
-      padding: const EdgeInsets.only(top: 10, bottom: 12, left: 6, right: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
+      // Pad above the system navigation bar so the tabs aren't hidden behind it.
+      child: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: 8),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 10, bottom: 8, left: 6, right: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
           _item(MomzoTab.home, 'Home', Icons.home_rounded, Icons.home_outlined),
           _item(MomzoTab.learn, 'Learn', Icons.menu_book_rounded,
               Icons.menu_book_outlined),
@@ -32,7 +37,9 @@ class MomzoBottomNav extends StatelessWidget {
               Icons.favorite_border_rounded),
           _item(MomzoTab.me, 'Me', Icons.person_rounded,
               Icons.person_outline_rounded),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

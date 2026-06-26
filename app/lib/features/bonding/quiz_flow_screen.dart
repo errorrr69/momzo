@@ -195,6 +195,8 @@ class _QuizFlowScreenState extends State<QuizFlowScreen> {
                   border: Border.all(color: MomzoColors.cardBorder, width: 1.5),
                 ),
                 child: TextField(
+                  // New key per question so autofocus re-fires (keyboard stays up).
+                  key: ValueKey('q_${_phase}_$_i'),
                   controller: _ctrl,
                   autofocus: true,
                   textCapitalization: TextCapitalization.sentences,

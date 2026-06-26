@@ -3,6 +3,7 @@ import '../../core/env/app_env.dart';
 import '../../core/supabase/supabase_init.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
+import '../../models/child.dart';
 import '../../models/daily_card.dart';
 import '../../services/auth_service.dart';
 import '../../services/child_service.dart';
@@ -10,6 +11,8 @@ import '../../services/daily_service.dart';
 import '../activities/activities_list_screen.dart';
 import '../ai/ai_home_screen.dart';
 import '../daily/daily_card_screen.dart';
+import '../onboarding/child_basics_screen.dart';
+import '../onboarding/edit_child_screen.dart';
 
 /// 06 · Home · Today — greeting, today's read, two quick actions.
 /// One hero, never cluttered.
@@ -44,7 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadContext() async {
     if (!AppEnv.hasSupabase) return;
     try {
-      final child = ChildService.current ?? await ChildService.loadMyChild();
+      // Ensure the full child list is loaded (for the switcher); keeps the active one.
+      if (ChildService.children.isEmpty) await ChildService.loadChildren();
+      final child = ChildService.current;
       String? parent;
       final uid = AuthService.currentUser?.id;
       if (uid != null) {
@@ -168,7 +173,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _childSwitcher() {
-    return Container(
+    return GestureDetector(
+      onTap: _openChildPicker,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
       padding: const EdgeInsets.fromLTRB(6, 5, 12, 5),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -195,6 +203,130 @@ class _HomeScreenState extends State<HomeScreen> {
           const Icon(Icons.keyboard_arrow_down_rounded,
               color: MomzoColors.faint, size: 18),
         ],
+      ),
+      ),
+    );
+  }
+
+  Future<void> _openChildPicker() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) {
+        final kids = ChildService.children;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: MomzoColors.cardBorder,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text('Your children', style: MomzoText.eyebrow()),
+                const SizedBox(height: 10),
+                for (final c in kids) _childRow(sheetCtx, c),
+                const SizedBox(height: 6),
+                _pickerAction(
+                  icon: Icons.edit_outlined,
+                  label: ChildService.current == null
+                      ? 'Edit profile'
+                      : "Edit ${ChildService.current!.name}'s profile",
+                  onTap: () {
+                    Navigator.pop(sheetCtx);
+                    final cur = ChildService.current;
+                    if (cur != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => EditChildScreen(child: cur)),
+                      );
+                    }
+                  },
+                ),
+                _pickerAction(
+                  icon: Icons.add_rounded,
+                  label: 'Add a child',
+                  accent: MomzoColors.coral,
+                  onTap: () {
+                    Navigator.pop(sheetCtx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ChildBasicsScreen(addAnother: true),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _childRow(BuildContext sheetCtx, Child c) {
+    final active = ChildService.current?.id == c.id;
+    return GestureDetector(
+      onTap: () {
+        ChildService.select(c); // notifier rebuilds the tabs for the new child
+        Navigator.pop(sheetCtx);
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: const BoxDecoration(
+                color: MomzoColors.honeyTint, shape: BoxShape.circle),
+              child: const Icon(Icons.face_rounded, color: MomzoColors.honey, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('${c.name}  ·  ${c.age}',
+                  style: MomzoText.sans(16,
+                      color: MomzoColors.ink, weight: FontWeight.w800)),
+            ),
+            if (active)
+              const Icon(Icons.check_circle_rounded, color: MomzoColors.coral, size: 22),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _pickerAction({
+    required IconData icon,
+    required String label,
+    Color accent = MomzoColors.muted,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Icon(icon, color: accent, size: 22),
+            const SizedBox(width: 12),
+            Text(label,
+                style: MomzoText.sans(15, color: accent, weight: FontWeight.w800)),
+          ],
+        ),
       ),
     );
   }

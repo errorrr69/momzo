@@ -6,7 +6,10 @@ import 'child_temperament_screen.dart';
 
 /// 03 · About your child — name, photo, age. Step 1 of 3.
 class ChildBasicsScreen extends StatefulWidget {
-  const ChildBasicsScreen({super.key});
+  /// When true this is "add another child" (from the home switcher), not first-run
+  /// onboarding — so it saves and returns to the app instead of the all-set screen.
+  final bool addAnother;
+  const ChildBasicsScreen({super.key, this.addAnother = false});
 
   @override
   State<ChildBasicsScreen> createState() => _ChildBasicsScreenState();
@@ -14,7 +17,8 @@ class ChildBasicsScreen extends StatefulWidget {
 
 class _ChildBasicsScreenState extends State<ChildBasicsScreen> {
   int _age = 8;
-  final _name = TextEditingController(text: 'Aarav');
+  late final _name =
+      TextEditingController(text: widget.addAnother ? '' : 'Aarav');
 
   @override
   void dispose() {
@@ -134,6 +138,7 @@ class _ChildBasicsScreenState extends State<ChildBasicsScreen> {
                       builder: (_) => ChildTemperamentScreen(
                         childName: _name.text.trim(),
                         childAge: _age,
+                        addAnother: widget.addAnother,
                       ),
                     ),
                   );

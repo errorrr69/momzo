@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/widgets/momzo_bottom_nav.dart';
+import '../../models/child.dart';
+import '../../services/child_service.dart';
 import '../ai/ai_home_screen.dart';
 import '../bonding/together_hub_screen.dart';
 import '../daily/library_screen.dart';
@@ -25,15 +27,24 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _index,
-        children: const [
-          HomeScreen(),
-          LibraryScreen(),
-          AiHomeScreen(),
-          TogetherHubScreen(),
-          RemindersScreen(),
-        ],
+      // Rebuild the child-scoped tabs when the active child changes: keying each by
+      // the child id gives them a fresh State so they reload for the new child
+      // (Task 23). The "Me" tab is account-level, so it stays stable.
+      body: ValueListenableBuilder<Child?>(
+        valueListenable: ChildService.currentChild,
+        builder: (context, child, _) {
+          final k = child?.id ?? 'none';
+          return IndexedStack(
+            index: _index,
+            children: [
+              HomeScreen(key: ValueKey('home_$k')),
+              LibraryScreen(key: ValueKey('library_$k')),
+              AiHomeScreen(key: ValueKey('ask_$k')),
+              TogetherHubScreen(key: ValueKey('together_$k')),
+              const RemindersScreen(),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: MomzoBottomNav(
         _tabs[_index],

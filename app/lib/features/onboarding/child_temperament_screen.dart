@@ -12,10 +12,13 @@ import 'all_set_screen.dart';
 class ChildTemperamentScreen extends StatefulWidget {
   final String childName;
   final int childAge;
+  /// "Add another child" flow (vs first-run onboarding) — see ChildBasicsScreen.
+  final bool addAnother;
   const ChildTemperamentScreen({
     super.key,
     required this.childName,
     this.childAge = 8,
+    this.addAnother = false,
   });
 
   @override
@@ -37,7 +40,7 @@ class _ChildTemperamentScreenState extends State<ChildTemperamentScreen> {
     if (_busy) return;
     // UI-only preview mode: no backend to write to — just continue.
     if (!AppEnv.hasSupabase) {
-      _goToAllSet();
+      _done();
       return;
     }
     setState(() => _busy = true);
@@ -48,7 +51,7 @@ class _ChildTemperamentScreenState extends State<ChildTemperamentScreen> {
         temperament: _selTemp.toList(),
         struggles: _selStr.toList(),
       );
-      _goToAllSet();
+      _done();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -59,12 +62,18 @@ class _ChildTemperamentScreenState extends State<ChildTemperamentScreen> {
     }
   }
 
-  void _goToAllSet() {
+  void _done() {
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => AllSetScreen(childName: widget.childName)),
-    );
+    // Adding another child returns to the app (the new child is now active);
+    // first-run onboarding goes to the warm "all set" hand-off.
+    if (widget.addAnother) {
+      Navigator.of(context).popUntil((r) => r.isFirst);
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => AllSetScreen(childName: widget.childName)),
+      );
+    }
   }
 
   @override

@@ -170,6 +170,21 @@ for (const table of TABLES) {
   });
 }
 
+// Multi-child isolation (Task 23): a parent can own >1 child; the second child must
+// follow the same owner-scoped RLS — visible to its parent, invisible to other families.
+test('multi-child: a parent sees all their own children; another family sees none', async () => {
+  const extraId = randomUUID();
+  await ins('children', { id: extraId, owner_id: families.A.id, name: 'Kid A2', age: 9 });
+
+  const mine = await families.A.client.from('children').select('id').eq('owner_id', families.A.id);
+  assert.ifError(mine.error);
+  assert.ok(mine.data.length >= 2, `family A should see >=2 of its own children, saw ${mine.data.length}`);
+
+  const theirs = await families.B.client.from('children').select('id').in('id', [families.A.rows.children, extraId]);
+  assert.ifError(theirs.error);
+  assert.equal(theirs.data.length, 0, 'LEAK: family B can see family A children');
+});
+
 // Coverage guard: any public table with an owner_id/user_id column must be tested above.
 test('coverage: every family table is covered by an RLS test', async () => {
   const client = new pg.Client({

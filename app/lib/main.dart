@@ -28,6 +28,7 @@ Future<void> main() async {
     (o) {
       o.dsn = AppEnv.sentryDsn;
       o.environment = AppEnv.sentryEnv;
+      o.debug = AppEnv.sentryTest; // verbose SDK logging only during the boot self-test
       o.sendDefaultPii = false; // no device/user identifiers (COPPA, Hard Rule #10)
       o.tracesSampleRate = 0.0;
       o.beforeSend = (event, hint) {

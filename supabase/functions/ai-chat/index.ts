@@ -1,6 +1,7 @@
 import { corsHeaders } from '../_shared/cors.ts';
 import { db } from '../_shared/db.ts';
 import { log } from '../_shared/log.ts';
+import { captureError } from '../_shared/sentry.ts';
 import { getUser } from '../_shared/auth.ts';
 import {
   embedQuery, mistralChat, referOutReason, REFER_OUT_MESSAGE,
@@ -164,6 +165,7 @@ Deno.serve(async (req) => {
     return json(200, { ok: true, conversation_id: conversationId, answer, citations: topCitations, flagged: null, model });
   } catch (e) {
     log.error('ai_chat_error', { duration_ms: Date.now() - startedAt, message: String(e) });
+    captureError(e, { fn: 'ai-chat' });
     return json(500, { ok: false });
   }
 });

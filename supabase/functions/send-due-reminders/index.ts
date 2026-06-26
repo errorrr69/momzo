@@ -2,6 +2,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { db } from '../_shared/db.ts';
 import { log } from '../_shared/log.ts';
 import { loadServiceAccount, getAccessToken, sendToToken } from '../_shared/fcm.ts';
+import { captureError } from '../_shared/sentry.ts';
 
 // send-due-reminders (Task 20): invoked by pg_cron every ~15 min. Two jobs:
 //   1. generate + send the gentle daily nudge for opted-in users at their slot
@@ -99,6 +100,7 @@ Deno.serve(async (req) => {
     return json(200, { ok: true, nudges, reminders });
   } catch (e) {
     log.error('reminders_error', { duration_ms: Date.now() - startedAt, message: String(e) });
+    captureError(e, { fn: 'send-due-reminders' });
     return json(500, { ok: false });
   }
 });

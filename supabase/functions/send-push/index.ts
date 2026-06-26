@@ -3,6 +3,7 @@ import { db } from '../_shared/db.ts';
 import { log } from '../_shared/log.ts';
 import { getUser } from '../_shared/auth.ts';
 import { loadServiceAccount, getAccessToken, sendToToken } from '../_shared/fcm.ts';
+import { captureError } from '../_shared/sentry.ts';
 
 // send-push (Task 7): sends a push to the AUTHENTICATED user's own devices. This
 // is the test/sender path; the scheduled reminder dispatcher (Task 20) reuses the
@@ -48,6 +49,7 @@ Deno.serve(async (req) => {
     return json(200, { ok: true, sent, failed: tokens.length - sent, pruned: dead.length });
   } catch (e) {
     log.error('send_push_error', { duration_ms: Date.now() - startedAt, message: String(e) });
+    captureError(e, { fn: 'send-push' });
     return json(500, { ok: false });
   }
 });

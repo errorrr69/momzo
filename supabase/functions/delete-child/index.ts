@@ -3,6 +3,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { db } from '../_shared/db.ts';
 import { log } from '../_shared/log.ts';
 import { getUser } from '../_shared/auth.ts';
+import { captureError } from '../_shared/sentry.ts';
 
 // Delete a child profile and ALL associated data (Task 10, Hard Rule #17 — COPPA
 // right to erasure). Server-side so it's reliable and auditable; the DB work runs
@@ -72,6 +73,7 @@ Deno.serve(async (req) => {
     return json(200, { ok: true, photos_removed: storageRemoved });
   } catch (e) {
     log.error('delete_child_error', { duration_ms: Date.now() - startedAt, message: String(e) });
+    captureError(e, { fn: 'delete-child' });
     return json(500, { ok: false });
   }
 });

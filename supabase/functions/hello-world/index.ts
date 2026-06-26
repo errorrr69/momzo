@@ -2,6 +2,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { db } from '../_shared/db.ts';
 import { log } from '../_shared/log.ts';
 import { getUser } from '../_shared/auth.ts';
+import { captureError } from '../_shared/sentry.ts';
 
 // Template Edge Function (Task 6). Every later function — ai-chat, send-due-
 // reminders, whatsapp-send — copies this shape:
@@ -18,6 +19,11 @@ Deno.serve(async (req) => {
 
   const startedAt = Date.now();
   try {
+    // Observability self-test (Task 4): GET ?boom=1 throws so we can confirm the
+    // error reaches Sentry. No auth needed; carries no PII.
+    if (new URL(req.url).searchParams.get('boom')) {
+      throw new Error('Sentry test error — hello-world ?boom=1');
+    }
     // Prove the pooled DB path works: a trivial round-trip through 6543.
     const sql = db();
     const [{ now }] = await sql`select now() as now`;
@@ -38,6 +44,7 @@ Deno.serve(async (req) => {
       duration_ms: Date.now() - startedAt,
       message: String(e), // internal error text only — no user data
     });
+    captureError(e, { fn: 'hello-world' });
     return new Response(JSON.stringify({ ok: false }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

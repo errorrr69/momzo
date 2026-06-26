@@ -7,6 +7,7 @@ import '../../core/widgets/why_it_matters.dart';
 import '../../models/daily_card.dart';
 import '../../services/child_service.dart';
 import '../../services/daily_service.dart';
+import '../../services/library_service.dart';
 import 'daily_slides_screen.dart';
 
 /// 07 · Daily card · read — micro-read with the signature "why it matters".
@@ -25,6 +26,8 @@ class _DailyCardScreenState extends State<DailyCardScreen> {
   DailyCard? _card;
   bool _loading = true;
   bool _marking = false;
+  bool _saved = false;
+  bool _savingBookmark = false;
 
   @override
   void initState() {
@@ -40,13 +43,34 @@ class _DailyCardScreenState extends State<DailyCardScreen> {
     }
     try {
       final card = await DailyService.todaysCard(child);
+      final saved = card == null
+          ? <String>{}
+          : await LibraryService.savedCardIds();
       if (!mounted) return;
       setState(() {
         _card = card;
+        _saved = card != null && saved.contains(card.cardId);
         _loading = false;
       });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _toggleSaved() async {
+    final card = _card;
+    if (card == null || _savingBookmark) return;
+    setState(() {
+      _savingBookmark = true;
+      _saved = !_saved; // optimistic
+    });
+    try {
+      final now = await LibraryService.toggleSaved(card.cardId);
+      if (mounted) setState(() => _saved = now);
+    } catch (_) {
+      if (mounted) setState(() => _saved = !_saved); // revert
+    } finally {
+      if (mounted) setState(() => _savingBookmark = false);
     }
   }
 
@@ -106,7 +130,8 @@ class _DailyCardScreenState extends State<DailyCardScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _circleBtn(Icons.arrow_back_ios_new_rounded, onTap: () => Navigator.pop(context)),
-                  _circleBtn(Icons.bookmark_border_rounded),
+                  _circleBtn(_saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                      onTap: _card == null ? null : _toggleSaved),
                 ],
               ),
             ),
@@ -164,7 +189,7 @@ class _DailyCardScreenState extends State<DailyCardScreen> {
               ),
               child: Row(
                 children: [
-                  _squareBtn(Icons.bookmark_border_rounded),
+                  _squareBtn(),
                   const SizedBox(width: 12),
                   Expanded(
                     child: MomzoButton.confirm(
@@ -229,16 +254,20 @@ class _DailyCardScreenState extends State<DailyCardScreen> {
     );
   }
 
-  Widget _squareBtn(IconData icon) {
-    return Container(
-      width: 46,
-      height: 46,
-      decoration: BoxDecoration(
-        color: MomzoColors.cream,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: MomzoColors.cardBorder, width: 1.5),
+  Widget _squareBtn() {
+    return GestureDetector(
+      onTap: _card == null ? null : _toggleSaved,
+      child: Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          color: _saved ? MomzoColors.coralTint : MomzoColors.cream,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: MomzoColors.cardBorder, width: 1.5),
+        ),
+        child: Icon(_saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+            size: 20, color: MomzoColors.coral),
       ),
-      child: const Icon(Icons.bookmark_border_rounded, size: 20, color: MomzoColors.coral),
     );
   }
 }

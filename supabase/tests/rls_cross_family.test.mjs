@@ -34,7 +34,7 @@ const g = {
 // (users is keyed by the parent's own id; the rest by a seeded row id.)
 const TABLES = [
   'users', 'consents', 'children', 'daily_assignments', 'activity_logs',
-  'ai_conversations', 'ai_messages', 'question_responses', 'wishes',
+  'ai_conversations', 'ai_messages', 'ai_usage', 'question_responses', 'wishes',
   'scheduled_events', 'reminders', 'milestones', 'family_members', 'device_tokens',
 ];
 
@@ -60,6 +60,7 @@ async function seedFamily(key) {
     activity_logs: randomUUID(),
     ai_conversations: randomUUID(),
     ai_messages: randomUUID(),
+    ai_usage: randomUUID(),
     question_responses: randomUUID(),
     wishes: randomUUID(),
     scheduled_events: randomUUID(),
@@ -77,6 +78,7 @@ async function seedFamily(key) {
   await ins('activity_logs', { id: f.rows.activity_logs, owner_id: owner, child_id: childId, activity_id: g.activityId, user_id: owner });
   await ins('ai_conversations', { id: f.rows.ai_conversations, user_id: owner, mode: 'qa' });
   await ins('ai_messages', { id: f.rows.ai_messages, owner_id: owner, conversation_id: f.rows.ai_conversations, role: 'user', content: 'hi' });
+  await ins('ai_usage', { id: f.rows.ai_usage, owner_id: owner, conversation_id: f.rows.ai_conversations, mode: 'qa', model: 'mistral-small-latest' });
   await ins('question_responses', { id: f.rows.question_responses, owner_id: owner, question_id: g.questionId, child_id: childId, respondent: 'parent', answer: { v: 'yes' } });
   await ins('wishes', { id: f.rows.wishes, owner_id: owner, child_id: childId, text: 'play' });
   await ins('scheduled_events', { id: f.rows.scheduled_events, owner_id: owner, child_id: childId, title: 'Park', starts_at: now });

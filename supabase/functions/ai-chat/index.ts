@@ -138,6 +138,17 @@ Deno.serve(async (req) => {
 
     await persist(sql, user.id, conversationId!, question, answer, topCitations.map((c) => c.card_id), null);
 
+    // Cost telemetry to ai_usage (Task 4) — PII-free; non-fatal so a metrics write
+    // can never fail a user's answer. Feeds the ai_cost_summary view.
+    try {
+      await sql`
+        insert into ai_usage (owner_id, conversation_id, mode, model, escalated, prompt_tokens, completion_tokens)
+        values (${user.id}, ${conversationId}, ${mode}, ${model}, ${escalate},
+                ${usage?.prompt_tokens ?? null}, ${usage?.completion_tokens ?? null})`;
+    } catch (e) {
+      log.warn('ai_usage_insert_failed', { message: String(e) });
+    }
+
     // Cost-dashboard feed (Task 8): model + token usage, no PII.
     log.info('ai_chat_ok', {
       mode,

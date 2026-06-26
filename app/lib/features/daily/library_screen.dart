@@ -211,7 +211,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => CardListScreen(topicLabel: g.label, tags: g.tags),
+          builder: (_) => CardListScreen(
+              topicLabel: g.label, tags: g.tags, emoji: g.emoji, intro: g.intro),
         ),
       ),
       child: Container(

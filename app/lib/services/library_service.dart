@@ -14,14 +14,16 @@ class LibraryService {
   /// (the Learn tab is kept alive in the shell, so it won't rebuild on its own).
   static final ValueNotifier<int> savedRevision = ValueNotifier<int>(0);
 
-  /// Curated topic groups (display label -> the card tags they cover).
-  static const List<({String label, List<String> tags})> topicGroups = [
-    (label: 'Big emotions', tags: ['emotional', 'feelings']),
-    (label: 'Behaviour', tags: ['behavior', 'self-control', 'discipline']),
-    (label: 'Milestones', tags: ['milestones', 'development']),
-    (label: 'Screen time', tags: ['screen-time', 'digital']),
-    (label: 'Reading', tags: ['reading', 'literacy']),
-    (label: 'Temperament', tags: ['temperament']),
+  /// Curated topic groups (display label -> the card tags they cover, + an emoji
+  /// and a short intro phrase for the category page).
+  static const List<({String label, List<String> tags, String emoji, String intro})>
+      topicGroups = [
+    (label: 'Big emotions', tags: ['emotional', 'feelings'], emoji: '😣', intro: 'riding big feelings'),
+    (label: 'Behaviour', tags: ['behavior', 'self-control', 'discipline'], emoji: '🧩', intro: 'gentle limits & cooperation'),
+    (label: 'Milestones', tags: ['milestones', 'development'], emoji: '🌱', intro: 'how they grow'),
+    (label: 'Screen time', tags: ['screen-time', 'digital'], emoji: '📱', intro: 'healthy screen habits'),
+    (label: 'Reading', tags: ['reading', 'literacy'], emoji: '📚', intro: 'a love of reading'),
+    (label: 'Temperament', tags: ['temperament'], emoji: '🌈', intro: 'their unique nature'),
   ];
 
   /// The set of card ids the parent has saved (for bookmark state).
@@ -55,7 +57,7 @@ class LibraryService {
     if (AuthService.currentUser == null) return [];
     final rows = await supabase
         .from('saved_cards')
-        .select('content_cards(id,title,body,tags,why_it_matters,source)')
+        .select('content_cards(id,title,body,tags,why_it_matters,source,hook,quick_points,try_this)')
         .order('created_at', ascending: false);
     return [
       for (final r in rows as List)
@@ -82,7 +84,7 @@ class LibraryService {
   static Future<List<ContentCard>> cardsByTags(List<String> tags) async {
     final rows = await supabase
         .from('content_cards')
-        .select('id,title,body,tags,why_it_matters,source')
+        .select('id,title,body,tags,why_it_matters,source,hook,quick_points,try_this')
         .eq('published', true)
         .overlaps('tags', tags)
         .order('title');

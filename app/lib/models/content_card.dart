@@ -8,6 +8,10 @@ class ContentCard {
   final List<String> tags;
   final String? whyItMatters;
   final String? source;
+  // "Quick read" structured fields (Learn redesign) — may be empty for old cards.
+  final String? hook;
+  final List<String> quickPoints;
+  final String? tryThis;
 
   const ContentCard({
     required this.id,
@@ -16,6 +20,9 @@ class ContentCard {
     this.tags = const [],
     this.whyItMatters,
     this.source,
+    this.hook,
+    this.quickPoints = const [],
+    this.tryThis,
   });
 
   factory ContentCard.fromMap(Map<String, dynamic> m) => ContentCard(
@@ -25,7 +32,13 @@ class ContentCard {
         tags: List<String>.from(m['tags'] ?? const <String>[]),
         whyItMatters: m['why_it_matters'] as String?,
         source: m['source'] as String?,
+        hook: m['hook'] as String?,
+        quickPoints: List<String>.from(m['quick_points'] ?? const <String>[]),
+        tryThis: m['try_this'] as String?,
       );
+
+  bool get hasQuickRead =>
+      (hook?.isNotEmpty ?? false) && quickPoints.length >= 3;
 
   /// Rough read time at ~200 wpm, clamped to a sensible range.
   int get readMinutes {

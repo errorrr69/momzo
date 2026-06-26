@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'core/env/app_env.dart';
 import 'core/push/push_service.dart';
@@ -16,7 +17,37 @@ Future<void> main() async {
   if (connected) AuthService.startProfileSync();
   // FCM registration (Task 7) — best-effort; no-ops where push can't run.
   await PushService.init();
-  runApp(const MomzoApp());
+
+  // Crash/error reporting (Task 4). Disabled if no DSN. PII-scrubbed: we never
+  // attach user/device identity, and beforeSend strips user/request payloads.
+  if (!AppEnv.hasSentry) {
+    runApp(const MomzoApp());
+    return;
+  }
+  await SentryFlutter.init(
+    (o) {
+      o.dsn = AppEnv.sentryDsn;
+      o.environment = AppEnv.sentryEnv;
+      o.sendDefaultPii = false; // no device/user identifiers (COPPA, Hard Rule #10)
+      o.tracesSampleRate = 0.0;
+      o.beforeSend = (event, hint) {
+        // PII scrub (COPPA, Hard Rule #10): never ship user/request payloads.
+        event.user = null;
+        event.request = null;
+        return event;
+      };
+    },
+    appRunner: () {
+      // One-shot delivery self-test when built with --dart-define=SENTRY_TEST=true.
+      if (AppEnv.sentryTest) {
+        Sentry.captureException(
+          Exception('Sentry test error — Momzo app boot'),
+          stackTrace: StackTrace.current,
+        );
+      }
+      runApp(const MomzoApp());
+    },
+  );
 }
 
 class MomzoApp extends StatelessWidget {

@@ -25,4 +25,19 @@ class AppEnv {
   /// then the app runs in UI-only (mock) mode — useful for the screen gallery.
   static bool get hasSupabase =>
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+
+  /// Sentry DSN (Task 4, observability). Not a data-access secret — it only allows
+  /// sending crash events. Empty -> Sentry stays disabled.
+  static const String sentryDsn =
+      String.fromEnvironment('SENTRY_DSN', defaultValue: '');
+
+  /// Sentry environment tag (e.g. production / staging).
+  static const String sentryEnv =
+      String.fromEnvironment('SENTRY_ENV', defaultValue: 'production');
+
+  /// When true, capture a deliberate test error at boot to verify Sentry delivery.
+  static const bool sentryTest =
+      bool.fromEnvironment('SENTRY_TEST', defaultValue: false);
+
+  static bool get hasSentry => sentryDsn.isNotEmpty;
 }

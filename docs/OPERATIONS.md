@@ -88,3 +88,50 @@ outage. (Plan stays Free until then.)
 
 **Likely order Momzo hits them:** database size → Edge Function invocations → egress.
 Watch those three on the Supabase dashboard monthly.
+
+---
+
+## 4. Observability (Task 4)
+
+### Error reporting — Sentry (PII-scrubbed)
+- **App:** `sentry_flutter`, initialized in `main.dart`. `sendDefaultPii = false` and a
+  `beforeSend` that nulls `user`/`request`. Disabled if `SENTRY_DSN` is unset.
+- **Edge Functions:** `_shared/sentry.ts` (`captureError`) wired into every function's
+  catch. `beforeSend` drops `request`/`user`/`extra`. No-op without `SENTRY_DSN`.
+- **No child data leaves the app/functions** — only the error + non-PII tags (e.g. `fn`).
+- **Verify delivery:**
+  - Function: `GET /functions/v1/hello-world?boom=1` (with the anon `apikey`) → HTTP 500 → a
+    `hello-world ?boom=1` event appears in Sentry.
+  - App: build once with `--dart-define=SENTRY_TEST=true` → a `Momzo app boot` event appears.
+- **Secrets:** function secret `SENTRY_DSN` (`supabase secrets set`); app reads it from
+  `env.json` at build time (git-ignored).
+
+### Slow queries — pg_stat_statements
+Enabled (extension in the `extensions` schema). To find the worst offenders, query as
+service role (SQL editor / `psql`):
+
+```sql
+select round(mean_exec_time::numeric, 2) as avg_ms,
+       calls,
+       round(total_exec_time::numeric, 2) as total_ms,
+       query
+from extensions.pg_stat_statements
+order by mean_exec_time desc
+limit 20;
+
+-- reset the stats window after investigating:
+select extensions.pg_stat_statements_reset();
+```
+Watch for any policy-filtered column without an index (every RLS column should be indexed —
+Hard Rule #3) and any sequential scan on a growing family table.
+
+### AI cost — `ai_cost_summary` view
+Per-day, per-model token + estimated-USD rollup, fed by the `ai_usage` table (one PII-free row
+per AI turn). Query as service role:
+
+```sql
+select * from public.ai_cost_summary;            -- daily $ by model
+select sum(est_cost_usd) from public.ai_cost_summary
+  where day >= date_trunc('month', now());        -- month-to-date spend
+```
+Target: **< $0.10 / active user / month** (see `AI_COST_AND_PRIVACY.md`).

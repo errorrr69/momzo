@@ -5,7 +5,7 @@ import '../../core/theme/momzo_text.dart';
 import '../../services/child_service.dart';
 import '../../services/question_service.dart';
 import 'daily_question_screen.dart';
-import 'quiz_match_screen.dart';
+import 'quiz_flow_screen.dart';
 import '../wishes/wish_wall_screen.dart';
 
 /// 17 · Together · hub — small ways to feel close, the child's voice included.
@@ -129,7 +129,7 @@ class _TogetherHubScreenState extends State<TogetherHubScreen> {
                 sub: 'The flagship match-up quiz',
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const QuizMatchScreen()),
+                  MaterialPageRoute(builder: (_) => const QuizFlowScreen()),
                 ),
               ),
               const SizedBox(height: 12),

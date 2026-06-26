@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../core/supabase/supabase_init.dart';
 import '../models/content_card.dart';
 import 'auth_service.dart';
@@ -7,6 +9,10 @@ import 'auth_service.dart';
 /// `content_cards` (published only — Hard Rule #6).
 class LibraryService {
   const LibraryService._();
+
+  /// Bumps whenever a bookmark is toggled, so any visible library view can refresh
+  /// (the Learn tab is kept alive in the shell, so it won't rebuild on its own).
+  static final ValueNotifier<int> savedRevision = ValueNotifier<int>(0);
 
   /// Curated topic groups (display label -> the card tags they cover).
   static const List<({String label, List<String> tags})> topicGroups = [
@@ -36,9 +42,11 @@ class LibraryService {
         .maybeSingle();
     if (existing != null) {
       await supabase.from('saved_cards').delete().eq('card_id', cardId);
+      savedRevision.value++;
       return false;
     }
     await supabase.from('saved_cards').insert({'owner_id': uid, 'card_id': cardId});
+    savedRevision.value++;
     return true;
   }
 

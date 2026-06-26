@@ -35,6 +35,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
   void initState() {
     super.initState();
     if (AppEnv.hasSupabase) _load();
+    LibraryService.savedRevision.addListener(_onSavedChanged);
+  }
+
+  @override
+  void dispose() {
+    LibraryService.savedRevision.removeListener(_onSavedChanged);
+    super.dispose();
+  }
+
+  void _onSavedChanged() {
+    if (mounted && AppEnv.hasSupabase) _load();
   }
 
   Future<void> _load() async {

@@ -307,8 +307,15 @@ class _CardReaderScreenState extends State<CardReaderScreen> {
           .replaceAll(RegExp(r'[*_`]'), '')
           .replaceAll(RegExp(r'\s+'), ' ')
           .trim();
+      // Drop source/CMS noise (bylines, SharePoint placeholders, links).
+      p = p
+          .replaceAll(RegExp(r'click here to insert a picture[^.]*\.?', caseSensitive: false), '')
+          .replaceAll(RegExp(r'\bBy:?\s+[A-Z][^.]{0,80}(MD|FAAP|PhD|author)[^.]*\.?'), '')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
       if (p.length < 24) continue;
-      if (RegExp(r'^(by |click here|http)', caseSensitive: false).hasMatch(p)) continue;
+      if (RegExp(r'^(by[: ]|http|sharepoint)', caseSensitive: false).hasMatch(p)) continue;
+      if (RegExp(r'sharepoint|insert a picture', caseSensitive: false).hasMatch(p)) continue;
       out.add(p);
       if (out.length >= 12) break;
     }

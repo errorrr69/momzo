@@ -137,9 +137,8 @@ class _TogetherHubScreenState extends State<TogetherHubScreen> {
                 context,
                 emoji: '⭐',
                 colors: const [Color(0xFFFAD9A6), MomzoColors.honey],
-                title: "Aarav's Wish Wall",
-                sub: '2 new wishes to plan',
-                badge: '2',
+                title: "$_childName's Wish Wall",
+                sub: 'Kid mode — their wishes for time with you',
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const WishWallScreen()),

@@ -34,18 +34,28 @@
 | Backend platform | **Supabase** | Managed Postgres + Auth + Storage + Realtime + Edge Functions + `pg_cron` + pgvector in one place. One founder can run it; it scales to 100k+ users if the rules below are followed. |
 | DB | **PostgreSQL 15+** (via Supabase) | Relational data with strong integrity; RLS gives database-level security so the mobile client can talk to the DB directly and *safely*. |
 | Server logic | **Supabase Edge Functions (Deno + TypeScript)** | Stateless, horizontally scalable, hold all secrets. Everything sensitive (LLM, WhatsApp) runs here. |
-| AI default | **Gemini 3.5 Flash** | Cheap + fast; ideal for a RAG chat + short situational scripts. You already use Gemini elsewhere. |
-| AI escalation | A stronger mid model (Claude Sonnet-class / GPT-mid) | Only for sensitive/low-confidence queries. Routed, so 90%+ of traffic stays cheap. |
-| Embeddings / RAG | **pgvector** in Supabase | Keeps the knowledge base + vectors in the same DB; no extra vector service to run. |
+| AI generation (default) | **Mistral Small** (`mistral-small-latest`) | **Chosen stack.** Cheap + fast for RAG chat + short situational scripts. Paid La Plateforme API ⇒ prompts not used for training. ~1–2¢/active user/mo (see `AI_COST_AND_PRIVACY.md`). |
+| AI generation (escalation) | **Mistral Medium** (`mistral-medium-latest`) | Only for sensitive/low-confidence queries. Routed, so most traffic stays on Small. |
+| AI embeddings | **Google Gemini** `gemini-embedding-001` (768-dim) | **Chosen stack.** Used only for embeddings (query + corpus); generation runs on Mistral. |
+| Embeddings / RAG store | **pgvector** in Supabase | Keeps the knowledge base + vectors in the same DB; no extra vector service to run. |
 | Push | **Firebase Cloud Messaging** | Free, reliable, native Flutter support. Primary reminder channel. |
 | WhatsApp | **WhatsApp Cloud API** (utility templates) | The differentiator; cheap when categorized as utility. Add in Phase 2. |
 | Scheduling | **`pg_cron` → Edge Function** | Built into Supabase; no separate scheduler infra. |
 | Crash/error reporting | **Sentry** (Flutter + Edge Functions) | Catch issues before users report them. |
 | Hosting | Supabase (backend); App/Play stores (app); Vercel (optional landing page) | |
 
-**On the paid tier:** launch on **Supabase Pro, not Free.** Free projects pause on
-inactivity and lack the daily backups + connection headroom you need in production.
-This is the single cheapest insurance against an embarrassing outage.
+**Running on Supabase Free (current decision):** we stay on **Free** for now and
+engineer around its two real limits instead of upgrading:
+- **No managed backups →** an automated daily `pg_dump` to off-platform storage
+  (GitHub Actions, 14-day retention) with a documented restore.
+- **Projects pause on inactivity →** a scheduled keep-warm ping (mitigation, not a
+  guarantee).
+- **Upgrade deliberately**, not after an outage — see the documented ceilings +
+  "when to upgrade" triggers (first to watch: DB size → Edge Function invocations →
+  egress).
+
+Full runbook: [`OPERATIONS.md`](OPERATIONS.md). _(Pre-launch, revisit Pro once real
+family data is live and a ≤24h backup window or PITR is required.)_
 
 ---
 

@@ -11,7 +11,7 @@ in Taskmaster (`.taskmaster/`).
 ## Status at a glance
 
 - **20 of 37 planned tasks done.**
-- **Phase 0 (foundation): 8 / 10** — only Sentry (#8) and the ship-readiness gate are outstanding.
+- **Phase 0 (foundation): 9 / 10** — Sentry/observability (#8) now done; only the ship-readiness gate (#22) outstanding.
 - **Phase 1 (core loop): complete** except #22 (pre-launch checklist).
 - The full product runs **on a real Android device** (verified end-to-end, incl. push).
 - Everything below is committed to git; secrets are git-ignored.
@@ -81,23 +81,42 @@ transaction pooler. The app never holds a service_role / LLM / FCM key.
 
 ---
 
+## Hardening pass (2026-06-26)
+
+A dedicated hardening pass addressed the highest-risk pre-launch items:
+- **✅ Task 1 — Corpus & citation integrity:** self-healing, idempotent re-seed;
+  deduped (66 cards / 780 embeddings); permanent integrity check wired into CI.
+- **✅ Task 2 — Survive Supabase Free:** automated daily off-platform `pg_dump`
+  backup (verified) + keep-warm + documented restore & upgrade triggers
+  ([`OPERATIONS.md`](OPERATIONS.md)).
+- **✅ Task 4 — Observability:** Sentry in app + functions (PII-scrubbed, IP nulled —
+  both test events verified in `momzo-app`); `pg_stat_statements`; `ai_cost_summary`
+  view (verified).
+- **✅ Task 5 — Mistral cost/training:** ~1–2¢/user/mo (< $0.10 target); paid API not
+  trained on; no child identifier reaches the LLM ([`AI_COST_AND_PRIVACY.md`](AI_COST_AND_PRIVACY.md)).
+- **✅ Task 6 — Privacy/consent (US/COPPA):** draft policy + verifiable-consent plan
+  ([`legal/PRIVACY_POLICY_DRAFT.md`](legal/PRIVACY_POLICY_DRAFT.md), [`legal/CONSENT_PLAN.md`](legal/CONSENT_PLAN.md)).
+- Repo now lives on GitHub (private) with CI running (app analyze + RLS + integrity).
+
 ## Known caveats & pre-launch blockers
 
-These are deliberately deferred and **must be addressed before real users**:
-- **Email auth** runs with auto-confirm ON (dev convenience) — re-enable real email confirmation + SMTP.
-- **COPPA consent** is `parent_attestation` only — upgrade to true verifiable parental consent (card/ID/etc.) for a US launch.
-- **Privacy policy** copy is a placeholder — needs the real, lawyer-reviewed policy.
-- **Backups** — Free tier has none; add a backup strategy (or upgrade) before storing real family data.
-- **Gemini key** has `generateContent` quota = 0 (why generation runs on Mistral); embeddings are unaffected.
-- **AI training caveat** — confirm the AI provider tier doesn't train on prompts, or strip child identifiers, before launch (child name is already never sent to the LLM).
+Still open, **must be addressed before real users**:
+- **Email auth** runs with auto-confirm ON — re-enable real confirmation **or** make
+  **Google sign-in** the primary login (recommended; already coded). _(Task 3, deferred.)_
+- **COPPA verifiable consent** — still `parent_attestation`; the upgrade is **planned
+  but not built** (see `legal/CONSENT_PLAN.md`). Required for a US launch.
+- **Privacy policy** is now a **DRAFT** (`legal/PRIVACY_POLICY_DRAFT.md`) — needs
+  lawyer review + publishing.
+- **Gemini key** has `generateContent` quota = 0 (why generation runs on Mistral);
+  embeddings are unaffected. _(Informational, not a blocker.)_
+- **Sentry geo** — IP is scrubbed; Sentry still derives a city-level geo (minor).
 - **iOS** push/build deferred (needs paid Apple Developer account + APNs).
-- **Storage** buckets for photos not yet set up (activity/milestone photos deferred).
-- **Corpus re-slug** — content folders were reorganized under `knowledge base/`; a clean re-seed will keep slugs consistent before the next big content add.
+- **Storage** buckets for photos not yet set up — when added, must be private + signed
+  URLs + size-capped (#16).
 
 ## What's next
 
 - **#22 Ship-readiness gate** — final pre-launch checklist (last Phase-1 task).
-- **#8 Observability** — Sentry (needs a DSN) + slow-query monitoring.
 - **Phase 2** (#23–32): multiple children, bookmarks/library, know-each-other quiz + games, kid wish wall + kid mode, calendar, WhatsApp reminders, memory timeline, weekly recap, gentle streak.
 - **Phase 3** (#33–37): co-parent sharing, audio letters, voice input, community, billing.
 

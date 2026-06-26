@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
+import '../../services/auth_service.dart';
+import '../../services/child_service.dart';
 import '../../services/notification_service.dart';
+import '../onboarding/delete_child_screen.dart';
+import '../onboarding/welcome_screen.dart';
 
 /// 25 · Reminders & quiet hours — the mom is always in control of when & how
 /// often. Tone is kind, never a guilt-trip (Hard Rule #18). Persists to her
@@ -194,9 +198,100 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 26),
+            Text('Account',
+                style: MomzoText.sans(13,
+                    color: MomzoColors.muted, weight: FontWeight.w800)),
+            const SizedBox(height: 10),
+            // Delete the child's profile + all data (COPPA: a parent can erase anytime).
+            GestureDetector(
+              onTap: _openDeleteChild,
+              behavior: HitTestBehavior.opaque,
+              child: _card(
+                child: Row(
+                  children: [
+                    const Icon(Icons.delete_outline_rounded,
+                        color: MomzoColors.coral, size: 22),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Delete my child & data',
+                              style: MomzoText.sans(15,
+                                  color: MomzoColors.ink, weight: FontWeight.w800)),
+                          Text('Erase the profile and everything in it',
+                              style: MomzoText.sans(12,
+                                  color: MomzoColors.muted, weight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded,
+                        color: MomzoColors.faint, size: 22),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 13),
+            GestureDetector(
+              onTap: _confirmSignOut,
+              behavior: HitTestBehavior.opaque,
+              child: _card(
+                child: Row(
+                  children: [
+                    const Icon(Icons.logout_rounded,
+                        color: MomzoColors.muted, size: 22),
+                    const SizedBox(width: 12),
+                    Text('Sign out',
+                        style: MomzoText.sans(15,
+                            color: MomzoColors.ink, weight: FontWeight.w800)),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  void _openDeleteChild() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DeleteChildScreen(
+          childId: ChildService.current?.id ?? '',
+          childName: ChildService.current?.name ?? 'your child',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmSignOut() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: Text('Sign out?', style: MomzoText.sans(18, color: MomzoColors.ink, weight: FontWeight.w800)),
+        content: Text("You can sign back in anytime with your email.",
+            style: MomzoText.serif(15, color: MomzoColors.body)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancel', style: MomzoText.sans(14, color: MomzoColors.muted, weight: FontWeight.w700))),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text('Sign out', style: MomzoText.sans(14, color: MomzoColors.coral, weight: FontWeight.w800))),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await AuthService.signOut();
+    ChildService.clear();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+      (route) => false,
     );
   }
 

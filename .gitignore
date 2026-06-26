@@ -64,3 +64,6 @@ supabase/functions/**/.env
 
 # OS specific
 .DS_Store
+
+# Local ops secrets (Discord webhook, etc.) — never commit
+.ops/

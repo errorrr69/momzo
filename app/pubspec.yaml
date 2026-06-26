@@ -21,6 +21,8 @@ dependencies:
   # Crash/error reporting (Task 4). PII-scrubbed; DSN injected at build time.
   # 9.x targets a Kotlin languageVersion compatible with the project's Kotlin 2.2.
   sentry_flutter: ^9.0.0
+  # On-device text-to-speech for the bonding games' "tap to hear" (free, offline).
+  flutter_tts: ^4.2.0
 
 dev_dependencies:
   flutter_lints: ^3.0.0

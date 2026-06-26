@@ -5,6 +5,7 @@ import '../../core/theme/momzo_text.dart';
 import '../../services/child_service.dart';
 import '../../services/question_service.dart';
 import 'daily_question_screen.dart';
+import 'games/mini_games_gallery_screen.dart';
 import 'quiz_flow_screen.dart';
 import '../wishes/wish_wall_screen.dart';
 
@@ -151,6 +152,10 @@ class _TogetherHubScreenState extends State<TogetherHubScreen> {
                 colors: const [Color(0xFF9CCAD6), MomzoColors.sky],
                 title: 'Mini-games',
                 sub: 'Would-you-rather & more',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MiniGamesGalleryScreen()),
+                ),
               ),
             ],
           ),

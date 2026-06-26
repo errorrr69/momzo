@@ -28,6 +28,8 @@ const g = {
   cardId:     '00000000-0000-4000-8000-000000000001',
   activityId: '00000000-0000-4000-8000-000000000002',
   questionId: '00000000-0000-4000-8000-000000000003',
+  gameItemId: '00000000-0000-4000-8000-000000000004',
+  gameSlug:   'rls-test-game',
 };
 
 // Every family-scoped table, and how this harness addresses each family's row.
@@ -36,7 +38,7 @@ const TABLES = [
   'users', 'consents', 'children', 'daily_assignments', 'activity_logs',
   'ai_conversations', 'ai_messages', 'ai_usage', 'question_responses', 'wishes',
   'scheduled_events', 'reminders', 'milestones', 'family_members', 'device_tokens',
-  'saved_cards',
+  'saved_cards', 'game_play_history',
 ];
 
 const families = {
@@ -70,6 +72,7 @@ async function seedFamily(key) {
     family_members: randomUUID(),
     device_tokens: randomUUID(),
     saved_cards: randomUUID(),
+    game_play_history: randomUUID(),
   };
   const now = new Date().toISOString();
   await ins('users', { id: owner, display_name: `Parent ${key}` });
@@ -89,6 +92,7 @@ async function seedFamily(key) {
   await ins('family_members', { id: f.rows.family_members, child_id: childId, user_id: owner, relationship: 'parent', status: 'active' });
   await ins('device_tokens', { id: f.rows.device_tokens, user_id: owner, token: `tok-${key}-${owner}`, platform: 'android' });
   await ins('saved_cards', { id: f.rows.saved_cards, owner_id: owner, card_id: g.cardId });
+  await ins('game_play_history', { id: f.rows.game_play_history, owner_id: owner, child_id: childId, game_slug: g.gameSlug, item_id: g.gameItemId });
 }
 
 async function deleteTestUsers() {
@@ -104,6 +108,7 @@ async function deleteGlobals() {
   await admin.from('content_cards').delete().eq('id', g.cardId);
   await admin.from('activities').delete().eq('id', g.activityId);
   await admin.from('questions').delete().eq('id', g.questionId);
+  await admin.from('games').delete().eq('slug', g.gameSlug); // cascades to game_items
 }
 
 test.before(async () => {
@@ -114,6 +119,8 @@ test.before(async () => {
   await ins('content_cards', { id: g.cardId, title: 'Card', body: 'b', published: true });
   await ins('activities', { id: g.activityId, title: 'Activity' });
   await ins('questions', { id: g.questionId, type: 'daily', prompt: 'Q?' });
+  await ins('games', { slug: g.gameSlug, title: 'Test Game', type: 'question' });
+  await ins('game_items', { id: g.gameItemId, game_slug: g.gameSlug, band: 'B', item_type: 'question', payload: {} });
 
   for (const key of Object.keys(families)) {
     const { data, error } = await admin.auth.admin.createUser({

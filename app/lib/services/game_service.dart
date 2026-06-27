@@ -82,6 +82,7 @@ class GameService {
 
     final picked = <GameItem>[];
     final unseen = all.where((i) => !shownSet.contains(i.id)).toList()..shuffle();
+    _maybeTopUp(slug, unseen.length, all.length); // refill the bank when it runs low
     picked.addAll(unseen.take(count));
 
     if (picked.length < count) {
@@ -105,5 +106,17 @@ class GameService {
       ]);
     }
     return picked;
+  }
+
+  /// Fire-and-forget AI top-up (Edge Function) when the family's unseen pool drops
+  /// below ~25% (games spec §1.3.B). New items land in the global bank for next time;
+  /// the LLM key stays server-side.
+  static void _maybeTopUp(String slug, int unseen, int total) {
+    if (total == 0 || unseen > total * 0.25) return;
+    final childId = ChildService.current?.id;
+    if (childId == null) return;
+    supabase.functions
+        .invoke('generate-game-items', body: {'game_slug': slug, 'child_id': childId})
+        .ignore();
   }
 }

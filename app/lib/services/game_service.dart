@@ -45,7 +45,12 @@ class GameService {
   static String get currentBand => bandForAge(ChildService.current?.age ?? 8);
 
   static Future<List<Game>> catalog() async {
-    final rows = await supabase.from('games').select().order('sort') as List;
+    // Playable decks first, then by sort — coming-soon ones sit below.
+    final rows = await supabase
+        .from('games')
+        .select()
+        .order('playable', ascending: false)
+        .order('sort', ascending: true) as List;
     return [for (final r in rows) Game.fromMap(r as Map<String, dynamic>)];
   }
 

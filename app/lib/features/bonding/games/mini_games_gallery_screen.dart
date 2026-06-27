@@ -6,6 +6,8 @@ import '../../../services/child_service.dart';
 import '../../../services/game_service.dart';
 import 'would_you_rather_screen.dart';
 import 'get_to_know_you_screen.dart';
+import 'finish_the_sentence_screen.dart';
+import 'emoji_decode_screen.dart';
 
 /// 26 · Mini-games gallery — pick a deck to play together (Together page).
 class MiniGamesGalleryScreen extends StatefulWidget {
@@ -54,6 +56,8 @@ class _MiniGamesGalleryScreenState extends State<MiniGamesGalleryScreen> {
     final Widget screen = switch (g.slug) {
       'would-you-rather' => WouldYouRatherScreen(game: g),
       'get-to-know-you' => GetToKnowYouScreen(game: g),
+      'finish-the-sentence' => FinishTheSentenceScreen(game: g),
+      'emoji-decode' => EmojiDecodeScreen(game: g),
       _ => const SizedBox.shrink(),
     };
     if (screen is SizedBox) return;

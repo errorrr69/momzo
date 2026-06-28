@@ -35,7 +35,7 @@ async function mistralJson(prompt) {
 
 const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
 
-async function topUp(slug, band, existing, makePrompt, toRow, keyOf, safeOf) {
+async function topUp(slug, itemType, band, existing, makePrompt, toRow, keyOf, safeOf) {
   const seen = new Set(existing.map(keyOf));
   let added = 0, guard = 0;
   while (existing.length + added < TARGET && guard++ < 6) {
@@ -48,7 +48,7 @@ async function topUp(slug, band, existing, makePrompt, toRow, keyOf, safeOf) {
       if (!key || seen.has(key)) continue;
       if (BLOCK.test(safeOf(it))) continue; // safety filter
       seen.add(key);
-      rows.push({ game_slug: slug, band, item_type: slug === 'would-you-rather' ? 'pair' : 'question', payload: toRow(it), source: 'ai' });
+      rows.push({ game_slug: slug, band, item_type: itemType, payload: toRow(it), source: 'ai' });
       if (existing.length + added + rows.length >= TARGET) break;
     }
     if (rows.length) { await a.from('game_items').insert(rows); added += rows.length; }
@@ -60,23 +60,39 @@ async function topUp(slug, band, existing, makePrompt, toRow, keyOf, safeOf) {
 
 const games = {
   'would-you-rather': {
+    itemType: 'pair',
     prompt: (band, n, excl) => `Generate ${n} fun "would you rather" pairs for a ${BANDS[band]}. Both options must be APPEALING and SAFE — never fear, harm, losing a person/pet, scary, gross, or adult themes. Respond JSON: {"items":[{"optionA","emojiA","optionB","emojiB"}]}. Each option a short phrase. Exclude (already used): ${excl.join(' | ')}`,
     key: (it) => it.optionA && it.optionB ? norm(it.optionA) + '|' + norm(it.optionB) : null,
     safe: (it) => `${it.optionA} ${it.optionB}`,
     row: (it) => ({ optionA: String(it.optionA), emojiA: String(it.emojiA || '✨'), optionB: String(it.optionB), emojiB: String(it.emojiB || '✨'), askWhy: false }),
   },
   'get-to-know-you': {
+    itemType: 'question',
     prompt: (band, n, excl) => `Generate ${n} warm "get to know you" questions for a ${BANDS[band]}, each answerable by BOTH parent and child. Categories: favourite, feeling, dream, us. No data-fishing (no address/school/location), nothing embarrassing or comparative. Respond JSON: {"items":[{"question","category"}]} where category is one of favourite|feeling|dream|us. Exclude (already used): ${excl.join(' | ')}`,
     key: (it) => it.question ? norm(it.question) : null,
     safe: (it) => String(it.question),
     row: (it) => ({ question: String(it.question), category: ['favourite', 'feeling', 'dream', 'us'].includes(it.category) ? it.category : 'us' }),
+  },
+  'finish-the-sentence': {
+    itemType: 'prompt',
+    prompt: (band, n, excl) => `Generate ${n} OPEN, POSITIVE sentence stems for a ${BANDS[band]} to finish (exactly one blank "___" each). Never lead to a sad or negative answer. Respond JSON: {"items":[{"stem"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.stem ? norm(it.stem) : null,
+    safe: (it) => String(it.stem),
+    row: (it) => ({ stem: String(it.stem).includes('___') ? String(it.stem) : String(it.stem) + ' ___' }),
+  },
+  'emoji-decode': {
+    itemType: 'emoji_puzzle',
+    prompt: (band, n, excl) => `Generate ${n} emoji puzzles for a ${BANDS[band]}. ${band === 'A' ? 'EXACTLY ONE emoji each (no sequences).' : band === 'B' ? 'EXACTLY TWO emojis each.' : 'EXACTLY THREE emojis each.'} The answer must be a GENERIC everyday concept — NEVER a copyrighted title, character, brand, movie, or specific IP. Respond JSON: {"items":[{"emojis","answer","hint"}]} where hint is a gentle clue. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.answer ? norm(it.answer) : null,
+    safe: (it) => `${it.answer} ${it.hint}`,
+    row: (it) => ({ emojis: String(it.emojis), answer: String(it.answer), hint: String(it.hint || '') }),
   },
 };
 
 for (const [slug, cfg] of Object.entries(games)) {
   for (const band of ['A', 'B', 'C']) {
     const { data } = await a.from('game_items').select('payload').eq('game_slug', slug).eq('band', band).eq('active', true);
-    await topUp(slug, band, data || [], cfg.prompt, cfg.row, (x) => cfg.key(x.payload ?? x), (x) => cfg.safe(x.payload ?? x));
+    await topUp(slug, cfg.itemType, band, data || [], cfg.prompt, cfg.row, (x) => cfg.key(x.payload ?? x), (x) => cfg.safe(x.payload ?? x));
   }
 }
 console.log('done');

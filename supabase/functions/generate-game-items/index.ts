@@ -44,6 +44,22 @@ const GAMES: Record<string, {
     safe: (it) => String(it.question),
     row: (it) => ({ question: String(it.question), category: ['favourite', 'feeling', 'dream', 'us'].includes(String(it.category)) ? it.category : 'us' }),
   },
+  'finish-the-sentence': {
+    itemType: 'prompt',
+    prompt: (band, n, excl) =>
+      `Generate ${n} OPEN, POSITIVE sentence stems for a ${BAND[band]} to finish (exactly one blank "___" each). Never lead to a sad or negative answer. Respond JSON: {"items":[{"stem"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.stem ? norm(it.stem) : null,
+    safe: (it) => String(it.stem),
+    row: (it) => ({ stem: String(it.stem).includes('___') ? String(it.stem) : `${String(it.stem)} ___` }),
+  },
+  'emoji-decode': {
+    itemType: 'emoji_puzzle',
+    prompt: (band, n, excl) =>
+      `Generate ${n} emoji puzzles for a ${BAND[band]}. ${band === 'A' ? 'EXACTLY ONE emoji each (no sequences).' : band === 'B' ? 'EXACTLY TWO emojis each.' : 'EXACTLY THREE emojis each.'} The answer must be a GENERIC everyday concept — NEVER a copyrighted title, character, brand, movie, or specific IP. Respond JSON: {"items":[{"emojis","answer","hint"}]} where hint is a gentle clue. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.answer ? norm(it.answer) : null,
+    safe: (it) => `${it.answer} ${it.hint}`,
+    row: (it) => ({ emojis: String(it.emojis), answer: String(it.answer), hint: String(it.hint ?? '') }),
+  },
 };
 
 function norm(s: unknown): string {

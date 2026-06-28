@@ -77,7 +77,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     _composer.clear();
     _scrollToEnd();
     try {
-      final a = await const AiRouter().generate(AiRequest(
+      final a = await AiRouter.app().generate(AiRequest(
         task: AiTask.expertQa,
         risk: AiRiskClass.amber, // pre-screen may elevate to red; router picks the brain
         prompt: text,

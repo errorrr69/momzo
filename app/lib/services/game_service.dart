@@ -118,7 +118,7 @@ class GameService {
     if (total == 0 || unseen > total * 0.25) return;
     final childId = ChildService.current?.id;
     if (childId == null) return;
-    const AiRouter()
+    AiRouter.app()
         .generate(AiRequest(
           task: AiTask.gameItem,
           risk: AiRiskClass.green,

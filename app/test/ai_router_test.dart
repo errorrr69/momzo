@@ -9,7 +9,9 @@ import 'package:momzo/core/ai/ai_prescreen.dart';
 import 'package:momzo/core/ai/ai_provider.dart';
 import 'package:momzo/core/ai/ai_request.dart';
 import 'package:momzo/core/ai/ai_router.dart';
+import 'package:momzo/core/ai/ai_telemetry.dart';
 import 'package:momzo/core/ai/on_device_capability.dart';
+import 'package:momzo/core/ai/on_device_provider.dart';
 
 /// Records which provider was asked to generate.
 class _StubProvider implements AiProvider {
@@ -24,6 +26,19 @@ class _StubProvider implements AiProvider {
     return AiResult(text: label, source: label);
   }
 }
+
+/// A fake on-device engine for testing the provider + router guards without Nano.
+class _FakeEngine implements OnDeviceEngine {
+  final OnDeviceResponse? Function(String prompt) onRun;
+  _FakeEngine(this.onRun);
+  @override
+  Future<OnDeviceResponse?> run(String prompt, {int maxTokens = 256}) async => onRun(prompt);
+}
+
+OnDeviceProvider _onDeviceWith(OnDeviceResponse? Function(String) onRun) => OnDeviceProvider(
+      engine: _FakeEngine(onRun),
+      isAvailable: () async => true,
+    );
 
 void main() {
   group('chooseBrain table', () {
@@ -113,13 +128,117 @@ void main() {
       expect(onDevice.seen, isEmpty);
     });
 
-    test('default (Phase 1) capability resolves to cloud', () async {
-      // No override -> the real probe stub returns unavailable.
+    test('default capability (no override) resolves to cloud', () async {
+      // No platform handler -> probe degrades to unavailable -> cloud.
       final cloud = _StubProvider('cloud');
       final router = AiRouter(cloud: cloud);
       final r = await router.generate(
           const AiRequest(task: AiTask.gameItem, risk: AiRiskClass.green, gameSlug: 'charades'));
       expect(r.source, 'cloud');
+    });
+  });
+
+  group('on-device guards + cloud fallback (strategy §4.3/§5/§6)', () {
+    setUp(() => OnDeviceProbe.debugSetCapability(OnDeviceCapability.available));
+    tearDown(() => OnDeviceProbe.debugSetCapability(null));
+
+    test('green answers on-device when the engine returns text', () async {
+      final cloud = _StubProvider('cloud');
+      final router = AiRouter(
+        cloud: cloud,
+        onDevice: _onDeviceWith((_) => const OnDeviceResponse('{"items":[]}')),
+      );
+      final r = await router.generate(
+          const AiRequest(task: AiTask.gameItem, risk: AiRiskClass.green, gameSlug: 'hot-seat'));
+      expect(r.source, 'on_device');
+      expect(cloud.seen, isEmpty);
+    });
+
+    test('on-device unavailable (engine null) falls back to cloud', () async {
+      final cloud = _StubProvider('cloud');
+      final router = AiRouter(
+        cloud: cloud,
+        onDevice: _onDeviceWith((_) => null), // engine declines
+      );
+      final r = await router.generate(
+          const AiRequest(task: AiTask.gameItem, risk: AiRiskClass.green, gameSlug: 'hot-seat'));
+      expect(r.source, 'cloud');
+      expect(cloud.seen, hasLength(1));
+    });
+
+    test('amber with low/absent confidence falls back to cloud', () async {
+      final cloud = _StubProvider('cloud');
+      final router = AiRouter(
+        cloud: cloud,
+        amberConfidenceFloor: 0.6,
+        onDevice: _onDeviceWith((_) => const OnDeviceResponse('a calm script', confidence: 0.3)),
+      );
+      final r = await router.generate(const AiRequest(
+          task: AiTask.situational, risk: AiRiskClass.amber, prompt: 'he wont nap'));
+      expect(r.source, 'cloud');
+    });
+
+    test('amber with high confidence is served on-device', () async {
+      final cloud = _StubProvider('cloud');
+      final router = AiRouter(
+        cloud: cloud,
+        amberConfidenceFloor: 0.6,
+        onDevice: _onDeviceWith((_) => const OnDeviceResponse('a calm script', confidence: 0.9)),
+      );
+      final r = await router.generate(const AiRequest(
+          task: AiTask.situational, risk: AiRiskClass.amber, prompt: 'he wont nap'));
+      expect(r.source, 'on_device');
+    });
+
+    test('on-device output that trips the safety screen is discarded for cloud', () async {
+      final cloud = _StubProvider('cloud');
+      final router = AiRouter(
+        cloud: cloud,
+        amberConfidenceFloor: 0.6,
+        // High confidence, but the answer touches a sensitive marker -> must not show.
+        onDevice: _onDeviceWith(
+            (_) => const OnDeviceResponse('you should give him medication', confidence: 0.95)),
+      );
+      final r = await router.generate(const AiRequest(
+          task: AiTask.situational, risk: AiRiskClass.amber, prompt: 'he keeps coughing'));
+      expect(r.source, 'cloud');
+    });
+  });
+
+  group('telemetry (strategy §7)', () {
+    final events = <AiTelemetryEvent>[];
+    setUp(() {
+      events.clear();
+      AiTelemetry.setSink(events.add);
+      OnDeviceProbe.debugSetCapability(OnDeviceCapability.available);
+    });
+    tearDown(() {
+      AiTelemetry.setSink(null);
+      OnDeviceProbe.debugSetCapability(null);
+    });
+
+    test('records source + fellBack=false when on-device serves', () async {
+      final router = AiRouter(
+        cloud: _StubProvider('cloud'),
+        onDevice: _onDeviceWith((_) => const OnDeviceResponse('{"items":[]}')),
+      );
+      await router.generate(
+          const AiRequest(task: AiTask.gameItem, risk: AiRiskClass.green, gameSlug: 'hot-seat'));
+      expect(events, hasLength(1));
+      expect(events.single.source, 'on_device');
+      expect(events.single.fellBack, isFalse);
+      expect(events.single.task, AiTask.gameItem);
+    });
+
+    test('records fellBack=true when on-device declines and cloud serves', () async {
+      final router = AiRouter(
+        cloud: _StubProvider('cloud'),
+        onDevice: _onDeviceWith((_) => null),
+      );
+      await router.generate(
+          const AiRequest(task: AiTask.gameItem, risk: AiRiskClass.green, gameSlug: 'hot-seat'));
+      expect(events.single.source, 'cloud');
+      expect(events.single.fellBack, isTrue);
     });
   });
 }

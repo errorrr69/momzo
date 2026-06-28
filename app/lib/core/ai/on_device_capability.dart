@@ -1,22 +1,46 @@
+import 'package:flutter/services.dart';
+
 /// Whether this device can run an OS-provided on-device model (strategy §3).
-/// There is no "connect your AI" flow — these are OS APIs the app calls. Phase 1
-/// has no on-device implementation, so the probe always reports [unavailable];
-/// Phase 2 fills in the real iOS (Foundation Models) / Android (ML Kit GenAI) probe.
+/// There is no "connect your AI" flow — these are OS APIs the app calls.
 enum OnDeviceCapability { available, unavailable, unknown }
 
-/// Silent capability probe. Cache the result and re-probe on OS/app update
-/// (strategy §3.1). Stubbed to [unavailable] until the on-device provider exists.
+/// Silent capability probe (strategy §3.1). Asks the native bridge whether an
+/// on-device GenAI runtime is present, caches the result, and degrades to
+/// [unavailable] on any error or unsupported platform — a false negative just
+/// means "use cloud", which is always safe. Re-probe on OS/app update via [reset].
 class OnDeviceProbe {
   const OnDeviceProbe._();
 
+  static const _channel = MethodChannel('momzo/on_device_ai');
   static OnDeviceCapability? _cached;
 
   static Future<OnDeviceCapability> capability() async {
-    // Phase 2: query Apple Intelligence / Foundation Models readiness on iOS 26+,
-    // and ML Kit GenAI (Gemini Nano) availability + model-downloaded on Android.
-    return _cached ??= OnDeviceCapability.unavailable;
+    final cached = _cached;
+    if (cached != null) return cached;
+    return _cached = await _probe();
   }
 
-  /// Test seam: override the cached capability.
+  static Future<OnDeviceCapability> _probe() async {
+    try {
+      final res = await _channel.invokeMethod<String>('capability');
+      switch (res) {
+        case 'available':
+          return OnDeviceCapability.available;
+        case 'unknown':
+          return OnDeviceCapability.unknown;
+        default:
+          return OnDeviceCapability.unavailable;
+      }
+    } on MissingPluginException {
+      return OnDeviceCapability.unavailable; // platform has no bridge yet (e.g. iOS)
+    } catch (_) {
+      return OnDeviceCapability.unavailable;
+    }
+  }
+
+  /// Re-probe on next call (OS/app update — strategy §3.1).
+  static void reset() => _cached = null;
+
+  /// Test seam: force a capability (pass null to clear).
   static void debugSetCapability(OnDeviceCapability? c) => _cached = c;
 }

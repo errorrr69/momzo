@@ -42,4 +42,10 @@ class AiPrescreen {
   }
 
   static bool _isSensitive(String prompt) => _sensitive.hasMatch(prompt);
+
+  /// Post-answer safety screen for ON-DEVICE output (strategy §5.1). If an
+  /// on-device answer touches anything sensitive, the router discards it and
+  /// re-asks via cloud rather than show an unverified response. Same conservative
+  /// markers as the pre-screen — a false positive just means "use cloud".
+  static bool outputLooksSensitive(String text) => _sensitive.hasMatch(text);
 }

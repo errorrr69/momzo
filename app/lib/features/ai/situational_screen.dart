@@ -52,7 +52,7 @@ class _SituationalScreenState extends State<SituationalScreen> {
       _situationText = text.trim();
     });
     try {
-      final a = await const AiRouter().generate(AiRequest(
+      final a = await AiRouter.app().generate(AiRequest(
         task: AiTask.situational,
         risk: AiRiskClass.amber, // pre-screen may elevate to red; router picks the brain
         prompt: text.trim(),

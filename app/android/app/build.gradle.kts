@@ -43,3 +43,11 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // On-device GenAI (Gemini Nano via AICore) — experimental, allowlisted devices
+    // only. Guarded at runtime by an availability probe + API-level checks; the app
+    // keeps its low minSdk and falls back to cloud everywhere this can't run.
+    implementation("com.google.ai.edge.aicore:aicore:0.0.1-exp01")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+}

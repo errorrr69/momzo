@@ -1,4 +1,8 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- AICore (Gemini Nano) declares minSdk 31; the app keeps a lower minSdk and
+         guards on-device use at runtime, so allow the library's higher floor. -->
+    <uses-sdk tools:overrideLibrary="com.google.ai.edge.aicore" />
     <application
         android:label="momzo"
         android:name="${applicationName}"

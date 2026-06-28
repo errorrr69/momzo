@@ -3,7 +3,8 @@ import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/why_it_matters.dart';
-import '../../services/ai_service.dart';
+import '../../core/ai/ai_request.dart';
+import '../../core/ai/ai_router.dart';
 import '../../services/child_service.dart';
 import 'refer_out_screen.dart';
 
@@ -76,26 +77,28 @@ class _AiChatScreenState extends State<AiChatScreen> {
     _composer.clear();
     _scrollToEnd();
     try {
-      final a = await AiService.ask(
-        question: text,
+      final a = await const AiRouter().generate(AiRequest(
+        task: AiTask.expertQa,
+        risk: AiRiskClass.amber, // pre-screen may elevate to red; router picks the brain
+        prompt: text,
         childId: child.id,
         conversationId: _conversationId,
-      );
+      ));
       if (!mounted) return;
       setState(() {
-        _conversationId = a.conversationId;
+        _conversationId = a.conversationId ?? _conversationId;
         _sending = false;
       });
-      if (a.isReferOut) {
+      if (a.referOutTriggered) {
         // Safety/medical/developmental signal -> dedicated warm refer-out screen.
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ReferOutScreen(userMessage: text, message: a.answer),
+            builder: (_) => ReferOutScreen(userMessage: text, message: a.text),
           ),
         );
       } else {
-        setState(() => _messages.add(_ChatMsg(false, a.answer, citations: a.citations)));
+        setState(() => _messages.add(_ChatMsg(false, a.text, citations: a.citations)));
         _scrollToEnd();
       }
     } catch (_) {

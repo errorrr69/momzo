@@ -1,4 +1,6 @@
 import '../core/supabase/supabase_init.dart';
+import '../core/ai/ai_request.dart';
+import '../core/ai/ai_router.dart';
 import 'auth_service.dart';
 import 'child_service.dart';
 
@@ -108,15 +110,21 @@ class GameService {
     return picked;
   }
 
-  /// Fire-and-forget AI top-up (Edge Function) when the family's unseen pool drops
-  /// below ~25% (games spec §1.3.B). New items land in the global bank for next time;
-  /// the LLM key stays server-side.
+  /// Fire-and-forget AI top-up when the family's unseen pool drops below ~25%
+  /// (games spec §1.3.B). Routed through the AI layer (On-Device AI Strategy §4):
+  /// a green-class task, cloud today, on-device-capable later. New items land in the
+  /// global bank for next time; the LLM key stays server-side.
   static void _maybeTopUp(String slug, int unseen, int total) {
     if (total == 0 || unseen > total * 0.25) return;
     final childId = ChildService.current?.id;
     if (childId == null) return;
-    supabase.functions
-        .invoke('generate-game-items', body: {'game_slug': slug, 'child_id': childId})
+    const AiRouter()
+        .generate(AiRequest(
+          task: AiTask.gameItem,
+          risk: AiRiskClass.green,
+          gameSlug: slug,
+          childId: childId,
+        ))
         .ignore();
   }
 }

@@ -3,7 +3,8 @@ import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_buttons.dart';
-import '../../services/ai_service.dart';
+import '../../core/ai/ai_request.dart';
+import '../../core/ai/ai_router.dart';
 import '../../services/child_service.dart';
 import 'ai_chat_screen.dart';
 import 'refer_out_screen.dart';
@@ -51,18 +52,23 @@ class _SituationalScreenState extends State<SituationalScreen> {
       _situationText = text.trim();
     });
     try {
-      final a = await AiService.ask(question: text.trim(), childId: child.id, mode: 'situational');
+      final a = await const AiRouter().generate(AiRequest(
+        task: AiTask.situational,
+        risk: AiRiskClass.amber, // pre-screen may elevate to red; router picks the brain
+        prompt: text.trim(),
+        childId: child.id,
+      ));
       if (!mounted) return;
-      if (a.isReferOut) {
+      if (a.referOutTriggered) {
         setState(() => _busy = false);
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => ReferOutScreen(userMessage: text.trim(), message: a.answer)),
+          MaterialPageRoute(builder: (_) => ReferOutScreen(userMessage: text.trim(), message: a.text)),
         );
         return;
       }
       setState(() {
-        _script = a.answer;
+        _script = a.text;
         _busy = false;
       });
     } catch (_) {

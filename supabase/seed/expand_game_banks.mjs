@@ -14,6 +14,8 @@ const MKEY = process.env.MISTRAL_API_KEY || env.MISTRAL_API_KEY;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const TARGET = 40;
+// Action/creative games target ~30/band (games spec §1.3.A); everything else 40.
+const TARGETS = { charades: 30, 'drawing-telephone': 30, 'dance-freeze': 30, 'simon-says': 30, 'mirror-me': 30, 'story-builder': 30 };
 const BANDS = { A: '4–5 year old (very simple, concrete, everyday words)', B: '6–7 year old (simple, some feeling words, light imagination)', C: '8–10 year old (richer, can handle hypotheticals and "why")' };
 
 // Hard safety post-filter (belt-and-suspenders on top of the prompt).
@@ -24,7 +26,7 @@ async function mistralJson(prompt) {
     const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${MKEY}` },
-      body: JSON.stringify({ model: 'mistral-small-latest', messages: [{ role: 'user', content: prompt }], response_format: { type: 'json_object' }, max_tokens: 1200, temperature: 0.8 }),
+      body: JSON.stringify({ model: 'mistral-small-latest', messages: [{ role: 'user', content: prompt }], response_format: { type: 'json_object' }, max_tokens: 1600, temperature: 0.8 }),
     });
     if (res.status === 429 || res.status >= 500) { await sleep(2500 * (i + 1)); continue; }
     if (!res.ok) return null;
@@ -36,10 +38,11 @@ async function mistralJson(prompt) {
 const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
 
 async function topUp(slug, itemType, band, existing, makePrompt, toRow, keyOf, safeOf) {
+  const target = TARGETS[slug] || TARGET;
   const seen = new Set(existing.map(keyOf));
   let added = 0, guard = 0;
-  while (existing.length + added < TARGET && guard++ < 6) {
-    const need = TARGET - (existing.length + added);
+  while (existing.length + added < target && guard++ < 6) {
+    const need = target - (existing.length + added);
     const obj = await mistralJson(makePrompt(band, Math.min(need + 4, 20), [...seen].slice(-40)));
     const arr = Array.isArray(obj?.items) ? obj.items : (Array.isArray(obj) ? obj : []);
     const rows = [];
@@ -49,7 +52,7 @@ async function topUp(slug, itemType, band, existing, makePrompt, toRow, keyOf, s
       if (BLOCK.test(safeOf(it))) continue; // safety filter
       seen.add(key);
       rows.push({ game_slug: slug, band, item_type: itemType, payload: toRow(it), source: 'ai' });
-      if (existing.length + added + rows.length >= TARGET) break;
+      if (existing.length + added + rows.length >= target) break;
     }
     if (rows.length) { await a.from('game_items').insert(rows); added += rows.length; }
     console.log(`  ${slug} ${band}: +${rows.length} (now ${existing.length + added})`);
@@ -86,6 +89,83 @@ const games = {
     key: (it) => it.answer ? norm(it.answer) : null,
     safe: (it) => `${it.answer} ${it.hint}`,
     row: (it) => ({ emojis: String(it.emojis), answer: String(it.answer), hint: String(it.hint || '') }),
+  },
+  'hot-seat': {
+    itemType: 'question',
+    prompt: (band, n, excl) => `Generate ${n} rapid-fire "hot seat" questions for a ${BANDS[band]}, each answerable in 1–3 seconds (favourites or this-or-that). Light and fun, no deep/reflective ones, no data-fishing. Respond JSON: {"items":[{"question"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.question ? norm(it.question) : null,
+    safe: (it) => String(it.question),
+    row: (it) => ({ question: String(it.question), quick: true }),
+  },
+  'time-machine': {
+    itemType: 'pair',
+    prompt: (band, n, excl) => `Generate ${n} gentle prompt PAIRS for a ${BANDS[band]} and their grown-up. Each pair: parentPrompt looks BACK to the grown-up's childhood, childPrompt looks FORWARD to the child growing up. Warm, never sad/loss. Respond JSON: {"items":[{"parentPrompt","childPrompt"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.parentPrompt && it.childPrompt ? norm(it.parentPrompt) + '|' + norm(it.childPrompt) : null,
+    safe: (it) => `${it.parentPrompt} ${it.childPrompt}`,
+    row: (it) => ({ parentPrompt: String(it.parentPrompt), childPrompt: String(it.childPrompt) }),
+  },
+  'memory-lane': {
+    itemType: 'prompt',
+    prompt: (band, n, excl) => `Generate ${n} prompts pointing at POSITIVE shared memories for a ${BANDS[band]} and their family. Open to any family shape/budget ("a time we laughed", not "a holiday"). Never a sad time or a time in trouble. Respond JSON: {"items":[{"prompt"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.prompt ? norm(it.prompt) : null,
+    safe: (it) => String(it.prompt),
+    row: (it) => ({ prompt: String(it.prompt) }),
+  },
+  'gratitude-swap': {
+    itemType: 'prompt',
+    prompt: (band, n, excl) => `Generate ${n} warm prompts for a ${BANDS[band]} and their grown-up to each share something they are GRATEFUL FOR ABOUT THE OTHER. Only warmth — never "something you'd change", never about appearance/looks. Bedtime-soft. Respond JSON: {"items":[{"prompt"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.prompt ? norm(it.prompt) : null,
+    safe: (it) => String(it.prompt),
+    row: (it) => ({ prompt: String(it.prompt) }),
+  },
+  'guess-my-answer': {
+    itemType: 'question',
+    prompt: (band, n, excl) => `Generate ${n} fun "predict what they'll say" questions for a ${BANDS[band]} and their grown-up, where there is no wrong answer (opinions/choices/hypotheticals). Respond JSON: {"items":[{"question"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.question ? norm(it.question) : null,
+    safe: (it) => String(it.question),
+    row: (it) => ({ question: String(it.question), mode: 'open' }),
+  },
+  'charades': {
+    itemType: 'action',
+    prompt: (band, n, excl) => `Generate ${n} charades prompts a ${BANDS[band]} can physically act out safely indoors (no jumping off things, no rough/scary actions). Each with one fitting emoji. Cheerful. Respond JSON: {"items":[{"actPrompt","emojiHint"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.actPrompt ? norm(it.actPrompt) : null,
+    safe: (it) => String(it.actPrompt),
+    row: (it) => ({ actPrompt: String(it.actPrompt), emojiHint: String(it.emojiHint || '🎭') }),
+  },
+  'drawing-telephone': {
+    itemType: 'action',
+    prompt: (band, n, excl) => `Generate ${n} drawing prompts for a ${BANDS[band]}: ${band === 'A' ? 'single concrete nouns (a cat, the sun)' : band === 'B' ? 'noun + adjective (a happy dog, a big tree)' : 'fun mini-scenes (a cat on a skateboard)'}. All drawable by a child, cheerful, never scary/complex. Respond JSON: {"items":[{"drawPrompt"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.drawPrompt ? norm(it.drawPrompt) : null,
+    safe: (it) => String(it.drawPrompt),
+    row: (it) => ({ drawPrompt: String(it.drawPrompt) }),
+  },
+  'dance-freeze': {
+    itemType: 'action',
+    prompt: (band, n, excl) => `Generate ${n} silly dance/move themes for a ${BANDS[band]} ("wiggle like jelly", "dance like a robot"). All safe, indoor, no equipment, no jumping off furniture. Respond JSON: {"items":[{"moveTheme"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.moveTheme ? norm(it.moveTheme) : null,
+    safe: (it) => String(it.moveTheme),
+    row: (it) => ({ moveTheme: String(it.moveTheme) }),
+  },
+  'simon-says': {
+    itemType: 'action',
+    prompt: (band, n, excl) => `Generate ${n} simple, safe, indoor "Simon Says" body-action commands for a ${BANDS[band]} (touch your nose, clap twice). No risky moves. Respond JSON: {"items":[{"command"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.command ? norm(it.command) : null,
+    safe: (it) => String(it.command),
+    row: (it) => ({ command: String(it.command), isSimonSays: true }),
+  },
+  'mirror-me': {
+    itemType: 'action',
+    prompt: (band, n, excl) => `Generate ${n} gentle "starter move" ideas for a ${BANDS[band]} to lead and have the other mirror (slow wave, big stretch). Safe, indoor, gentle. Respond JSON: {"items":[{"moveIdea"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.moveIdea ? norm(it.moveIdea) : null,
+    safe: (it) => String(it.moveIdea),
+    row: (it) => ({ moveIdea: String(it.moveIdea) }),
+  },
+  'story-builder': {
+    itemType: 'story_seed',
+    prompt: (band, n, excl) => `Generate ${n} warm, funny, child-safe story STARTERS for a ${BANDS[band]} (friendly animals/adventures, no peril/scary). Each a single opening line ending with "…". Respond JSON: {"items":[{"starter"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.starter ? norm(it.starter) : null,
+    safe: (it) => String(it.starter),
+    row: (it) => ({ starter: String(it.starter), twists: ['suddenly it started raining jelly!', 'a friendly dragon appeared', 'they found a magic door', 'everything turned upside down'] }),
   },
 };
 

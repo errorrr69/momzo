@@ -8,6 +8,10 @@ import 'would_you_rather_screen.dart';
 import 'get_to_know_you_screen.dart';
 import 'finish_the_sentence_screen.dart';
 import 'emoji_decode_screen.dart';
+import 'prompt_card_screen.dart';
+import 'time_machine_screen.dart';
+import 'mood_checkin_screen.dart';
+import 'reveal_score_screen.dart';
 
 /// 26 · Mini-games gallery — pick a deck to play together (Together page).
 class MiniGamesGalleryScreen extends StatefulWidget {
@@ -58,6 +62,12 @@ class _MiniGamesGalleryScreenState extends State<MiniGamesGalleryScreen> {
       'get-to-know-you' => GetToKnowYouScreen(game: g),
       'finish-the-sentence' => FinishTheSentenceScreen(game: g),
       'emoji-decode' => EmojiDecodeScreen(game: g),
+      'time-machine' => TimeMachineScreen(game: g),
+      'mood-checkin' => MoodCheckinScreen(game: g),
+      _ when kRevealGames.containsKey(g.slug) =>
+        RevealScoreScreen(game: g, config: kRevealGames[g.slug]!),
+      _ when kPromptGames.containsKey(g.slug) =>
+        PromptCardScreen(game: g, config: kPromptGames[g.slug]!),
       _ => const SizedBox.shrink(),
     };
     if (screen is SizedBox) return;

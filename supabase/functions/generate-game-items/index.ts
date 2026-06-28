@@ -60,6 +60,94 @@ const GAMES: Record<string, {
     safe: (it) => `${it.answer} ${it.hint}`,
     row: (it) => ({ emojis: String(it.emojis), answer: String(it.answer), hint: String(it.hint ?? '') }),
   },
+  'hot-seat': {
+    itemType: 'question',
+    prompt: (band, n, excl) =>
+      `Generate ${n} rapid-fire "hot seat" questions for a ${BAND[band]}, each answerable in 1–3 seconds (favourites or this-or-that). Light and fun, no deep/reflective ones, no data-fishing. Respond JSON: {"items":[{"question"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.question ? norm(it.question) : null,
+    safe: (it) => String(it.question),
+    row: (it) => ({ question: String(it.question), quick: true }),
+  },
+  'time-machine': {
+    itemType: 'pair',
+    prompt: (band, n, excl) =>
+      `Generate ${n} gentle prompt PAIRS for a ${BAND[band]} and their grown-up. Each pair: parentPrompt looks BACK to the grown-up's childhood, childPrompt looks FORWARD to the child growing up. Warm, never sad/loss. Respond JSON: {"items":[{"parentPrompt","childPrompt"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.parentPrompt && it.childPrompt ? `${norm(it.parentPrompt)}|${norm(it.childPrompt)}` : null,
+    safe: (it) => `${it.parentPrompt} ${it.childPrompt}`,
+    row: (it) => ({ parentPrompt: String(it.parentPrompt), childPrompt: String(it.childPrompt) }),
+  },
+  'memory-lane': {
+    itemType: 'prompt',
+    prompt: (band, n, excl) =>
+      `Generate ${n} prompts pointing at POSITIVE shared memories for a ${BAND[band]} and their family. Open to any family shape/budget ("a time we laughed", not "a holiday"). Never a sad time or a time in trouble. Respond JSON: {"items":[{"prompt"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.prompt ? norm(it.prompt) : null,
+    safe: (it) => String(it.prompt),
+    row: (it) => ({ prompt: String(it.prompt) }),
+  },
+  'gratitude-swap': {
+    itemType: 'prompt',
+    prompt: (band, n, excl) =>
+      `Generate ${n} warm prompts for a ${BAND[band]} and their grown-up to each share something they are GRATEFUL FOR ABOUT THE OTHER. Only warmth — never "something you'd change", never about appearance/looks. Bedtime-soft. Respond JSON: {"items":[{"prompt"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.prompt ? norm(it.prompt) : null,
+    safe: (it) => String(it.prompt),
+    row: (it) => ({ prompt: String(it.prompt) }),
+  },
+  'charades': {
+    itemType: 'action',
+    prompt: (band, n, excl) =>
+      `Generate ${n} charades prompts a ${BAND[band]} can physically act out safely indoors (no jumping off things, no rough/scary actions). Each with one fitting emoji. Cheerful. Respond JSON: {"items":[{"actPrompt","emojiHint"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.actPrompt ? norm(it.actPrompt) : null,
+    safe: (it) => String(it.actPrompt),
+    row: (it) => ({ actPrompt: String(it.actPrompt), emojiHint: String(it.emojiHint ?? '🎭') }),
+  },
+  'drawing-telephone': {
+    itemType: 'action',
+    prompt: (band, n, excl) =>
+      `Generate ${n} drawing prompts for a ${BAND[band]}: ${band === 'A' ? 'single concrete nouns (a cat, the sun)' : band === 'B' ? 'noun + adjective (a happy dog, a big tree)' : 'fun mini-scenes (a cat on a skateboard)'}. All drawable by a child, cheerful, never scary/complex. Respond JSON: {"items":[{"drawPrompt"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.drawPrompt ? norm(it.drawPrompt) : null,
+    safe: (it) => String(it.drawPrompt),
+    row: (it) => ({ drawPrompt: String(it.drawPrompt) }),
+  },
+  'dance-freeze': {
+    itemType: 'action',
+    prompt: (band, n, excl) =>
+      `Generate ${n} silly dance/move themes for a ${BAND[band]} ("wiggle like jelly", "dance like a robot"). All safe, indoor, no equipment, no jumping off furniture. Respond JSON: {"items":[{"moveTheme"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.moveTheme ? norm(it.moveTheme) : null,
+    safe: (it) => String(it.moveTheme),
+    row: (it) => ({ moveTheme: String(it.moveTheme) }),
+  },
+  'simon-says': {
+    itemType: 'action',
+    prompt: (band, n, excl) =>
+      `Generate ${n} simple, safe, indoor "Simon Says" body-action commands for a ${BAND[band]} (touch your nose, clap twice). No risky moves. Respond JSON: {"items":[{"command"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.command ? norm(it.command) : null,
+    safe: (it) => String(it.command),
+    row: (it) => ({ command: String(it.command), isSimonSays: true }),
+  },
+  'mirror-me': {
+    itemType: 'action',
+    prompt: (band, n, excl) =>
+      `Generate ${n} gentle "starter move" ideas for a ${BAND[band]} to lead and have the other mirror (slow wave, big stretch). Safe, indoor, gentle. Respond JSON: {"items":[{"moveIdea"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.moveIdea ? norm(it.moveIdea) : null,
+    safe: (it) => String(it.moveIdea),
+    row: (it) => ({ moveIdea: String(it.moveIdea) }),
+  },
+  'guess-my-answer': {
+    itemType: 'question',
+    prompt: (band, n, excl) =>
+      `Generate ${n} fun "predict what they'll say" questions for a ${BAND[band]} and their grown-up, where there is no wrong answer (opinions/choices/hypotheticals). Respond JSON: {"items":[{"question"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.question ? norm(it.question) : null,
+    safe: (it) => String(it.question),
+    row: (it) => ({ question: String(it.question), mode: 'open' }),
+  },
+  'story-builder': {
+    itemType: 'story_seed',
+    prompt: (band, n, excl) =>
+      `Generate ${n} warm, funny, child-safe story STARTERS for a ${BAND[band]} (friendly animals/adventures, no peril/scary). Each a single opening line ending with "…". Respond JSON: {"items":[{"starter"}]}. Exclude (already used): ${excl.join(' | ')}`,
+    key: (it) => it.starter ? norm(it.starter) : null,
+    safe: (it) => String(it.starter),
+    row: (it) => ({ starter: String(it.starter), twists: ['suddenly it started raining jelly!', 'a friendly dragon appeared', 'they found a magic door', 'everything turned upside down'] }),
+  },
 };
 
 function norm(s: unknown): string {

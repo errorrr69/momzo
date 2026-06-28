@@ -98,7 +98,7 @@ await seed('memory-lane', 'prompt', mem, (prompt) => ({ prompt }));
 
 // Gratitude Swap — { prompt } (kindness-locked)
 const grat = {
-  A: ['one thing you love about each other', 'a way they make you smile', 'something fun you did together today', 'a way they are kind to you'],
+  A: ['one thing you love about each other', 'a way they make you smile', 'something fun you did together today', 'a way they are kind to you', 'something nice they say to you', 'a yummy thing they share with you', 'a game they play with you', 'a way they help you', 'a hug or cuddle you love', 'a song or story they do with you', 'something they do that makes you happy', 'a time they made you laugh', 'a way they keep you cosy and safe', 'something you like to do together', 'a way they cheer you up', 'something they are really good at'],
   B: ['one thing you are thankful for about each other', 'a kind thing they did recently', 'a way they make home feel happy', 'something they are really good at', 'a moment you felt happy together'],
   C: ['a way they helped you this week', 'something they do that makes home feel cosy', 'a quality you admire in them', 'a time they were there for you', 'something you are grateful they taught you', 'a small thing they do that means a lot'],
 };

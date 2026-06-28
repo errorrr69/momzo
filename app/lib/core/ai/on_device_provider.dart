@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 
 import 'ai_provider.dart';
@@ -67,15 +69,49 @@ class OnDeviceProvider implements AiProvider {
   @override
   Future<bool> isAvailable() => _available();
 
+  /// Child-safety filter for on-device game items (games spec §1.4 — same families
+  /// as the server seed/Edge-Function filter). On-device output is never trusted
+  /// raw: every generated item is screened before it can reach a child.
+  static final RegExp _gameBlock = RegExp(
+    r'\b(die|died|death|dead|kill\w*|blood|weapon|gun|knife|war|hate\w*|ugly|fat|'
+    r'stupid|dumb|idiot|scary|nightmare|drown\w*|hurt|sick|hospital|divorce|money|'
+    r'rich|poor|prettiest|smartest|religion|god|sexy|kiss)\b',
+    caseSensitive: false,
+  );
+
   @override
   Future<AiResult> generate(AiRequest req) async {
     final resp = await engine.run(_buildPrompt(req), maxTokens: req.maxTokens);
     if (resp == null) throw const OnDeviceUnavailable('engine returned null');
+
+    if (req.task == AiTask.gameItem) return _gameItems(resp);
+
     return AiResult(
       text: resp.text.trim(),
       source: 'on_device',
       confidence: resp.confidence,
     );
+  }
+
+  // Parse the model's JSON game items and drop anything that fails the safety
+  // filter. If nothing usable survives, signal unavailable so the router falls back.
+  AiResult _gameItems(OnDeviceResponse resp) {
+    List<dynamic> raw;
+    try {
+      final obj = jsonDecode(resp.text);
+      raw = obj is Map && obj['items'] is List ? obj['items'] as List : (obj is List ? obj : const []);
+    } catch (_) {
+      throw const OnDeviceUnavailable('game items: invalid JSON');
+    }
+    final items = <Map<String, dynamic>>[];
+    for (final it in raw) {
+      if (it is! Map) continue;
+      final map = it.map((k, v) => MapEntry(k.toString(), v));
+      if (_gameBlock.hasMatch(map.values.join(' '))) continue; // §1.4 safety screen
+      items.add(map);
+    }
+    if (items.isEmpty) throw const OnDeviceUnavailable('game items: none passed safety');
+    return AiResult(source: 'on_device', items: items, confidence: resp.confidence);
   }
 
   String _buildPrompt(AiRequest req) {

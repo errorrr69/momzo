@@ -146,7 +146,7 @@ void main() {
       final cloud = _StubProvider('cloud');
       final router = AiRouter(
         cloud: cloud,
-        onDevice: _onDeviceWith((_) => const OnDeviceResponse('{"items":[]}')),
+        onDevice: _onDeviceWith((_) => const OnDeviceResponse('{"items":[{"question":"cats or dogs?"}]}')),
       );
       final r = await router.generate(
           const AiRequest(task: AiTask.gameItem, risk: AiRiskClass.green, gameSlug: 'hot-seat'));
@@ -190,6 +190,44 @@ void main() {
       expect(r.source, 'on_device');
     });
 
+    test('green game items are parsed + safety-filtered on-device', () async {
+      final cloud = _StubProvider('cloud');
+      final router = AiRouter(
+        cloud: cloud,
+        onDevice: _onDeviceWith((_) => const OnDeviceResponse(
+            '{"items":[{"stem":"I feel happy when ___"},{"stem":"a scary nightmare"}]}')),
+      );
+      final r = await router.generate(
+          const AiRequest(task: AiTask.gameItem, risk: AiRiskClass.green, gameSlug: 'finish-the-sentence'));
+      expect(r.source, 'on_device');
+      expect(r.items, hasLength(1)); // the "scary nightmare" item is dropped
+      expect(r.items!.single['stem'], 'I feel happy when ___');
+      expect(cloud.seen, isEmpty);
+    });
+
+    test('malformed on-device game JSON falls back to cloud', () async {
+      final cloud = _StubProvider('cloud');
+      final router = AiRouter(
+        cloud: cloud,
+        onDevice: _onDeviceWith((_) => const OnDeviceResponse('sorry, not json')),
+      );
+      final r = await router.generate(
+          const AiRequest(task: AiTask.gameItem, risk: AiRiskClass.green, gameSlug: 'hot-seat'));
+      expect(r.source, 'cloud');
+    });
+
+    test('all-unsafe on-device game items fall back to cloud', () async {
+      final cloud = _StubProvider('cloud');
+      final router = AiRouter(
+        cloud: cloud,
+        onDevice: _onDeviceWith(
+            (_) => const OnDeviceResponse('{"items":[{"q":"who would win in a war"}]}')),
+      );
+      final r = await router.generate(
+          const AiRequest(task: AiTask.gameItem, risk: AiRiskClass.green, gameSlug: 'hot-seat'));
+      expect(r.source, 'cloud');
+    });
+
     test('on-device output that trips the safety screen is discarded for cloud', () async {
       final cloud = _StubProvider('cloud');
       final router = AiRouter(
@@ -220,7 +258,7 @@ void main() {
     test('records source + fellBack=false when on-device serves', () async {
       final router = AiRouter(
         cloud: _StubProvider('cloud'),
-        onDevice: _onDeviceWith((_) => const OnDeviceResponse('{"items":[]}')),
+        onDevice: _onDeviceWith((_) => const OnDeviceResponse('{"items":[{"question":"cats or dogs?"}]}')),
       );
       await router.generate(
           const AiRequest(task: AiTask.gameItem, risk: AiRiskClass.green, gameSlug: 'hot-seat'));

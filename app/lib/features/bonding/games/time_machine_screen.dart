@@ -12,7 +12,10 @@ import 'game_scaffold.dart';
 /// their childhood, the child looks forward to growing up (games spec §2.6).
 class TimeMachineScreen extends StatefulWidget {
   final Game game;
-  const TimeMachineScreen({super.key, required this.game});
+
+  /// Test-only seam: inject the cards instead of dealing from the backend.
+  final List<GameItem>? initialItems;
+  const TimeMachineScreen({super.key, required this.game, this.initialItems});
 
   @override
   State<TimeMachineScreen> createState() => _TimeMachineScreenState();
@@ -36,6 +39,10 @@ class _TimeMachineScreenState extends State<TimeMachineScreen> {
   }
 
   Future<void> _load() async {
+    if (widget.initialItems != null) {
+      setState(() { _items = widget.initialItems!; _loading = false; });
+      return;
+    }
     final n = widget.game.roundsFor(GameService.currentBand);
     try {
       final items = await GameService.deal(widget.game.slug, n);
@@ -100,7 +107,10 @@ class _TimeMachineScreenState extends State<TimeMachineScreen> {
           Row(children: [
             Text(icon, style: const TextStyle(fontSize: 20)),
             const SizedBox(width: 8),
-            Text(label, style: MomzoText.sans(12, color: labelColor, weight: FontWeight.w900)),
+            Flexible(
+              child: Text(label,
+                  style: MomzoText.sans(12, color: labelColor, weight: FontWeight.w900)),
+            ),
             const Spacer(),
             GestureDetector(
               onTap: () => TtsService.speak(text),

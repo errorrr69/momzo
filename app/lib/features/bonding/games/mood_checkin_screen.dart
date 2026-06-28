@@ -14,7 +14,10 @@ import 'game_scaffold.dart';
 /// app only offers the gentle prompt.
 class MoodCheckinScreen extends StatefulWidget {
   final Game game;
-  const MoodCheckinScreen({super.key, required this.game});
+
+  /// Test-only seam: inject the cards instead of dealing from the backend.
+  final List<GameItem>? initialItems;
+  const MoodCheckinScreen({super.key, required this.game, this.initialItems});
 
   @override
   State<MoodCheckinScreen> createState() => _MoodCheckinScreenState();
@@ -39,6 +42,10 @@ class _MoodCheckinScreenState extends State<MoodCheckinScreen> {
   }
 
   Future<void> _load() async {
+    if (widget.initialItems != null) {
+      setState(() { _items = widget.initialItems!; _loading = false; });
+      return;
+    }
     final n = widget.game.roundsFor(GameService.currentBand);
     try {
       final items = await GameService.deal(widget.game.slug, n);

@@ -64,7 +64,10 @@ String _guessQuestion(Map<String, dynamic> p, String child) {
 class RevealScoreScreen extends StatefulWidget {
   final Game game;
   final RevealGameConfig config;
-  const RevealScoreScreen({super.key, required this.game, required this.config});
+
+  /// Test-only seam: inject the cards instead of dealing from the backend.
+  final List<GameItem>? initialItems;
+  const RevealScoreScreen({super.key, required this.game, required this.config, this.initialItems});
 
   @override
   State<RevealScoreScreen> createState() => _RevealScoreScreenState();
@@ -94,6 +97,10 @@ class _RevealScoreScreenState extends State<RevealScoreScreen> {
   }
 
   Future<void> _load() async {
+    if (widget.initialItems != null) {
+      setState(() { _items = widget.initialItems!; _loading = false; });
+      return;
+    }
     final n = widget.game.roundsFor(GameService.currentBand);
     try {
       final items = await GameService.deal(widget.game.slug, n);

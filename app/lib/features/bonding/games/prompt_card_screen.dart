@@ -83,7 +83,10 @@ const Map<String, PromptGameConfig> kPromptGames = {
 class PromptCardScreen extends StatefulWidget {
   final Game game;
   final PromptGameConfig config;
-  const PromptCardScreen({super.key, required this.game, required this.config});
+
+  /// Test-only seam: inject the cards instead of dealing from the backend.
+  final List<GameItem>? initialItems;
+  const PromptCardScreen({super.key, required this.game, required this.config, this.initialItems});
 
   @override
   State<PromptCardScreen> createState() => _PromptCardScreenState();
@@ -109,6 +112,10 @@ class _PromptCardScreenState extends State<PromptCardScreen> {
   }
 
   Future<void> _load() async {
+    if (widget.initialItems != null) {
+      setState(() { _items = widget.initialItems!; _loading = false; });
+      return;
+    }
     final n = widget.game.roundsFor(GameService.currentBand);
     try {
       final items = await GameService.deal(widget.game.slug, n);

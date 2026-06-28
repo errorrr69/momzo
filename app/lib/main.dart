@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
+import 'core/ai/ai_telemetry.dart';
 import 'core/env/app_env.dart';
 import 'core/push/push_service.dart';
 import 'core/supabase/supabase_init.dart';
@@ -11,6 +15,10 @@ import 'features/onboarding/consent_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // AI routing telemetry (On-Device AI Strategy §7) — PII-free routing metadata
+  // (source/fell_back/refer_out/latency), no prompt or child data. Wire a real
+  // dashboard sink later; for now it surfaces in logs.
+  AiTelemetry.setSink((e) => developer.log(jsonEncode(e.toMap()), name: 'ai.route'));
   // Connects to Supabase when build-time env is provided (anon key only).
   final connected = await initSupabase();
   // Keep the parent's profile row in sync on every sign-in (Task 5).

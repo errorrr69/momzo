@@ -4,10 +4,13 @@ import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_buttons.dart';
+import '../../models/child.dart';
 import '../../services/child_service.dart';
 import '../../services/consent_service.dart';
+import '../../services/onboarding_service.dart';
 import '../shell/main_shell.dart';
 import 'child_basics_screen.dart';
+import 'onboarding_flow_screen.dart';
 import 'privacy_policy_screen.dart';
 
 /// COPPA parental-consent gate (Task 9). Sits between sign-in and child-profile
@@ -40,12 +43,17 @@ class _ConsentScreenState extends State<ConsentScreen> {
     }
     try {
       if (await ConsentService.hasConsent()) {
-        // Already consented: returning parents with a child skip onboarding.
         final child = await ChildService.loadMyChild();
-        if (child != null) {
-          _goToHome();
+        if (child == null) {
+          _goToChildBasics(); // consented, no child yet -> start onboarding
+          return;
+        }
+        // Resume an incomplete onboarding where she left off (spec §3.1).
+        final st = await OnboardingService.load();
+        if (st != null && !st.completed) {
+          _goToFlow(child, (st.step + 1).clamp(2, 8));
         } else {
-          _goToChildBasics();
+          _goToHome(); // returning parent, onboarding done
         }
         return;
       }
@@ -90,6 +98,14 @@ class _ConsentScreenState extends State<ConsentScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const ChildBasicsScreen()),
+    );
+  }
+
+  void _goToFlow(Child child, int startStep) {
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => OnboardingFlowScreen(child: child, startStep: startStep)),
     );
   }
 

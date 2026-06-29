@@ -44,7 +44,7 @@ class _ChildBasicsScreenState extends State<ChildBasicsScreen> {
       Child child;
       if (AppEnv.hasSupabase) {
         child = await ChildService.createChild(name: name, age: _age);
-        await OnboardingService.saveStep(1, childId: child.id);
+        if (!widget.addAnother) await OnboardingService.saveStep(1, childId: child.id);
       } else {
         child = Child(id: 'preview', name: name, age: _age); // UI-only preview
       }

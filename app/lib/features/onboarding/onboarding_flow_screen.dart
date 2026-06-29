@@ -124,14 +124,14 @@ class _OnboardingFlowScreenState extends State<OnboardingFlowScreen> {
         );
         break;
     }
-    await OnboardingService.saveStep(_step, childId: widget.child.id);
+    if (!widget.addAnother) await OnboardingService.saveStep(_step, childId: widget.child.id);
   }
 
   Future<void> _finish() async {
     setState(() => _busy = true);
     try {
       await ProfileService.save(momGoals: _momGoals.toList());
-      await OnboardingService.complete(childId: widget.child.id);
+      if (!widget.addAnother) await OnboardingService.complete(childId: widget.child.id);
     } catch (_) {/* non-fatal */}
     if (!mounted) return;
     if (widget.addAnother) {

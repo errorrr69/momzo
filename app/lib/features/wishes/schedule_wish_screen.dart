@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_buttons.dart';
+import '../../services/child_service.dart';
+import '../../services/scheduled_event_service.dart';
+import '../../services/wish_service.dart';
 
 /// 21 · Plan a together-time — turn a wish into a scheduled moment + a tip on
-/// how to make it special.
+/// how to make it special. Saves a scheduled_event, flips the wish to 'scheduled',
+/// and schedules a gentle reminder (Tasks 27 + 28).
 class ScheduleWishScreen extends StatefulWidget {
-  const ScheduleWishScreen({super.key});
+  final Wish wish;
+  const ScheduleWishScreen({super.key, required this.wish});
 
   @override
   State<ScheduleWishScreen> createState() => _ScheduleWishScreenState();
@@ -15,6 +20,49 @@ class ScheduleWishScreen extends StatefulWidget {
 class _ScheduleWishScreenState extends State<ScheduleWishScreen> {
   String _day = 'Sat';
   String _time = 'After tea';
+  bool _saving = false;
+
+  String get _childName => ChildService.current?.name ?? 'your child';
+  String get _tip =>
+      'Let ${_childName.isEmpty ? 'them' : _childName} lead — kids glow when they get to be in charge of the fun.';
+
+  /// Map the friendly day/time chips to a real start time.
+  DateTime _startsAt() {
+    final now = DateTime.now();
+    var date = DateTime(now.year, now.month, now.day);
+    if (_day == 'Sat') {
+      date = date.add(Duration(days: (DateTime.saturday - date.weekday + 7) % 7));
+    } else if (_day == 'Sun') {
+      date = date.add(Duration(days: (DateTime.sunday - date.weekday + 7) % 7));
+    }
+    final hour = _time == 'Morning' ? 9 : (_time == 'Bedtime' ? 19 : 17);
+    final minute = _time == 'Bedtime' ? 30 : 0;
+    var at = DateTime(date.year, date.month, date.day, hour, minute);
+    // "Today" but the slot already passed -> bump to tomorrow so it's plannable.
+    if (at.isBefore(now)) at = at.add(const Duration(days: 1));
+    return at;
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      await ScheduledEventService.schedule(
+        title: widget.wish.text,
+        startsAt: _startsAt(),
+        tip: _tip,
+        wishId: widget.wish.id,
+      );
+      if (mounted) Navigator.pop(context, true);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not plan it in just now. Please try again.')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,18 +108,20 @@ class _ScheduleWishScreenState extends State<ScheduleWishScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Text('🏰', style: TextStyle(fontSize: 34)),
+                        const Text('⭐', style: TextStyle(fontSize: 34)),
                         const SizedBox(width: 14),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("AARAV'S WISH",
-                                style: MomzoText.eyebrow(color: MomzoColors.honeyText)
-                                    .copyWith(letterSpacing: .5)),
-                            Text('Build a giant blanket fort',
-                                style: MomzoText.sans(18,
-                                    color: MomzoColors.ink, weight: FontWeight.w800)),
-                          ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${_childName.toUpperCase()}’S WISH',
+                                  style: MomzoText.eyebrow(color: MomzoColors.honeyText)
+                                      .copyWith(letterSpacing: .5)),
+                              Text(widget.wish.text,
+                                  style: MomzoText.sans(18,
+                                      color: MomzoColors.ink, weight: FontWeight.w800)),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -119,13 +169,11 @@ class _ScheduleWishScreenState extends State<ScheduleWishScreen> {
                                       color: const Color(0xFF2E6675),
                                       weight: FontWeight.w800)),
                               const SizedBox(height: 3),
-                              Text(
-                                'Let him be the "architect" — you just follow his blueprint. Kids glow when they lead.',
-                                style: MomzoText.sans(13,
-                                    color: const Color(0xFF3E8497),
-                                    weight: FontWeight.w600,
-                                    height: 1.45),
-                              ),
+                              Text(_tip,
+                                  style: MomzoText.sans(13,
+                                      color: const Color(0xFF3E8497),
+                                      weight: FontWeight.w600,
+                                      height: 1.45)),
                             ],
                           ),
                         ),
@@ -137,8 +185,9 @@ class _ScheduleWishScreenState extends State<ScheduleWishScreen> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 26),
-              child: MomzoButton('Add to our calendar & remind me',
-                  onTap: () => Navigator.pop(context)),
+              child: MomzoButton(
+                  _saving ? 'Planning…' : 'Add to our calendar & remind me',
+                  onTap: _saving ? null : _save),
             ),
           ],
         ),
@@ -164,7 +213,7 @@ class _ScheduleWishScreenState extends State<ScheduleWishScreen> {
           boxShadow: sel && !small
               ? [
                   BoxShadow(
-                    color: MomzoColors.coral.withOpacity(.3),
+                    color: MomzoColors.coral.withValues(alpha: .3),
                     blurRadius: 14,
                     offset: const Offset(0, 6),
                   )

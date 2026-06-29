@@ -8,6 +8,7 @@ import 'daily_question_screen.dart';
 import 'games/mini_games_gallery_screen.dart';
 import 'quiz_flow_screen.dart';
 import '../wishes/wish_wall_screen.dart';
+import '../wishes/calendar_screen.dart';
 
 /// 17 · Together · hub — small ways to feel close, the child's voice included.
 class TogetherHubScreen extends StatefulWidget {
@@ -155,6 +156,18 @@ class _TogetherHubScreenState extends State<TogetherHubScreen> {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const MiniGamesGalleryScreen()),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _row(
+                context,
+                emoji: '🗓️',
+                colors: const [Color(0xFFB7A6E0), MomzoColors.lavender],
+                title: 'Our together-times',
+                sub: 'Plan wishes in & see what’s coming up',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CalendarScreen()),
                 ),
               ),
             ],

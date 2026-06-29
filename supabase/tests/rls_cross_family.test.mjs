@@ -38,7 +38,7 @@ const TABLES = [
   'users', 'consents', 'children', 'daily_assignments', 'activity_logs',
   'ai_conversations', 'ai_messages', 'ai_usage', 'question_responses', 'wishes',
   'scheduled_events', 'reminders', 'milestones', 'family_members', 'device_tokens',
-  'saved_cards', 'game_play_history',
+  'saved_cards', 'game_play_history', 'onboarding_state',
 ];
 
 const families = {
@@ -73,6 +73,7 @@ async function seedFamily(key) {
     device_tokens: randomUUID(),
     saved_cards: randomUUID(),
     game_play_history: randomUUID(),
+    onboarding_state: randomUUID(),
   };
   const now = new Date().toISOString();
   await ins('users', { id: owner, display_name: `Parent ${key}` });
@@ -93,6 +94,7 @@ async function seedFamily(key) {
   await ins('device_tokens', { id: f.rows.device_tokens, user_id: owner, token: `tok-${key}-${owner}`, platform: 'android' });
   await ins('saved_cards', { id: f.rows.saved_cards, owner_id: owner, card_id: g.cardId });
   await ins('game_play_history', { id: f.rows.game_play_history, owner_id: owner, child_id: childId, game_slug: g.gameSlug, item_id: g.gameItemId });
+  await ins('onboarding_state', { id: f.rows.onboarding_state, user_id: owner, child_id: childId, step: 0 });
 }
 
 async function deleteTestUsers() {

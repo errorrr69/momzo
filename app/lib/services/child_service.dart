@@ -46,8 +46,11 @@ class ChildService {
   static Future<Child> createChild({
     required String name,
     required int age,
-    required List<String> temperament,
-    required List<String> struggles,
+    List<String> focusGoals = const [],
+    List<String> challenges = const [],
+    List<String> interests = const [],
+    Map<String, double> temperament = const {},
+    String? notes,
   }) async {
     final user = AuthService.currentUser;
     if (user == null) throw StateError('Cannot create a child without a signed-in user.');
@@ -56,8 +59,11 @@ class ChildService {
       'owner_id': user.id,
       'name': name.trim(),
       'age': age,
-      'temperament': temperament,
-      'struggles': struggles,
+      'focus_goals': focusGoals,
+      'challenges': challenges,
+      'interests': interests,
+      if (temperament.isNotEmpty) 'temperament': temperament,
+      if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
     }).select().single();
 
     final child = Child.fromMap(row);
@@ -66,19 +72,28 @@ class ChildService {
     return child;
   }
 
-  /// Edit an existing child (e.g. keep struggles current over time — Task 23).
+  /// Edit an existing child (e.g. keep goals/challenges current over time). Edits
+  /// re-target content + AI from the next request (context is built fresh each call).
   static Future<Child> updateChild({
     required String id,
     String? name,
     int? age,
-    List<String>? temperament,
-    List<String>? struggles,
+    List<String>? focusGoals,
+    List<String>? challenges,
+    List<String>? interests,
+    Map<String, double>? temperament,
+    String? notes,
+    Map<String, dynamic>? attributes,
   }) async {
     final patch = <String, dynamic>{
       if (name != null) 'name': name.trim(),
       if (age != null) 'age': age,
+      if (focusGoals != null) 'focus_goals': focusGoals,
+      if (challenges != null) 'challenges': challenges,
+      if (interests != null) 'interests': interests,
       if (temperament != null) 'temperament': temperament,
-      if (struggles != null) 'struggles': struggles,
+      if (notes != null) 'notes': notes.trim(),
+      if (attributes != null) 'attributes': attributes,
     };
     final row = await supabase
         .from('children')

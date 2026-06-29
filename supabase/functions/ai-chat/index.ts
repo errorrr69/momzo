@@ -7,6 +7,7 @@ import {
   embedQuery, mistralChat, referOutReason, REFER_OUT_MESSAGE,
   MODEL_DEFAULT, MODEL_ESCALATE, isSensitive,
 } from '../_shared/ai.ts';
+import { buildPersonalizationContext } from '../_shared/personalization.ts';
 
 // Per-user soft rate limit (Hard Rule #9): abuse/cost guard. Refer-out is exempt
 // (safety always gets through) — only the LLM-generating path is limited.
@@ -54,12 +55,11 @@ Deno.serve(async (req) => {
   try {
     const sql = db();
 
-    // Ownership + child context (NO name leaves this function).
-    const child = await sql`
-      select owner_id, age, temperament, struggles from children where id = ${childId}`;
-    if (child.length === 0) return json(404, { ok: false, error: 'child not found' });
-    if (child[0].owner_id !== user.id) return json(403, { ok: false, error: 'forbidden' });
-    const { age, temperament, struggles } = child[0];
+    // Ownership check + NAME-FREE personalization context, built in one place
+    // (the isolation choke-point). Returns null if the child isn't the caller's.
+    const pers = await buildPersonalizationContext(sql, user.id, childId);
+    if (!pers) return json(403, { ok: false, error: 'forbidden' });
+    const age = pers.age;
 
     // Reuse an owned conversation, else open a new one.
     if (conversationId) {
@@ -108,8 +108,7 @@ Deno.serve(async (req) => {
     const excerpts = hits.map((h: { title: string; chunk: string }, i: number) =>
       `[${i + 1}] (${h.title})\n${h.chunk}`).join('\n\n');
 
-    const childCtx =
-      `Child context — age ${age}; temperament: ${fmt(temperament)}; working on: ${fmt(struggles)}.`;
+    const childCtx = pers.context;
     const grounding =
       `Use ONLY: (1) the excerpts below from vetted parenting guides, and (2) well-established, ` +
       `mainstream child-development knowledge. If the excerpts don't cover it and you're not ` +
@@ -169,10 +168,6 @@ Deno.serve(async (req) => {
     return json(500, { ok: false });
   }
 });
-
-function fmt(arr: unknown): string {
-  return Array.isArray(arr) && arr.length ? arr.join(', ') : 'not specified';
-}
 
 // Persist the user turn + the assistant turn (owner_id denormalized for RLS).
 async function persist(

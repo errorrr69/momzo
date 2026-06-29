@@ -12,20 +12,36 @@ import 'auth_service.dart';
 class DailyService {
   const DailyService._();
 
-  // Onboarding struggle labels -> content_card tags used by the seeded corpus.
-  static const Map<String, List<String>> _struggleTags = {
-    'Big emotions': ['emotional', 'feelings', 'self-control', 'behavior'],
-    'Screen time': ['screen-time', 'digital'],
-    'Focus': ['focus', 'development', 'milestones'],
-    'Confidence': ['confidence', 'self-esteem', 'emotional'],
-    "Won't share": ['behavior', 'self-control', 'family'],
-    'Bedtime': ['bedtime', 'behavior'],
+  // Onboarding focus-goal / challenge labels -> content_card tags (seeded corpus).
+  // Unmatched labels just fall through to any age-appropriate unseen card.
+  static const Map<String, List<String>> _labelTags = {
+    // Q3 — focus goals
+    'Handling big feelings': ['emotional', 'feelings', 'self-control', 'behavior'],
+    'Confidence & self-belief': ['confidence', 'self-esteem', 'emotional'],
+    'Focus & attention': ['focus', 'development', 'milestones'],
+    'Kindness & sharing': ['behavior', 'self-control', 'family'],
+    'Independence & responsibility': ['independence', 'behavior', 'development'],
+    'Love of learning & curiosity': ['learning', 'development', 'curiosity'],
+    'Friendships & social skills': ['social', 'behavior', 'family'],
+    'Calmer routines (sleep / meals / mornings)': ['bedtime', 'routines', 'behavior'],
+    'Screen-time balance': ['screen-time', 'digital'],
+    'Creativity & imagination': ['creativity', 'play'],
+    // Q4 — challenges (everyday tags)
+    'Big emotions / meltdowns': ['emotional', 'feelings', 'self-control'],
+    'Takes a while to warm up / shy': ['confidence', 'social', 'emotional'],
+    'Lots of energy, hard to settle': ['behavior', 'self-control', 'focus'],
+    'Gets frustrated easily': ['emotional', 'self-control'],
+    'Sharing & taking turns': ['behavior', 'family'],
+    'Listening & following directions': ['behavior', 'focus', 'development'],
+    'Worries or nervousness': ['emotional', 'feelings', 'confidence'],
+    'Changes & transitions are hard': ['behavior', 'routines'],
+    'Sibling moments': ['family', 'behavior'],
   };
 
-  static List<String> _tagsFor(List<String> struggles) {
+  static List<String> _tagsFor(Child child) {
     final out = <String>{};
-    for (final s in struggles) {
-      out.addAll(_struggleTags[s] ?? const []);
+    for (final s in [...child.focusGoals, ...child.challenges]) {
+      out.addAll(_labelTags[s] ?? const []);
     }
     return out.toList();
   }
@@ -59,8 +75,8 @@ class DailyService {
         .eq('child_id', child.id);
     final assigned = (assignedRows as List).map((r) => r['card_id'] as String).toList();
 
-    // Prefer struggle-matched & unseen; then any unseen; then allow a repeat.
-    var card = await _pick(child, _tagsFor(child.struggles), assigned);
+    // Prefer goal/challenge-matched & unseen; then any unseen; then allow a repeat.
+    var card = await _pick(child, _tagsFor(child), assigned);
     card ??= await _pick(child, null, assigned);
     card ??= await _pick(child, null, const []);
     if (card == null) return null;

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_buttons.dart';
-import 'child_temperament_screen.dart';
+import '../../models/child.dart';
+import '../../services/child_service.dart';
+import '../../services/onboarding_service.dart';
+import 'onboarding_flow_screen.dart';
 
 /// 03 · About your child — name, photo, age. Step 1 of 3.
 class ChildBasicsScreen extends StatefulWidget {
@@ -17,13 +21,49 @@ class ChildBasicsScreen extends StatefulWidget {
 
 class _ChildBasicsScreenState extends State<ChildBasicsScreen> {
   int _age = 8;
-  late final _name =
-      TextEditingController(text: widget.addAnother ? '' : 'Aarav');
+  bool _busy = false;
+  final _name = TextEditingController();
 
   @override
   void dispose() {
     _name.dispose();
     super.dispose();
+  }
+
+  Future<void> _next() async {
+    if (_busy) return;
+    if (_name.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add a name or nickname.')),
+      );
+      return;
+    }
+    final name = _name.text.trim();
+    setState(() => _busy = true);
+    try {
+      Child child;
+      if (AppEnv.hasSupabase) {
+        child = await ChildService.createChild(name: name, age: _age);
+        await OnboardingService.saveStep(1, childId: child.id);
+      } else {
+        child = Child(id: 'preview', name: name, age: _age); // UI-only preview
+      }
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OnboardingFlowScreen(child: child, addAnother: widget.addAnother),
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save just now. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -37,7 +77,24 @@ class _ChildBasicsScreenState extends State<ChildBasicsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 8),
-              const _StepDots(step: 1),
+              Row(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: const LinearProgressIndicator(
+                        value: 1 / 8,
+                        minHeight: 6,
+                        backgroundColor: Color(0xFFF6D9C8),
+                        color: MomzoColors.coral,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Text('1 of 8',
+                      style: MomzoText.sans(12, color: MomzoColors.muted, weight: FontWeight.w800)),
+                ],
+              ),
               const SizedBox(height: 24),
               Text('Who are we\ngetting to know?',
                   style: MomzoText.sans(27,
@@ -114,36 +171,13 @@ class _ChildBasicsScreenState extends State<ChildBasicsScreen> {
                   style: MomzoText.sans(13,
                       color: MomzoColors.muted, weight: FontWeight.w700)),
               const SizedBox(height: 9),
-              Row(
-                children: [
-                  for (final age in [6, 7, 8, 9, 10]) ...[
-                    Expanded(child: _agePill(age)),
-                    if (age != 10) const SizedBox(width: 8),
-                  ],
-                ],
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [for (final age in [4, 5, 6, 7, 8, 9, 10]) _agePill(age)],
               ),
               const Spacer(),
-              MomzoButton(
-                'Next',
-                onTap: () {
-                  if (_name.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please add a name or nickname.')),
-                    );
-                    return;
-                  }
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ChildTemperamentScreen(
-                        childName: _name.text.trim(),
-                        childAge: _age,
-                        addAnother: widget.addAnother,
-                      ),
-                    ),
-                  );
-                },
-              ),
+              MomzoButton(_busy ? 'Saving…' : 'Next', onTap: _busy ? null : _next),
               const SizedBox(height: 30),
             ],
           ),
@@ -157,6 +191,7 @@ class _ChildBasicsScreenState extends State<ChildBasicsScreen> {
     return GestureDetector(
       onTap: () => setState(() => _age = age),
       child: Container(
+        width: 44,
         padding: const EdgeInsets.symmetric(vertical: 13),
         decoration: BoxDecoration(
           color: selected ? MomzoColors.coral : Colors.white,
@@ -180,31 +215,6 @@ class _ChildBasicsScreenState extends State<ChildBasicsScreen> {
                 color: selected ? Colors.white : MomzoColors.faint,
                 weight: FontWeight.w800)),
       ),
-    );
-  }
-}
-
-class _StepDots extends StatelessWidget {
-  final int step; // 1-based
-  const _StepDots({required this.step});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (int i = 1; i <= 3; i++) ...[
-          Expanded(
-            child: Container(
-              height: 6,
-              decoration: BoxDecoration(
-                color: i <= step ? MomzoColors.coral : const Color(0xFFF6D9C8),
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-          ),
-          if (i != 3) const SizedBox(width: 6),
-        ],
-      ],
     );
   }
 }

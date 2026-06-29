@@ -24,7 +24,6 @@ const _labelToSlot = {'Morning': 'morning', 'Noon': 'noon', 'Evening': 'evening'
 
 class _RemindersScreenState extends State<RemindersScreen> {
   bool _dailyNudge = true;
-  bool _whatsApp = false;
   String _bestTime = 'Morning';
   int? _quietStart = 21;
   int? _quietEnd = 7;
@@ -196,42 +195,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
                         color: MomzoColors.faint, size: 22),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 13),
-            // WhatsApp opt-in (sky-tinted, differentiator)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: MomzoColors.skyTint,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Reminders on WhatsApp',
-                            style: MomzoText.sans(15,
-                                color: const Color(0xFF2E6675),
-                                weight: FontWeight.w800)),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Get playdate nudges where you already are. Opt-in, utility only.',
-                          style: MomzoText.sans(12,
-                              color: const Color(0xFF3E8497),
-                              weight: FontWeight.w600,
-                              height: 1.4),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  _toggle(_whatsApp, MomzoColors.sky,
-                      () => setState(() => _whatsApp = !_whatsApp),
-                      offColor: const Color(0xFFCDE3E9)),
-                ],
               ),
             ),
             const SizedBox(height: 26),

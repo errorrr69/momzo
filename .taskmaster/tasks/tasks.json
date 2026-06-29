@@ -1012,53 +1012,57 @@
         "id": "23",
         "title": "[Phase 2] Multiple children + edit profile",
         "description": "Add >1 child with per-child content/activity switching; edit/update struggles over time.",
-        "status": "pending",
+        "status": "done",
         "priority": "medium",
         "dependencies": [
           "12"
         ],
         "details": "Child selector in home; all queries scope to the selected child. Edit profile to keep struggles current. Wire into home_screen.\nHard Rules: #20 RLS test for multi-child isolation; #14 parent-owned.",
         "testStrategy": "A mom adds a second child, switches between them (content/activities change), and edits struggles; RLS isolation holds.",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-26T13:10:20.250Z"
       },
       {
         "id": "24",
         "title": "[Phase 2] Save/bookmark + topic library",
         "description": "Bookmark cards into a personal library; browse past + categorized content on demand.",
-        "status": "pending",
+        "status": "done",
         "priority": "medium",
         "dependencies": [
           "13"
         ],
         "details": "daily_assignments.saved flag + a library view over content_cards by tag/topic. Wire existing screen daily/library_screen.dart.\nHard Rules: #6 vetted content; #20 RLS test.",
         "testStrategy": "A mom saves a card and finds it in the library; can browse categorized past content.",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-26T13:46:31.352Z"
       },
       {
         "id": "25",
         "title": "[Phase 2] Know-each-other quiz + games library",
         "description": "Mom and child answer the same questions separately, then reveal matches (flagship bonding game) + a small co-play games library.",
-        "status": "pending",
+        "status": "done",
         "priority": "medium",
         "dependencies": [
           "19"
         ],
         "details": "questions type='know_each_other'/'game'; both answer separately; reveal match. Wire existing screens bonding/quiz_match_screen.dart, bonding/together_hub_screen.dart. This is where Realtime IS justified for the live reveal — enable Realtime ONLY on the relevant table, filtered to the one family.\nHard Rules: #4 Realtime only on this table, filtered to family; #20 RLS test (SELECT policy covers expected realtime rows).",
         "testStrategy": "Mom + child complete a quiz, matches reveal live; Realtime is scoped to one family; cross-family rows never delivered.",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-26T14:14:37.735Z"
       },
       {
         "id": "26",
         "title": "[Phase 2] Kid wish wall + kid mode",
         "description": "Safe kid-facing surface (parent-unlocked) to add things they'd like to do with a parent.",
-        "status": "pending",
+        "status": "done",
         "priority": "medium",
         "dependencies": [
           "12"
         ],
         "details": "wishes (child_id, text, created_by 'child'/'parent', status). Kid mode is a client-side gated view under the parent session that can ONLY write wishes + question_responses for that family. Wire existing screen wishes/wish_wall_screen.dart.\nHard Rules: #14 child no independent account, under parent session; #15 minimal data; #20 RLS test.",
         "testStrategy": "Kid mode can add a wish and answer a question but cannot access or write anything else; wishes are family-isolated.",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-26T14:26:35.688Z"
       },
       {
         "id": "27",
@@ -1092,14 +1096,15 @@
         "id": "29",
         "title": "[Phase 2] WhatsApp utility reminders (opt-in)",
         "description": "Deliver playdate/activity/recap reminders via WhatsApp Cloud API using pre-approved utility templates; opt-in + opt-out.",
-        "status": "pending",
+        "status": "cancelled",
         "priority": "medium",
         "dependencies": [
           "20"
         ],
         "details": "Set up WABA + WhatsApp Cloud API; build whatsapp-send Edge Function. Submit + get approval for a small set of UTILITY templates (playdate reminder, activity reminder, weekly recap nudge) — never marketing. Capture + store explicit opt-in (users.whatsapp_opt_in, whatsapp_number E.164); honor opt-out. send-due-reminders routes to WhatsApp only for opted-in users; personalization via template variables. BLOCKER FOR FLORIE: confirm a WABA exists and Cloud-API-direct vs BSP.\nHard Rules: #11 push first/WhatsApp opt-in; #12 utility templates only; #13 idempotent.",
         "testStrategy": "An opted-in mom receives a utility-template reminder on WhatsApp; opt-out stops them; templates are approved as Utility; non-opted users only get push.",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-06-29T13:04:30.392Z"
       },
       {
         "id": "30",
@@ -1207,9 +1212,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-25T11:08:59.958Z",
+      "lastModified": "2026-06-29T13:04:30.419Z",
       "taskCount": 37,
-      "completedCount": 20,
+      "completedCount": 24,
       "tags": [
         "master"
       ]

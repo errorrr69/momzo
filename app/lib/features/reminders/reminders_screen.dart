@@ -7,6 +7,7 @@ import '../../services/child_service.dart';
 import '../../services/notification_service.dart';
 import '../onboarding/delete_child_screen.dart';
 import '../onboarding/welcome_screen.dart';
+import '../timeline/memory_timeline_screen.dart';
 
 /// 25 · Reminders & quiet hours — the mom is always in control of when & how
 /// often. Tone is kind, never a guilt-trip (Hard Rule #18). Persists to her
@@ -88,6 +89,41 @@ class _RemindersScreenState extends State<RemindersScreen> {
                     color: MomzoColors.ink, weight: FontWeight.w900, spacing: -.5)),
             Text("You're always in control of when & how often.",
                 style: MomzoText.serif(15, color: MomzoColors.muted)),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MemoryTimelineScreen()),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFC9B6EC), MomzoColors.lavender],
+                    begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Row(
+                  children: [
+                    const Text('🌱', style: TextStyle(fontSize: 26)),
+                    const SizedBox(width: 13),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Your moments',
+                              style: MomzoText.sans(15, color: Colors.white, weight: FontWeight.w900)),
+                          Text('A private keepsake of photos & notes',
+                              style: MomzoText.sans(12,
+                                  color: Colors.white.withValues(alpha: .9), weight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded, color: Colors.white),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 18),
             // Daily nudge toggle
             _card(

@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
         const payload = cfg.row(it);
         await sql`
           insert into game_items (game_slug, band, item_type, payload, source)
-          values (${gameSlug}, ${band}, ${cfg.itemType}, ${JSON.stringify(payload)}::jsonb, 'ai')`;
+          values (${gameSlug}, ${band}, ${cfg.itemType}, ${sql.json(payload)}, 'ai')`;
         inserted.push(payload);
         if (inserted.length >= TARGET_ADD) break;
       }

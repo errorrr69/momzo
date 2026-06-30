@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../core/supabase/supabase_init.dart';
 import '../core/ai/ai_request.dart';
 import '../core/ai/ai_router.dart';
@@ -32,8 +34,20 @@ class GameItem {
   final String id;
   final Map<String, dynamic> payload;
   const GameItem({required this.id, required this.payload});
-  factory GameItem.fromMap(Map<String, dynamic> m) =>
-      GameItem(id: m['id'] as String, payload: Map<String, dynamic>.from(m['payload'] as Map));
+  factory GameItem.fromMap(Map<String, dynamic> m) {
+    // Resilient to a payload stored as a JSON string (a past AI top-up bug
+    // double-encoded jsonb) — decode it rather than crashing the whole deal.
+    var raw = m['payload'];
+    if (raw is String) {
+      try {
+        raw = jsonDecode(raw);
+      } catch (_) {/* leave as-is; filtered below */}
+    }
+    return GameItem(
+      id: m['id'] as String,
+      payload: raw is Map ? Map<String, dynamic>.from(raw) : const <String, dynamic>{},
+    );
+  }
 }
 
 /// Mini-games engine (Task: Together games). Catalog + the anti-repetition dealer:

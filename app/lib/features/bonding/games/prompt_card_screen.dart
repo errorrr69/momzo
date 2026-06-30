@@ -62,9 +62,6 @@ const Map<String, PromptGameConfig> kPromptGames = {
   'charades': PromptGameConfig(
     textKey: 'actPrompt', emojiKey: 'emojiHint', emoji: '🎭',
     hint: 'Act it out — no talking! The other guesses 🎭'),
-  'dance-freeze': PromptGameConfig(
-    textKey: 'moveTheme', emoji: '🕺',
-    hint: 'Dance like this… then FREEZE! 🧊'),
   'simon-says': PromptGameConfig(
     textKey: 'command', emoji: '🙌',
     hint: "Only do it if it starts with “Simon says”! 🙌"),

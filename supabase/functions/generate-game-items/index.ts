@@ -108,14 +108,6 @@ const GAMES: Record<string, {
     safe: (it) => String(it.drawPrompt),
     row: (it) => ({ drawPrompt: String(it.drawPrompt) }),
   },
-  'dance-freeze': {
-    itemType: 'action',
-    prompt: (band, n, excl) =>
-      `Generate ${n} silly dance/move themes for a ${BAND[band]} ("wiggle like jelly", "dance like a robot"). All safe, indoor, no equipment, no jumping off furniture. Respond JSON: {"items":[{"moveTheme"}]}. Exclude (already used): ${excl.join(' | ')}`,
-    key: (it) => it.moveTheme ? norm(it.moveTheme) : null,
-    safe: (it) => String(it.moveTheme),
-    row: (it) => ({ moveTheme: String(it.moveTheme) }),
-  },
   'simon-says': {
     itemType: 'action',
     prompt: (band, n, excl) =>

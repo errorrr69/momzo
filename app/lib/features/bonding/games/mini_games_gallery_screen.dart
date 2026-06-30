@@ -10,8 +10,8 @@ import 'finish_the_sentence_screen.dart';
 import 'emoji_decode_screen.dart';
 import 'prompt_card_screen.dart';
 import 'time_machine_screen.dart';
-import 'mood_checkin_screen.dart';
 import 'reveal_score_screen.dart';
+import 'game_rules.dart';
 
 /// 26 · Mini-games gallery — pick a deck to play together (Together page).
 class MiniGamesGalleryScreen extends StatefulWidget {
@@ -57,21 +57,26 @@ class _MiniGamesGalleryScreenState extends State<MiniGamesGalleryScreen> {
       );
       return;
     }
-    final Widget screen = switch (g.slug) {
-      'would-you-rather' => WouldYouRatherScreen(game: g),
-      'get-to-know-you' => GetToKnowYouScreen(game: g),
-      'finish-the-sentence' => FinishTheSentenceScreen(game: g),
-      'emoji-decode' => EmojiDecodeScreen(game: g),
-      'time-machine' => TimeMachineScreen(game: g),
-      'mood-checkin' => MoodCheckinScreen(game: g),
+    // Build the actual game screen lazily; a shared rules screen is shown first
+    // and its "Start" button swaps in the game.
+    WidgetBuilder? gameBuilder = switch (g.slug) {
+      'would-you-rather' => (_) => WouldYouRatherScreen(game: g),
+      'get-to-know-you' => (_) => GetToKnowYouScreen(game: g),
+      'finish-the-sentence' => (_) => FinishTheSentenceScreen(game: g),
+      'emoji-decode' => (_) => EmojiDecodeScreen(game: g),
+      'time-machine' => (_) => TimeMachineScreen(game: g),
       _ when kRevealGames.containsKey(g.slug) =>
-        RevealScoreScreen(game: g, config: kRevealGames[g.slug]!),
+        (_) => RevealScoreScreen(game: g, config: kRevealGames[g.slug]!),
       _ when kPromptGames.containsKey(g.slug) =>
-        PromptCardScreen(game: g, config: kPromptGames[g.slug]!),
-      _ => const SizedBox.shrink(),
+        (_) => PromptCardScreen(game: g, config: kPromptGames[g.slug]!),
+      _ => null,
     };
-    if (screen is SizedBox) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    final builder = gameBuilder;
+    if (builder == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => GameRulesScreen(game: g, gameBuilder: builder)),
+    );
   }
 
   @override

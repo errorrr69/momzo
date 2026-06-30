@@ -15,7 +15,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const TARGET = 40;
 // Action/creative games target ~30/band (games spec §1.3.A); everything else 40.
-const TARGETS = { charades: 30, 'drawing-telephone': 30, 'dance-freeze': 30, 'simon-says': 30, 'mirror-me': 30, 'story-builder': 30 };
+const TARGETS = { charades: 30, 'drawing-telephone': 30, 'simon-says': 30, 'mirror-me': 30, 'story-builder': 30 };
 const BANDS = { A: '4–5 year old (very simple, concrete, everyday words)', B: '6–7 year old (simple, some feeling words, light imagination)', C: '8–10 year old (richer, can handle hypotheticals and "why")' };
 
 // Hard safety post-filter (belt-and-suspenders on top of the prompt).
@@ -138,13 +138,6 @@ const games = {
     key: (it) => it.drawPrompt ? norm(it.drawPrompt) : null,
     safe: (it) => String(it.drawPrompt),
     row: (it) => ({ drawPrompt: String(it.drawPrompt) }),
-  },
-  'dance-freeze': {
-    itemType: 'action',
-    prompt: (band, n, excl) => `Generate ${n} silly dance/move themes for a ${BANDS[band]} ("wiggle like jelly", "dance like a robot"). All safe, indoor, no equipment, no jumping off furniture. Respond JSON: {"items":[{"moveTheme"}]}. Exclude (already used): ${excl.join(' | ')}`,
-    key: (it) => it.moveTheme ? norm(it.moveTheme) : null,
-    safe: (it) => String(it.moveTheme),
-    row: (it) => ({ moveTheme: String(it.moveTheme) }),
   },
   'simon-says': {
     itemType: 'action',

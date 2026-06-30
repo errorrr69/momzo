@@ -22,10 +22,8 @@ const games = [
   { slug: 'memory-lane', title: 'Memory Lane', emoji: '💭', subtitle: 'happy moments', type: 'prompt', min_band: 'A', accent: '#F2B441', rounds_a: 2, rounds_b: 3, rounds_c: 4, playable: true, sort: 11 },
   { slug: 'gratitude-swap', title: 'Gratitude Swap', emoji: '🌸', subtitle: 'thankful for you', type: 'prompt', min_band: 'A', accent: '#84B89A', rounds_a: 2, rounds_b: 2, rounds_c: 3, playable: true, sort: 12 },
   { slug: 'compliment-toss', title: 'Compliment Toss', emoji: '🎁', subtitle: 'say something kind', type: 'prompt', min_band: 'A', accent: '#E87DA6', rounds_a: 2, rounds_b: 3, rounds_c: 3, playable: true, sort: 13 },
-  { slug: 'mood-checkin', title: 'Mood Check-in', emoji: '🌈', subtitle: 'how are you?', type: 'feeling', min_band: 'A', accent: '#A593D6', rounds_a: 1, rounds_b: 2, rounds_c: 2, playable: true, sort: 14 },
   { slug: 'charades', title: 'Charades', emoji: '🎭', subtitle: 'act it out', type: 'action', min_band: 'A', accent: '#EC8366', rounds_a: 3, rounds_b: 4, rounds_c: 5, playable: true, sort: 15 },
   { slug: 'drawing-telephone', title: 'Drawing Telephone', emoji: '✏️', subtitle: 'draw & guess', type: 'action', min_band: 'A', accent: '#8FC7D6', rounds_a: 2, rounds_b: 3, rounds_c: 4, playable: true, sort: 16 },
-  { slug: 'dance-freeze', title: 'Dance Freeze', emoji: '🕺', subtitle: 'move & freeze', type: 'action', min_band: 'A', accent: '#F2B441', rounds_a: 4, rounds_b: 5, rounds_c: 5, playable: true, sort: 17 },
   { slug: 'simon-says', title: 'Simon Says', emoji: '🙌', subtitle: 'listen & do', type: 'action', min_band: 'A', accent: '#84B89A', rounds_a: 5, rounds_b: 6, rounds_c: 8, playable: true, sort: 18 },
   { slug: 'mirror-me', title: 'Mirror Me', emoji: '🪞', subtitle: 'copy each other', type: 'action', min_band: 'A', accent: '#A593D6', rounds_a: 3, rounds_b: 4, rounds_c: 4, playable: true, sort: 19 },
 ];
@@ -112,17 +110,6 @@ const comp = {
 };
 await seed('compliment-toss', 'prompt', comp, ([scaffold, focus]) => ({ scaffold, focus }));
 
-// Mood Check-in — { feelings:[{emoji,label}], gentleFollowUp } (stable sets)
-const FA = [{ emoji: '😀', label: 'happy' }, { emoji: '😢', label: 'sad' }, { emoji: '😴', label: 'sleepy' }, { emoji: '🤩', label: 'excited' }];
-const FB = [...FA, { emoji: '😌', label: 'calm' }, { emoji: '😟', label: 'worried' }];
-const FC = [...FB, { emoji: '😤', label: 'frustrated' }, { emoji: '😳', label: 'nervous' }, { emoji: '🥰', label: 'loved' }, { emoji: '😎', label: 'proud' }];
-const mood = {
-  A: [{ feelings: FA, gentleFollowUp: 'What made you feel that?' }],
-  B: [{ feelings: FB, gentleFollowUp: 'What made you feel that?' }, { feelings: FB, gentleFollowUp: 'Want to tell me more?' }],
-  C: [{ feelings: FC, gentleFollowUp: 'Want to tell me about it?' }, { feelings: FC, gentleFollowUp: 'What would help right now?' }],
-};
-await seed('mood-checkin', 'feeling', mood, (it) => it);
-
 // Charades — { actPrompt, emojiHint }
 const char = {
   A: [['a hopping bunny', '🐰'], ['a sleepy cat', '😴'], ['a flying bird', '🐦'], ['a stomping elephant', '🐘'], ['a wiggly fish', '🐟'], ['a happy puppy', '🐶'], ['a jumping frog', '🐸'], ['a slithering snake', '🐍']],
@@ -138,14 +125,6 @@ const draw = {
   C: ['a cat on a skateboard', 'a robot eating ice cream', 'a dog flying a kite', 'a dancing banana', 'a penguin in a hat', 'a frog playing guitar', 'a turtle racing a snail', 'an octopus juggling', 'a dinosaur having tea', 'a cloud raining flowers'],
 };
 await seed('drawing-telephone', 'action', draw, (drawPrompt) => ({ drawPrompt }));
-
-// Dance Freeze — { moveTheme }
-const dance = {
-  A: ['wiggle like jelly', 'flap like a bird', 'stomp like a dino', 'spin like a top', 'tiptoe like a cat', 'bounce like a kangaroo', 'sway like a tree', 'shake like a leaf'],
-  B: ['dance like a robot', 'float like underwater', 'march like a soldier', 'twirl like a dancer', 'hop like a frog', 'wave like the ocean', 'shuffle like a penguin', 'gallop like a horse'],
-  C: ['dance like you are underwater', 'dance like a robot losing power', 'move in slow motion', 'dance like a superhero', 'dance like nobody is watching', 'dance like a rockstar', 'dance like a windy day', 'dance like a melting snowman'],
-};
-await seed('dance-freeze', 'action', dance, (moveTheme) => ({ moveTheme }));
 
 // Simon Says — { command, isSimonSays }
 const simon = {

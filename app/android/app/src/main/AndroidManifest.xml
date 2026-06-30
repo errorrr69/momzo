@@ -3,6 +3,8 @@
     <!-- AICore (Gemini Nano) declares minSdk 31; the app keeps a lower minSdk and
          guards on-device use at runtime, so allow the library's higher floor. -->
     <uses-sdk tools:overrideLibrary="com.google.ai.edge.aicore" />
+    <!-- On-device speech-to-text for Two Truths & a Lie (free, OS-provided). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
         android:label="momzo"
         android:name="${applicationName}"
@@ -44,6 +46,10 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- speech_to_text: discover the device's speech recognition service. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
     </queries>
 </manifest>

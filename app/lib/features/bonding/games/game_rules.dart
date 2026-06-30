@@ -36,7 +36,9 @@ const Map<String, String> kGameRules = {
   'drawing-telephone': 'Grab some paper! One of you draws the card while the other guesses.',
   'simon-says': 'Only do the action if it starts with “Simon says”. Take turns being Simon!',
   'mirror-me': 'One of you leads a slow movement, the other mirrors it — then swap.',
-  'two-truths': 'Say two true things and one made-up one — can the other spot the fib?',
+  'two-truths':
+      'One of you says (or types) two true things and one made-up one — tap the mic to '
+          'speak it! The other picks the two they think are true, then you reveal the fib together.',
 };
 
 /// Shared rules screen shown BEFORE any game starts (one component for every game,

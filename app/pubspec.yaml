@@ -24,6 +24,7 @@ dependencies:
   # On-device text-to-speech for the bonding games' "tap to hear" (free, offline).
   flutter_tts: ^4.2.0
   image_picker: ^1.2.2
+  speech_to_text: ^7.4.0
 
 dev_dependencies:
   flutter_lints: ^3.0.0

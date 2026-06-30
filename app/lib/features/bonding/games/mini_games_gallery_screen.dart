@@ -11,6 +11,7 @@ import 'emoji_decode_screen.dart';
 import 'prompt_card_screen.dart';
 import 'time_machine_screen.dart';
 import 'reveal_score_screen.dart';
+import 'two_truths_screen.dart';
 import 'game_rules.dart';
 
 /// 26 · Mini-games gallery — pick a deck to play together (Together page).
@@ -65,6 +66,7 @@ class _MiniGamesGalleryScreenState extends State<MiniGamesGalleryScreen> {
       'finish-the-sentence' => (_) => FinishTheSentenceScreen(game: g),
       'emoji-decode' => (_) => EmojiDecodeScreen(game: g),
       'time-machine' => (_) => TimeMachineScreen(game: g),
+      'two-truths' => (_) => TwoTruthsScreen(game: g),
       _ when kRevealGames.containsKey(g.slug) =>
         (_) => RevealScoreScreen(game: g, config: kRevealGames[g.slug]!),
       _ when kPromptGames.containsKey(g.slug) =>

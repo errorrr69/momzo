@@ -68,9 +68,6 @@ const Map<String, PromptGameConfig> kPromptGames = {
   'mirror-me': PromptGameConfig(
     textKey: 'moveIdea', emoji: '🪞',
     hint: 'One leads, the other mirrors — then swap! 🪞'),
-  'two-truths': PromptGameConfig(
-    textKey: 'scaffold', emoji: '🕵️',
-    hint: 'Build your statements from these — then guess each other’s! 🕵️'),
   'story-builder': PromptGameConfig(
     textKey: 'starter', emoji: '📖', serif: true,
     hint: 'Take turns adding one line each 📖'),

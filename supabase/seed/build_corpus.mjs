@@ -230,6 +230,10 @@ for (const abs of files) {
   const rel = relative(repoRoot, abs);
   const slug = rel.replace(/[\\/]/g, '/').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const cat = categorize(rel);
+  // Files under knowledge base/books/ are original notes distilled from reference
+  // books: they ground the AI (RAG) but are reference_only — never daily cards, so
+  // they skip the "why it matters at home" tie-in.
+  const isRef = /(^|[\\/])books[\\/]/i.test(rel);
   const { title, body } = parseDoc(readFileSync(abs, 'utf8'), basename(abs));
 
   if (seenBodies.has(body)) { console.log('· duplicate content (skipped):', slug); dupes++; continue; }
@@ -263,15 +267,16 @@ for (const abs of files) {
   const bodySame = existing && existing.body === body;
   const titleSame = existing && existing.title === title;
 
-  // Truly unchanged: body + title same, tie-in present, embeddings intact.
-  if (bodySame && titleSame && existing.why_it_matters && embCount > 0) {
+  // Truly unchanged: body + title same, tie-in present (reference notes need none),
+  // embeddings intact.
+  if (bodySame && titleSame && (isRef || existing.why_it_matters) && embCount > 0) {
     console.log('· unchanged:', slug);
     skipped++; cards++;
     continue;
   }
 
   // Body + title + embeddings intact, only the tie-in missing -> backfill (no re-embed).
-  if (bodySame && titleSame && embCount > 0 && !existing.why_it_matters) {
+  if (!isRef && bodySame && titleSame && embCount > 0 && !existing.why_it_matters) {
     const why = await whyItMatters(title, body);
     await sleep(400);
     if (why) {
@@ -286,13 +291,14 @@ for (const abs of files) {
 
   // New, changed body, or MISSING embeddings -> full (re)build. Reuse the tie-in
   // if we already have one (don't burn a generation call on a re-embed).
-  const why = existing?.why_it_matters || await whyItMatters(title, body);
-  await sleep(500);
+  const why = isRef ? null : (existing?.why_it_matters || await whyItMatters(title, body));
+  await sleep(isRef ? 0 : 500);
 
   const up = await admin.from('content_cards').upsert({
     slug, title, body, why_it_matters: why,
     tags: cat.tags, age_min: cat.age[0], age_max: cat.age[1],
-    source: 'curated', published: true,
+    source: isRef ? 'Momzo expert notes' : 'curated',
+    reference_only: isRef, published: true,
   }, { onConflict: 'slug' }).select('id').single();
   if (up.error) throw new Error(`card upsert ${slug}: ${up.error.message}`);
   const cardId = up.data.id;

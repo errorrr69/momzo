@@ -67,3 +67,6 @@ supabase/functions/**/.env
 
 # Local ops secrets (Discord webhook, etc.) — never commit
 .ops/
+
+# Transient extracted text from reference books — NEVER commit (copyright)
+.book-extract/

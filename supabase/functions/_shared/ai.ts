@@ -30,11 +30,23 @@ export interface ChatMsg { role: 'system' | 'user' | 'assistant'; content: strin
 export const MODEL_DEFAULT = 'mistral-small-latest';
 export const MODEL_ESCALATE = 'mistral-medium-latest';
 
-export interface ChatResult { text: string; usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null }
+export interface ChatUsage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  prompt_tokens_details?: { cached_tokens?: number };
+}
+export interface ChatResult {
+  text: string;
+  usage: ChatUsage | null;
+  /// Provider-reported cached prefix tokens (Cost Strategy §3). Billed at 10% of
+  /// the input rate. 0 or absent means the prefix cache missed.
+  cachedTokens: number;
+}
 
 export async function mistralChat(
   messages: ChatMsg[],
-  opts: { model?: string; maxTokens?: number; temperature?: number } = {},
+  opts: { model?: string; maxTokens?: number; temperature?: number; cacheKey?: string } = {},
 ): Promise<ChatResult> {
   const key = Deno.env.get('MISTRAL_API_KEY');
   if (!key) throw new Error('MISTRAL_API_KEY not set');
@@ -46,11 +58,21 @@ export async function mistralChat(
       messages,
       max_tokens: opts.maxTokens ?? 450,           // cap tokens (Hard Rule #9)
       temperature: opts.temperature ?? 0.4,
+      // Prompt caching (Cost Strategy §3, Layer 2). Mistral's prefix cache is
+      // opt-in via a stable key; ours is per-mode and SHARED across users, since
+      // the static prefix is byte-identical for everyone. Cached prefix tokens
+      // bill at 10% of the input rate.
+      ...(opts.cacheKey ? { prompt_cache_key: opts.cacheKey } : {}),
     }),
   });
   if (!res.ok) throw new Error(`mistral failed: ${res.status}`);
   const j = await res.json();
-  return { text: (j.choices?.[0]?.message?.content ?? '').trim(), usage: j.usage ?? null };
+  const usage: ChatUsage | null = j.usage ?? null;
+  return {
+    text: (j.choices?.[0]?.message?.content ?? '').trim(),
+    usage,
+    cachedTokens: Number(usage?.prompt_tokens_details?.cached_tokens ?? 0) || 0,
+  };
 }
 
 // Emotionally-heavy (but not refer-out) topics worth a more careful model.

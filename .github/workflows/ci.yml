@@ -2,8 +2,11 @@ name: CI
 
 # Monorepo CI (Build Guide §4):
 #   - app:            flutter analyze (no secrets)
+#   - edge-functions: Deno type-check + the AI cost/prompt unit tests, plus the
+#                     LLM call-site allowlist guard (Cost Strategy §2). No secrets.
 #   - db-checks:      RLS cross-family isolation (Hard Rule #20) + corpus integrity
-#                     (Task 1c). Read-only against the project; needs DB secrets.
+#                     (Task 1c) + AI cost acceptance (Cost Strategy §4/§5/§8).
+#                     Read-only against the project; needs DB secrets.
 #   - migrate-deploy: apply migrations + deploy Edge Functions. DELIBERATE only
 #                     (manual run) so we never auto-push migrations to prod on every
 #                     commit. Needs SUPABASE_ACCESS_TOKEN.
@@ -31,8 +34,31 @@ jobs:
       # Infos (deprecations, prefer_const) shouldn't fail CI; real errors/warnings still do.
       - run: flutter analyze --no-fatal-infos
 
+  edge-functions:
+    name: Edge Functions — LLM call-site guard + AI cost tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Layer 1 (Cost Strategy §2): fails if a new LLM call site appears outside
+      # the approved list. Adding one must always be deliberate.
+      - name: LLM call-site guard
+        working-directory: supabase/tests
+        run: node check_llm_call_sites.mjs
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      # Prompt-prefix stability (§3), cost math (§1), buckets + name guard (§5),
+      # and the warm no-shame limit copy (Hard Rule #18). No secrets, no network.
+      - name: AI cost unit tests
+        run: deno test --allow-env supabase/functions/_shared/
+      - name: Type-check Edge Functions
+        run: deno check supabase/functions/*/index.ts
+
   db-checks:
-    name: RLS isolation + corpus integrity
+    name: RLS isolation + corpus integrity + AI cost
     runs-on: ubuntu-latest
     env:
       SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
@@ -47,9 +73,10 @@ jobs:
           node-version: 22 # supabase-js needs native WebSocket (Node 22+)
       - working-directory: supabase/tests
         run: npm install
-      # Cross-family isolation — fails on ANY cross-family read/write or an
-      # untested owner_id/user_id table (Hard Rule #20).
-      - name: RLS suite
+      # Cross-family isolation (Hard Rule #20) + the AI cost acceptance suite
+      # (semantic-cache bucket isolation, billable-only rate counting, PII-free
+      # telemetry). `node --test` picks up every *.test.mjs here.
+      - name: RLS + AI cost suites
         working-directory: supabase/tests
         run: npm test
       # No dangling daily_assignments.card_id / ai_messages.cited_card_ids; every

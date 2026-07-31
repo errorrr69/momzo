@@ -8,24 +8,27 @@ import {
   MODEL_DEFAULT, MODEL_ESCALATE, isSensitive,
 } from '../_shared/ai.ts';
 import { buildPersonalizationContext } from '../_shared/personalization.ts';
-
-// Per-user soft rate limit (Hard Rule #9): abuse/cost guard. Refer-out is exempt
-// (safety always gets through) — only the LLM-generating path is limited.
-const RATE_LIMIT_PER_HOUR = 40;
-const RATE_LIMIT_MESSAGE =
-  "You've asked a lot in the last hour — I love that you're so engaged! Let's take a "
-  + "short breather and pick this back up in a little while. 💛";
+import { buildPrompt, type Mode } from '../_shared/prompts.ts';
+import {
+  breakerState, isRateLimited, recordUsage, BREAKER_MESSAGE, LIMIT_MESSAGE,
+} from '../_shared/aicost.ts';
+import { lookupCachedAnswer, storeCachedAnswer } from '../_shared/semcache.ts';
 
 // ai-chat (Task 14): RAG-grounded parenting Q&A.
 //   1. require a valid JWT; verify the caller owns the child
 //   2. refer-out classifier on EVERY turn (Hard Rule #7) — never diagnose
-//   3. embed the question (Gemini) -> retrieve top-K vetted chunks (pgvector)
-//   4. answer ONLY from those excerpts + established knowledge (Hard Rule #6),
-//      via Mistral (Hard Rule #8/#9); cite the source cards
-//   5. persist ai_conversations / ai_messages with cited_card_ids
+//   3. rate limit + budget breaker (Cost Strategy §4/§9) — AFTER the safety screen
+//   4. embed the question (Gemini) -> semantic answer cache (§5), else top-K chunks
+//   5. answer ONLY from those excerpts + established knowledge (Hard Rule #6),
+//      via Mistral with a cached static prefix (§3); cite the source cards
+//   6. persist ai_conversations / ai_messages + a PII-free ai_usage row (§8)
 //
 // Privacy (Hard Rule #10 + COPPA): keys stay in this function; the child's NAME is
 // never sent to the LLM — only age/temperament/struggles.
+//
+// COST ORDERING IS A SAFETY PROPERTY: the refer-out screen is cheap (regex) and
+// runs before the rate-limit check and before the breaker, so a mother in a hard
+// moment can never hit a cost-shaped wall. Do not reorder these blocks.
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -42,7 +45,7 @@ Deno.serve(async (req) => {
   let question = '';
   let childId = '';
   let conversationId: string | null = null;
-  let mode = 'qa';
+  let mode: Mode = 'qa';
   try {
     const b = await req.json();
     question = (b?.question ?? '').toString().trim();
@@ -59,7 +62,6 @@ Deno.serve(async (req) => {
     // (the isolation choke-point). Returns null if the child isn't the caller's.
     const pers = await buildPersonalizationContext(sql, user.id, childId);
     if (!pers) return json(403, { ok: false, error: 'forbidden' });
-    const age = pers.age;
 
     // Reuse an owned conversation, else open a new one.
     if (conversationId) {
@@ -73,30 +75,82 @@ Deno.serve(async (req) => {
       conversationId = c.id;
     }
 
-    // Refer-out safety net (Hard Rule #7): short-circuit before any AI advice.
+    // ---- 1. SAFETY FIRST (Hard Rule #7) ------------------------------------
+    // Runs before every cost control. A rate-limited user, or one arriving while
+    // the budget breaker is tripped, STILL gets the full refer-out response.
     const flagged = referOutReason(question);
     if (flagged) {
       await persist(sql, user.id, conversationId!, question, REFER_OUT_MESSAGE, [], flagged);
+      await recordUsage(sql, {
+        ownerId: user.id, conversationId, mode, billable: false, referOut: true,
+        latencyMs: Date.now() - startedAt,
+      });
       log.info('ai_chat_refer_out', { duration_ms: Date.now() - startedAt });
       return json(200, { ok: true, conversation_id: conversationId, answer: REFER_OUT_MESSAGE, citations: [], flagged });
     }
 
-    // Per-user rate limit (after refer-out, so safety is never blocked).
-    const [{ count }] = await sql`
-      select count(*)::int as count from ai_messages
-      where owner_id = ${user.id} and role = 'user'
-        and created_at > now() - interval '1 hour'`;
-    if (count >= RATE_LIMIT_PER_HOUR) {
-      log.warn('ai_chat_rate_limited', { count, duration_ms: Date.now() - startedAt });
-      return json(200, { ok: true, conversation_id: conversationId, answer: RATE_LIMIT_MESSAGE, citations: [], flagged: null });
+    // ---- 2. Rate limit (Cost Strategy §4) ----------------------------------
+    // Server-side only, counted from ai_usage's billable rows over a rolling 24h.
+    // The copy is warm and carries no counter, no reset nag, no cost language.
+    if (await isRateLimited(sql, user.id, mode)) {
+      await recordUsage(sql, {
+        ownerId: user.id, conversationId, mode, billable: false, rateLimited: true,
+        latencyMs: Date.now() - startedAt,
+      });
+      log.warn('ai_chat_rate_limited', { mode, duration_ms: Date.now() - startedAt });
+      return json(200, {
+        ok: true, conversation_id: conversationId,
+        answer: LIMIT_MESSAGE[mode], citations: [], flagged: null, limited: true,
+      });
+    }
+
+    const breaker = await breakerState(sql);
+
+    // ---- 3. Retrieval + semantic answer cache (§5) -------------------------
+    // The embedding is needed for RAG anyway, so the cache lookup is free.
+    const emb = await embedQuery(question);
+    const lit = `[${emb.join(',')}]`;
+
+    // Q&A only. Situational answers are of-the-moment and are never cached.
+    if (mode === 'qa') {
+      const hit = await lookupCachedAnswer(sql, lit, pers.bucket);
+      if (hit) {
+        const cites = await titlesFor(sql, hit.citedCardIds);
+        await persist(sql, user.id, conversationId!, question, hit.answer, hit.citedCardIds, null);
+        await recordUsage(sql, {
+          ownerId: user.id, conversationId, mode, billable: false, semanticCacheHit: true,
+          breakerState: breaker, latencyMs: Date.now() - startedAt,
+        });
+        log.info('ai_chat_cache_hit', {
+          mode, similarity: Number(hit.similarity.toFixed(3)), duration_ms: Date.now() - startedAt,
+        });
+        return json(200, {
+          ok: true, conversation_id: conversationId, answer: hit.answer,
+          citations: cites, flagged: null, cached: true,
+        });
+      }
+    }
+
+    // ---- 4. Budget breaker (§9) --------------------------------------------
+    // Cache miss + tripped breaker: degrade warmly rather than generate. Safety
+    // already returned above, so nothing urgent is being turned away here.
+    if (breaker === 'hard') {
+      await recordUsage(sql, {
+        ownerId: user.id, conversationId, mode, billable: false,
+        breakerState: breaker, latencyMs: Date.now() - startedAt,
+      });
+      log.error('ai_chat_breaker_degraded', { mode, duration_ms: Date.now() - startedAt });
+      return json(200, {
+        ok: true, conversation_id: conversationId, answer: BREAKER_MESSAGE,
+        citations: [], flagged: null, limited: true,
+      });
     }
 
     // Retrieve top-K vetted chunks.
-    const emb = await embedQuery(question);
-    const lit = `[${emb.join(',')}]`;
-    const hits = await sql`
+    const hits = (await sql`
       select card_id, title, chunk, similarity
-      from match_content_cards(${lit}::vector(768), 6)`;
+      from match_content_cards(${lit}::vector(768), 6)`) as unknown as
+      { card_id: string; title: string; chunk: string; similarity: number }[];
 
     // Distinct cards (cited), and a context block for grounding.
     const seen = new Set<string>();
@@ -105,51 +159,56 @@ Deno.serve(async (req) => {
       if (!seen.has(h.card_id)) { seen.add(h.card_id); citations.push({ card_id: h.card_id, title: h.title }); }
     }
     const topCitations = citations.slice(0, 3);
-    const excerpts = hits.map((h: { title: string; chunk: string }, i: number) =>
-      `[${i + 1}] (${h.title})\n${h.chunk}`).join('\n\n');
+    const excerpts = hits.map((h, i) => `[${i + 1}] (${h.title})\n${h.chunk}`).join('\n\n');
 
-    const childCtx = pers.context;
-    const grounding =
-      `Use ONLY: (1) the excerpts below from vetted parenting guides, and (2) well-established, ` +
-      `mainstream child-development knowledge. If the excerpts don't cover it and you're not ` +
-      `confident, say so gently — never invent specifics. Never diagnose or give medical advice; ` +
-      `suggest a professional for those. No guilt or shame, never imply she's failing. Refer to ` +
-      `the child as "your child" (never use a name).`;
-
-    const system = mode === 'situational'
-      // In-the-moment: a SHORT calm script she can act on in the next minute (#9 short cap).
-      ? `You are Momzo, helping a mother THROUGH a hard moment happening RIGHT NOW with her ` +
-        `${age}-year-old. Give a brief, calm script: 2–4 concrete steps she can do or say in the ` +
-        `next minute. Plain and warm, no preamble, under 90 words; end with ONE short reassuring ` +
-        `line. ${grounding}\n\n${childCtx}\n\nEXCERPTS:\n${excerpts || '(none found)'}`
-      : `You are Momzo, a warm, calm guide for the mother of a ${age}-year-old child. ${grounding} ` +
-        `Warm and concrete, under 130 words.\n\n${childCtx}\n\nEXCERPTS:\n${excerpts || '(none found)'}`;
+    // ---- 5. Generate, with the cached static prefix (§3) --------------------
+    // buildPrompt keeps the byte-identical prefix in message 0 and everything
+    // per-user in message 1, so the prefix cache hits across all users.
+    const { messages, cacheKey } = buildPrompt(mode, pers.context, excerpts, question);
 
     // Cheap-by-default routing (Hard Rule #8): escalate only when retrieval is weak
     // or the topic is emotionally sensitive (Q&A only; situational stays short+cheap).
-    const topSim = hits.length ? Math.max(...hits.map((h: { similarity: number }) => Number(h.similarity))) : 0;
+    const topSim = hits.length ? Math.max(...hits.map((h) => Number(h.similarity))) : 0;
     const escalate = mode === 'qa' && (topSim < 0.5 || isSensitive(question));
     const model = escalate ? MODEL_ESCALATE : MODEL_DEFAULT;
 
-    const { text: answer, usage } = await mistralChat(
-      [{ role: 'system', content: system }, { role: 'user', content: question }],
-      { model, maxTokens: mode === 'situational' ? 280 : 450, temperature: 0.4 },
-    );
+    const { text: answer, usage, cachedTokens } = await mistralChat(messages, {
+      model, maxTokens: mode === 'situational' ? 280 : 450, temperature: 0.4, cacheKey,
+    });
 
     await persist(sql, user.id, conversationId!, question, answer, topCitations.map((c) => c.card_id), null);
 
-    // Cost telemetry to ai_usage (Task 4) — PII-free; non-fatal so a metrics write
-    // can never fail a user's answer. Feeds the ai_cost_summary view.
-    try {
-      await sql`
-        insert into ai_usage (owner_id, conversation_id, mode, model, escalated, prompt_tokens, completion_tokens)
-        values (${user.id}, ${conversationId}, ${mode}, ${model}, ${escalate},
-                ${usage?.prompt_tokens ?? null}, ${usage?.completion_tokens ?? null})`;
-    } catch (e) {
-      log.warn('ai_usage_insert_failed', { message: String(e) });
+    // Write through to the semantic cache — Q&A only, never a flagged turn (we
+    // returned above), and only if the answer is provably free of the child's name.
+    let cachedWrite = false;
+    if (mode === 'qa' && answer) {
+      cachedWrite = await storeCachedAnswer(sql, {
+        question,
+        embeddingLiteral: lit,
+        bucket: pers.bucket,
+        answer,
+        citedCardIds: topCitations.map((c) => c.card_id),
+        model,
+        childName: pers.guardName,
+      });
     }
 
-    // Cost-dashboard feed (Task 8): model + token usage, no PII.
+    // PII-free cost telemetry (§8). Non-fatal so a metrics write can never fail
+    // a parent's answer. Feeds ai_cost_summary / ai_cost_per_active_user.
+    await recordUsage(sql, {
+      ownerId: user.id,
+      conversationId,
+      mode,
+      model,
+      escalated: escalate,
+      promptTokens: usage?.prompt_tokens ?? null,
+      completionTokens: usage?.completion_tokens ?? null,
+      cachedTokens,
+      promptCacheHit: cachedTokens > 0,
+      breakerState: breaker,
+      latencyMs: Date.now() - startedAt,
+    });
+
     log.info('ai_chat_ok', {
       mode,
       model,
@@ -157,8 +216,12 @@ Deno.serve(async (req) => {
       top_similarity: Number(topSim.toFixed(3)),
       prompt_tokens: usage?.prompt_tokens ?? null,
       completion_tokens: usage?.completion_tokens ?? null,
+      cached_tokens: cachedTokens,
+      prompt_cache_hit: cachedTokens > 0,
+      cached_write: cachedWrite,
       chunks: hits.length,
       cited: topCitations.length,
+      breaker,
       duration_ms: Date.now() - startedAt,
     });
     return json(200, { ok: true, conversation_id: conversationId, answer, citations: topCitations, flagged: null, model });
@@ -168,6 +231,20 @@ Deno.serve(async (req) => {
     return json(500, { ok: false });
   }
 });
+
+// Titles for a cached answer's stored card ids, so a cache hit renders the same
+// citation chips a fresh answer does.
+async function titlesFor(
+  sql: ReturnType<typeof db>,
+  cardIds: string[],
+): Promise<{ card_id: string; title: string }[]> {
+  if (cardIds.length === 0) return [];
+  const lit = `{${cardIds.join(',')}}`;
+  const rows = (await sql`
+    select id as card_id, title from content_cards where id = any(${lit}::uuid[]) and published`
+  ) as unknown as { card_id: string; title: string }[];
+  return rows.map((r) => ({ card_id: r.card_id, title: r.title }));
+}
 
 // Persist the user turn + the assistant turn (owner_id denormalized for RLS).
 async function persist(

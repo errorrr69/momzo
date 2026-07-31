@@ -3,6 +3,7 @@ import { db } from '../_shared/db.ts';
 import { log } from '../_shared/log.ts';
 import { captureError } from '../_shared/sentry.ts';
 import { getUser } from '../_shared/auth.ts';
+import { breakerState, isRateLimited, recordUsage, LIMIT_MESSAGE } from '../_shared/aicost.ts';
 
 // AI top-up for the mini-game banks (games spec §1.3.B). When a family has seen most
 // of a game's bank, the app calls this to generate a fresh batch via Mistral. Items
@@ -146,26 +147,41 @@ function norm(s: unknown): string {
   return String(s).toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
 }
 
-async function genItems(prompt: string): Promise<Record<string, unknown>[]> {
+const TOPUP_MODEL = 'mistral-small-latest';
+
+interface GenResult {
+  items: Record<string, unknown>[];
+  promptTokens: number;
+  completionTokens: number;
+}
+
+async function genItems(prompt: string): Promise<GenResult> {
+  const empty: GenResult = { items: [], promptTokens: 0, completionTokens: 0 };
   const key = Deno.env.get('MISTRAL_API_KEY');
-  if (!key) return [];
+  if (!key) return empty;
   const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: 'mistral-small-latest',
+      model: TOPUP_MODEL,
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
       max_tokens: 1600, // enough for ~20 items without truncating the JSON
       temperature: 0.8,
     }),
   });
-  if (!res.ok) return [];
+  if (!res.ok) return empty;
   try {
-    const obj = JSON.parse((await res.json()).choices?.[0]?.message?.content ?? '{}');
-    return Array.isArray(obj.items) ? obj.items : (Array.isArray(obj) ? obj : []);
+    const j = await res.json();
+    const obj = JSON.parse(j.choices?.[0]?.message?.content ?? '{}');
+    const items = Array.isArray(obj.items) ? obj.items : (Array.isArray(obj) ? obj : []);
+    return {
+      items,
+      promptTokens: Number(j.usage?.prompt_tokens ?? 0) || 0,
+      completionTokens: Number(j.usage?.completion_tokens ?? 0) || 0,
+    };
   } catch {
-    return [];
+    return empty;
   }
 }
 
@@ -190,18 +206,44 @@ Deno.serve(async (req) => {
     if (child.length === 0) return json(404, { ok: false, error: 'child not found' });
     if (child[0].owner_id !== user.id) return json(403, { ok: false, error: 'forbidden' });
     const band = child[0].age <= 5 ? 'A' : (child[0].age <= 7 ? 'B' : 'C');
+    // Attribute usage to the FAMILY (the child's owner), not the caller — the
+    // top-up limit in Cost Strategy §4 is per family, and a coparent shares it.
+    const familyId = child[0].owner_id as string;
+
+    // Cost controls (Cost Strategy §4/§9). Bank top-ups are the most expendable
+    // AI spend in the product: they are batched, globally shared, and a family
+    // with an unexhausted bank never needs one. So they are also the FIRST thing
+    // the budget breaker stops — at the soft threshold, before Q&A degrades.
+    if (await isRateLimited(sql, familyId, 'game_items')) {
+      await recordUsage(sql, { ownerId: familyId, mode: 'game_items', billable: false, rateLimited: true, latencyMs: Date.now() - startedAt });
+      log.warn('game_topup_rate_limited', { game: gameSlug, band });
+      return json(200, { ok: true, added: 0, generated: 0, limited: true, message: LIMIT_MESSAGE.game_items });
+    }
+    const breaker = await breakerState(sql);
+    if (breaker !== 'ok') {
+      await recordUsage(sql, { ownerId: familyId, mode: 'game_items', billable: false, breakerState: breaker, latencyMs: Date.now() - startedAt });
+      log.warn('game_topup_breaker_skipped', { game: gameSlug, band, breaker });
+      return json(200, { ok: true, added: 0, generated: 0, limited: true, message: LIMIT_MESSAGE.game_items });
+    }
 
     const existing = await sql`
       select payload from game_items where game_slug = ${gameSlug} and band = ${band} and active = true`;
     const seen = new Set<string>();
     for (const e of existing) { const k = cfg.key(e.payload); if (k) seen.add(k); }
 
+    // Always batched (Cost Strategy §2): ~20 items per call, written to the GLOBAL
+    // bank. Never one item per play.
     const TARGET_ADD = 20;
     const inserted: Record<string, unknown>[] = [];
     let gen = 0;
+    let promptTokens = 0;
+    let completionTokens = 0;
     for (let round = 0; round < 3 && inserted.length < TARGET_ADD; round++) {
-      const items = await genItems(cfg.prompt(band, TARGET_ADD, [...seen].slice(-40)));
+      const { items, promptTokens: pt, completionTokens: ct } =
+        await genItems(cfg.prompt(band, TARGET_ADD, [...seen].slice(-40)));
       gen += items.length;
+      promptTokens += pt;
+      completionTokens += ct;
       for (const it of items) {
         const k = cfg.key(it);
         if (!k || seen.has(k)) continue;
@@ -210,13 +252,28 @@ Deno.serve(async (req) => {
         const payload = cfg.row(it);
         await sql`
           insert into game_items (game_slug, band, item_type, payload, source)
-          values (${gameSlug}, ${band}, ${cfg.itemType}, ${sql.json(payload)}, 'ai')`;
+          values (${gameSlug}, ${band}, ${cfg.itemType},
+                  ${sql.json(payload as unknown as Parameters<typeof sql.json>[0])}, 'ai')`;
         inserted.push(payload);
         if (inserted.length >= TARGET_ADD) break;
       }
     }
 
-    log.info('game_topup_ok', { game: gameSlug, band, added: inserted.length, generated: gen, duration_ms: Date.now() - startedAt });
+    await recordUsage(sql, {
+      ownerId: familyId,
+      mode: 'game_items',
+      model: TOPUP_MODEL,
+      promptTokens,
+      completionTokens,
+      breakerState: breaker,
+      latencyMs: Date.now() - startedAt,
+    });
+
+    log.info('game_topup_ok', {
+      game: gameSlug, band, added: inserted.length, generated: gen,
+      prompt_tokens: promptTokens, completion_tokens: completionTokens,
+      duration_ms: Date.now() - startedAt,
+    });
     return json(200, { ok: true, added: inserted.length, generated: gen });
   } catch (e) {
     log.error('game_topup_error', { duration_ms: Date.now() - startedAt, message: String(e) });

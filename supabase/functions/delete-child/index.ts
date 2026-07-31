@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       await tx`delete from ai_conversations where child_id = ${childId}`;
       await tx`delete from children where id = ${childId}`;
 
-      return { status: 200 as const, photos: photos.map((p: { photo_url: string }) => p.photo_url) };
+      return { status: 200 as const, photos: photos.map((p) => String(p.photo_url)) };
     });
 
     if (outcome.status !== 200) {

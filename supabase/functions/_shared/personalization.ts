@@ -1,4 +1,5 @@
 import { db } from './db.ts';
+import { bucketKey } from './semcache.ts';
 
 /// The single place that turns a family's profile into a NAME-FREE personalization
 /// context for the cloud LLM (Onboarding & Personalization Spec §5 + §10). It also
@@ -9,6 +10,13 @@ import { db } from './db.ts';
 export interface Personalization {
   context: string;
   age: number;
+  /// Coarse (age band | focus | challenge) key for the semantic answer cache
+  /// (Cost Strategy §5). Contains no free text and no identifier.
+  bucket: string;
+  /// The child's name — returned for ONE purpose only: the cache-write guard,
+  /// which refuses to store an answer that contains it. It must never reach a
+  /// prompt, a log line, or a response body.
+  guardName: string | null;
 }
 
 // slider key -> [low-end label, high-end label]
@@ -38,7 +46,7 @@ export async function buildPersonalizationContext(
   childId: string,
 ): Promise<Personalization | null> {
   const rows = await sql`
-    select c.owner_id, c.age, c.focus_goals, c.challenges, c.interests, c.temperament, c.notes,
+    select c.owner_id, c.age, c.name, c.focus_goals, c.challenges, c.interests, c.temperament, c.notes,
            u.time_with_child, u.mom_goals
     from children c
     join users u on u.id = c.owner_id
@@ -61,5 +69,10 @@ export async function buildPersonalizationContext(
       'safety concern, follow the refer-out guidance.',
   );
 
-  return { context: lines.join('\n'), age: Number(r.age) };
+  return {
+    context: lines.join('\n'),
+    age: Number(r.age),
+    bucket: bucketKey(Number(r.age), r.focus_goals ?? [], r.challenges ?? []),
+    guardName: r.name ? String(r.name) : null,
+  };
 }

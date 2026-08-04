@@ -13,6 +13,7 @@ import {
   breakerState, isRateLimited, recordUsage, BREAKER_MESSAGE, LIMIT_MESSAGE,
 } from '../_shared/aicost.ts';
 import { lookupCachedAnswer, storeCachedAnswer } from '../_shared/semcache.ts';
+import { buildMemory } from '../_shared/memory.ts';
 
 // ai-chat (Task 14): RAG-grounded parenting Q&A.
 //   1. require a valid JWT; verify the caller owns the child
@@ -68,6 +69,7 @@ Deno.serve(async (req) => {
       const c = await sql`select user_id from ai_conversations where id = ${conversationId}`;
       if (c.length === 0 || c[0].user_id !== user.id) conversationId = null;
     }
+    const isNewConversation = !conversationId;
     if (!conversationId) {
       const [c] = await sql`
         insert into ai_conversations (user_id, child_id, mode)
@@ -106,17 +108,33 @@ Deno.serve(async (req) => {
 
     const breaker = await breakerState(sql);
 
-    // ---- 3. Retrieval + semantic answer cache (§5) -------------------------
+    // ---- 3. Personal memory (Tier B) ---------------------------------------
+    // The conversation so far, the parent's own notes, and what this family has
+    // actually been doing. Any of these makes the turn about ONE family, which
+    // makes it ineligible for the shared answer cache — in both directions.
+    const memory = await buildMemory(sql, {
+      ownerId: user.id,
+      childId,
+      conversationId: conversationId!,
+      isNewConversation,
+      notes: pers.notes,
+    });
+
+    // ---- 4. Retrieval + semantic answer cache (§5) -------------------------
     // The embedding is needed for RAG anyway, so the cache lookup is free.
     const emb = await embedQuery(question);
     const lit = `[${emb.join(',')}]`;
 
-    // Q&A only. Situational answers are of-the-moment and are never cached.
-    if (mode === 'qa') {
+    // Q&A only, and only for a turn with no personal context. Situational answers
+    // are of-the-moment and are never cached.
+    const cacheEligible = mode === 'qa' && !memory.isPersonal;
+    if (cacheEligible) {
       const hit = await lookupCachedAnswer(sql, lit, pers.bucket);
       if (hit) {
         const cites = await titlesFor(sql, hit.citedCardIds);
-        await persist(sql, user.id, conversationId!, question, hit.answer, hit.citedCardIds, null);
+        const ids = await persist(
+          sql, user.id, conversationId!, question, hit.answer, hit.citedCardIds, null,
+          hit.id, /* servedFromCache */ true);
         await recordUsage(sql, {
           ownerId: user.id, conversationId, mode, billable: false, semanticCacheHit: true,
           breakerState: breaker, latencyMs: Date.now() - startedAt,
@@ -126,12 +144,12 @@ Deno.serve(async (req) => {
         });
         return json(200, {
           ok: true, conversation_id: conversationId, answer: hit.answer,
-          citations: cites, flagged: null, cached: true,
+          citations: cites, flagged: null, cached: true, message_id: ids.assistantId,
         });
       }
     }
 
-    // ---- 4. Budget breaker (§9) --------------------------------------------
+    // ---- 5. Budget breaker (§9) --------------------------------------------
     // Cache miss + tripped breaker: degrade warmly rather than generate. Safety
     // already returned above, so nothing urgent is being turned away here.
     if (breaker === 'hard') {
@@ -161,10 +179,16 @@ Deno.serve(async (req) => {
     const topCitations = citations.slice(0, 3);
     const excerpts = hits.map((h, i) => `[${i + 1}] (${h.title})\n${h.chunk}`).join('\n\n');
 
-    // ---- 5. Generate, with the cached static prefix (§3) --------------------
+    // ---- 6. Generate, with the cached static prefix (§3) --------------------
     // buildPrompt keeps the byte-identical prefix in message 0 and everything
     // per-user in message 1, so the prefix cache hits across all users.
-    const { messages, cacheKey } = buildPrompt(mode, pers.context, excerpts, question);
+    const { messages, cacheKey } = buildPrompt(mode, {
+      childContext: pers.context,
+      excerpts,
+      question,
+      personalLines: memory.personalLines,
+      history: memory.history,
+    });
 
     // Cheap-by-default routing (Hard Rule #8): escalate only when retrieval is weak
     // or the topic is emotionally sensitive (Q&A only; situational stays short+cheap).
@@ -176,13 +200,14 @@ Deno.serve(async (req) => {
       model, maxTokens: mode === 'situational' ? 280 : 450, temperature: 0.4, cacheKey,
     });
 
-    await persist(sql, user.id, conversationId!, question, answer, topCitations.map((c) => c.card_id), null);
-
-    // Write through to the semantic cache — Q&A only, never a flagged turn (we
-    // returned above), and only if the answer is provably free of the child's name.
-    let cachedWrite = false;
-    if (mode === 'qa' && answer) {
-      cachedWrite = await storeCachedAnswer(sql, {
+    // Write through to the semantic cache — only for a turn that was eligible to
+    // read from it. An answer shaped by this family's notes, history or recent
+    // activity is about them, and must never be served to anyone else. Also
+    // never a flagged turn (we returned above), and only if the answer is
+    // provably free of the child's name.
+    let cachedId: string | null = null;
+    if (cacheEligible && answer) {
+      cachedId = await storeCachedAnswer(sql, {
         question,
         embeddingLiteral: lit,
         bucket: pers.bucket,
@@ -192,6 +217,12 @@ Deno.serve(async (req) => {
         childName: pers.guardName,
       });
     }
+
+    // Persist AFTER the cache write, so the assistant message can point at the
+    // cached row it produced — a thumbs-down then retires that row for everyone.
+    const ids = await persist(
+      sql, user.id, conversationId!, question, answer,
+      topCitations.map((c) => c.card_id), null, cachedId);
 
     // PII-free cost telemetry (§8). Non-fatal so a metrics write can never fail
     // a parent's answer. Feeds ai_cost_summary / ai_cost_per_active_user.
@@ -218,13 +249,19 @@ Deno.serve(async (req) => {
       completion_tokens: usage?.completion_tokens ?? null,
       cached_tokens: cachedTokens,
       prompt_cache_hit: cachedTokens > 0,
-      cached_write: cachedWrite,
+      cached_write: cachedId !== null,
+      cache_eligible: cacheEligible,
+      history_turns: memory.history.length,
+      personal_context: memory.personalLines.length,
       chunks: hits.length,
       cited: topCitations.length,
       breaker,
       duration_ms: Date.now() - startedAt,
     });
-    return json(200, { ok: true, conversation_id: conversationId, answer, citations: topCitations, flagged: null, model });
+    return json(200, {
+      ok: true, conversation_id: conversationId, answer, citations: topCitations,
+      flagged: null, model, message_id: ids.assistantId,
+    });
   } catch (e) {
     log.error('ai_chat_error', { duration_ms: Date.now() - startedAt, message: String(e) });
     captureError(e, { fn: 'ai-chat' });
@@ -247,6 +284,8 @@ async function titlesFor(
 }
 
 // Persist the user turn + the assistant turn (owner_id denormalized for RLS).
+// Returns the assistant message id so the app can attach a rating to it, and
+// so `recentTurns` has something to replay on the next question.
 async function persist(
   sql: ReturnType<typeof db>,
   ownerId: string,
@@ -255,12 +294,24 @@ async function persist(
   answer: string,
   citedCardIds: string[],
   flagged: string | null,
-) {
+  // The cached_answers row to retire if she thumbs this down. Live FK — it is
+  // nulled when that row is deleted.
+  cachedAnswerId: string | null = null,
+  // Durable provenance: was this answer SERVED from the cache? Recorded
+  // separately because the FK above disappears the moment the loop closes.
+  servedFromCache = false,
+): Promise<{ assistantId: string }> {
   await sql`
     insert into ai_messages (owner_id, conversation_id, role, content)
     values (${ownerId}, ${conversationId}, 'user', ${question})`;
   const citedLit = `{${citedCardIds.join(',')}}`;
-  await sql`
-    insert into ai_messages (owner_id, conversation_id, role, content, cited_card_ids, flagged)
-    values (${ownerId}, ${conversationId}, 'assistant', ${answer}, ${citedLit}::uuid[], ${flagged})`;
+  const [a] = (await sql`
+    insert into ai_messages
+      (owner_id, conversation_id, role, content, cited_card_ids, flagged,
+       cached_answer_id, served_from_cache)
+    values
+      (${ownerId}, ${conversationId}, 'assistant', ${answer}, ${citedLit}::uuid[],
+       ${flagged}, ${cachedAnswerId}, ${servedFromCache})
+    returning id`) as unknown as { id: string }[];
+  return { assistantId: a.id };
 }

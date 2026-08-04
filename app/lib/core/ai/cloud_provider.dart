@@ -40,6 +40,7 @@ class CloudProvider implements AiProvider {
       referOutTriggered: a.isReferOut,
       flagged: a.flagged,
       conversationId: a.conversationId,
+      messageId: a.messageId,
       citations: a.citations,
     );
   }

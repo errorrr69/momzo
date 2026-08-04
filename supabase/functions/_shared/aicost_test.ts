@@ -14,13 +14,24 @@ import { referOutReason } from './ai.ts';
 // --- §3 Layer 2: prompt caching ---------------------------------------------
 
 Deno.test('static prefix is byte-identical across two different users', () => {
-  const a = buildPrompt('qa', 'Child: age 5.\nWorking on: sleep.', 'excerpt A', 'why wont he sleep');
-  const b = buildPrompt('qa', 'Child: age 9.\nWorking on: big feelings.', 'excerpt B', 'how do i handle tantrums');
+  const a = buildPrompt('qa', {
+    childContext: 'Child: age 5.\nWorking on: sleep.',
+    excerpts: 'excerpt A',
+    question: 'why wont he sleep',
+  });
+  const b = buildPrompt('qa', {
+    childContext: 'Child: age 9.\nWorking on: big feelings.',
+    excerpts: 'excerpt B',
+    question: 'how do i handle tantrums',
+    personalLines: ["In the parent's own words: we moved house in March."],
+    history: [{ role: 'user', content: 'earlier question' }],
+  });
   assertEquals(a.messages[0].content, b.messages[0].content);
   assertEquals(a.messages[0].content, STATIC_PREFIX.qa);
   assertEquals(a.cacheKey, b.cacheKey);
-  // ...and everything per-user really is below the boundary.
+  // ...and everything per-user really is below the boundary, memory included.
   assertNotEquals(a.messages[1].content, b.messages[1].content);
+  assert(!a.messages[0].content.includes('moved house'));
 });
 
 Deno.test('no per-user value can appear in the static prefix', () => {
@@ -37,7 +48,9 @@ Deno.test('no per-user value can appear in the static prefix', () => {
 
 Deno.test('prefix is long enough and the personalization context stays below the boundary', () => {
   const ctx = 'Child: age 7.\nTricky right now: bedtime.';
-  const { messages } = buildPrompt('situational', ctx, 'excerpt', 'he is melting down');
+  const { messages } = buildPrompt('situational', {
+    childContext: ctx, excerpts: 'excerpt', question: 'he is melting down',
+  });
   assert(!messages[0].content.includes('age 7'));
   assert(messages[1].content.includes(ctx));
   assert(messages[1].content.includes('he is melting down'));

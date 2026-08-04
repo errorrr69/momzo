@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_buttons.dart';
+import '../../core/widgets/dictation_button.dart';
 import '../../core/ai/ai_request.dart';
 import '../../core/ai/ai_router.dart';
+import '../../services/ai_service.dart';
 import '../../services/child_service.dart';
 import 'ai_chat_screen.dart';
 import 'refer_out_screen.dart';
@@ -25,6 +29,10 @@ class _SituationalScreenState extends State<SituationalScreen> {
   bool _busy = false;
   String? _situationText;
   String? _script;
+
+  /// The stored assistant message, so the "That helped" / "Still stuck" choice
+  /// she already makes becomes a real signal instead of being discarded.
+  String? _messageId;
 
   bool get _live => AppEnv.hasSupabase && ChildService.current != null;
 
@@ -69,6 +77,7 @@ class _SituationalScreenState extends State<SituationalScreen> {
       }
       setState(() {
         _script = a.text;
+        _messageId = a.messageId;
         _busy = false;
       });
     } catch (_) {
@@ -155,17 +164,28 @@ class _SituationalScreenState extends State<SituationalScreen> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFF0D9CD), width: 1.5),
           ),
-          child: TextField(
-            controller: _input,
-            minLines: 2,
-            maxLines: 4,
-            textInputAction: TextInputAction.newline,
-            style: MomzoText.sans(15, color: MomzoColors.ink, weight: FontWeight.w600),
-            decoration: InputDecoration(
-              border: InputBorder.none,
-              hintText: '"He\'s screaming because I said no to ice cream…"',
-              hintStyle: MomzoText.sans(15, color: MomzoColors.faint, weight: FontWeight.w500),
-            ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _input,
+                  minLines: 2,
+                  maxLines: 4,
+                  textInputAction: TextInputAction.newline,
+                  style: MomzoText.sans(15, color: MomzoColors.ink, weight: FontWeight.w600),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: '"He\'s screaming because I said no to ice cream…"',
+                    hintStyle: MomzoText.sans(15, color: MomzoColors.faint, weight: FontWeight.w500),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: DictationButton(controller: _input, enabled: _live && !_busy),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
@@ -208,11 +228,15 @@ class _SituationalScreenState extends State<SituationalScreen> {
           Row(
             children: [
               Expanded(
-                child: MomzoSecondaryButton('That helped', onTap: () => Navigator.pop(context)),
+                child: MomzoSecondaryButton('That helped', onTap: () {
+                  _rate(1);
+                  Navigator.pop(context);
+                }),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: MomzoButton('Still stuck', onTap: () {
+                  _rate(-1);
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (_) => AiChatScreen(initialQuestion: _situationText)),
@@ -224,6 +248,14 @@ class _SituationalScreenState extends State<SituationalScreen> {
         ],
       ],
     );
+  }
+
+  /// Fire-and-forget: she is already navigating away, and a rating must never
+  /// delay her or surface an error at a moment she is mid-situation.
+  void _rate(int rating) {
+    final id = _messageId;
+    if (id == null) return;
+    unawaited(AiService.rateAnswer(id, rating));
   }
 
   // Render the model's script: numbered lines become steps, the rest paragraphs.

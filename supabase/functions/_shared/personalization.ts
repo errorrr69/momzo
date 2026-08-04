@@ -13,6 +13,10 @@ export interface Personalization {
   /// Coarse (age band | focus | challenge) key for the semantic answer cache
   /// (Cost Strategy §5). Contains no free text and no identifier.
   bucket: string;
+  /// The parent's free-text note about her child. TIER B (see memory.ts): it is
+  /// specific to one family, so a turn that uses it is not cacheable. Returned
+  /// raw here; memory.ts decides how to present it.
+  notes: string | null;
   /// The child's name — returned for ONE purpose only: the cache-write guard,
   /// which refuses to store an answer that contains it. It must never reach a
   /// prompt, a log line, or a response body.
@@ -73,6 +77,7 @@ export async function buildPersonalizationContext(
     context: lines.join('\n'),
     age: Number(r.age),
     bucket: bucketKey(Number(r.age), r.focus_goals ?? [], r.challenges ?? []),
+    notes: r.notes ? String(r.notes) : null,
     guardName: r.name ? String(r.name) : null,
   };
 }

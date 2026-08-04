@@ -97,6 +97,12 @@ class AiResult {
 
   // --- conversational extras (expert / situational) ---
   final String? conversationId;
+
+  /// The stored assistant message. Needed to attach a 👍/👎 to this answer — the
+  /// only signal Momzo has about whether an answer actually helped. Null for a
+  /// refer-out response (a safety message is not something to rate) and for the
+  /// preview/sample path.
+  final String? messageId;
   final List<({String cardId, String title})> citations;
 
   // --- generation extras (game top-up) ---
@@ -110,6 +116,7 @@ class AiResult {
     this.referOutTriggered = false,
     this.flagged,
     this.conversationId,
+    this.messageId,
     this.citations = const [],
     this.items,
     this.itemsAdded,

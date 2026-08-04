@@ -3,8 +3,10 @@ import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/why_it_matters.dart';
+import '../../core/widgets/dictation_button.dart';
 import '../../core/ai/ai_request.dart';
 import '../../core/ai/ai_router.dart';
+import '../../services/ai_service.dart';
 import '../../services/child_service.dart';
 import 'refer_out_screen.dart';
 
@@ -25,7 +27,14 @@ class _ChatMsg {
   final bool isUser;
   final String text;
   final List<({String cardId, String title})> citations;
-  _ChatMsg(this.isUser, this.text, {this.citations = const []});
+
+  /// Stored assistant message id — present only when this answer can be rated.
+  final String? messageId;
+
+  /// +1 / -1 once she has said whether it helped; null until then.
+  int? rating;
+
+  _ChatMsg(this.isUser, this.text, {this.citations = const [], this.messageId});
 }
 
 class _AiChatScreenState extends State<AiChatScreen> {
@@ -98,7 +107,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
           ),
         );
       } else {
-        setState(() => _messages.add(_ChatMsg(false, a.text, citations: a.citations)));
+        setState(() => _messages.add(
+            _ChatMsg(false, a.text, citations: a.citations, messageId: a.messageId)));
         _scrollToEnd();
       }
     } catch (_) {
@@ -233,6 +243,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   child: SourceChip(_sourceLabel(c.title)),
                 ),
             ],
+            if (m.messageId != null) _feedbackRow(m),
           ],
         ),
       ),
@@ -240,6 +251,58 @@ class _AiChatScreenState extends State<AiChatScreen> {
   }
 
   static String _sourceLabel(String title) => "Based on Momzo's guide: $title";
+
+  /// Was this useful? Quiet by design — a small, optional gesture, never a demand
+  /// and never a score. Once she answers, the row becomes a warm acknowledgement
+  /// rather than a pair of buttons she might feel obliged to keep pressing.
+  Widget _feedbackRow(_ChatMsg m) {
+    if (m.rating != null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Text(
+          m.rating == 1 ? 'Glad that helped 💛' : "Thanks — I'll do better.",
+          style: MomzoText.sans(11.5, color: MomzoColors.muted, weight: FontWeight.w700),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(
+        children: [
+          Text('Did this help?',
+              style: MomzoText.sans(11.5, color: MomzoColors.faint, weight: FontWeight.w700)),
+          const SizedBox(width: 10),
+          _thumb(m, 1, Icons.thumb_up_outlined, 'Yes, this helped'),
+          const SizedBox(width: 4),
+          _thumb(m, -1, Icons.thumb_down_outlined, "No, this didn't help"),
+        ],
+      ),
+    );
+  }
+
+  Widget _thumb(_ChatMsg m, int rating, IconData icon, String label) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: () => _rate(m, rating),
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(icon, size: 16, color: MomzoColors.faint),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _rate(_ChatMsg m, int rating) async {
+    final id = m.messageId;
+    if (id == null || m.rating != null) return;
+    // Optimistic: her thanks should never wait on the network, and a failed
+    // rating is not something to interrupt her with.
+    setState(() => m.rating = rating);
+    await AiService.rateAnswer(id, rating);
+  }
 
   Widget _typing() {
     return Align(
@@ -294,6 +357,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 ),
               ),
             ),
+            DictationButton(controller: _composer, enabled: _live && !_sending),
             GestureDetector(
               onTap: () {
                 final v = _composer.text.trim();

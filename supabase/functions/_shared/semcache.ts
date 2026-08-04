@@ -99,28 +99,33 @@ export interface CacheWrite {
 }
 
 /// Write-through after a fresh generation. Callers must have already established
-/// that the turn was NOT refer-out flagged and NOT situational.
+/// that the turn was NOT refer-out flagged, NOT situational, and carried no
+/// Tier B personal context (see memory.ts).
+///
+/// Returns the new row's id so the assistant message can point at it — a
+/// thumbs-down on that message then retires this cached answer for everyone.
 export async function storeCachedAnswer(
   sql: ReturnType<typeof db>,
   w: CacheWrite,
-): Promise<boolean> {
-  if (!CACHE_ENABLED) return false;
-  if (!w.answer || w.answer.length < 40) return false;      // nothing worth reusing
+): Promise<string | null> {
+  if (!CACHE_ENABLED) return null;
+  if (!w.answer || w.answer.length < 40) return null;      // nothing worth reusing
   if (!isNameFree(w.answer, w.childName)) {
     log.warn('semantic_cache_write_blocked', { reason: 'name_leak' });
-    return false;
+    return null;
   }
   try {
     const cited = `{${w.citedCardIds.join(',')}}`;
-    await sql`
+    const [row] = (await sql`
       insert into cached_answers
         (question_text, question_embedding, bucket_key, answer_text, cited_card_ids, model)
       values
         (${w.question}, ${w.embeddingLiteral}::vector(768), ${w.bucket}, ${w.answer},
-         ${cited}::uuid[], ${w.model})`;
-    return true;
+         ${cited}::uuid[], ${w.model})
+      returning id`) as unknown as { id: string }[];
+    return row?.id ?? null;
   } catch (e) {
     log.warn('semantic_cache_write_failed', { message: String(e) });
-    return false;
+    return null;
   }
 }

@@ -1126,7 +1126,7 @@
         "id": "31",
         "title": "[Phase 2] Weekly recap",
         "description": "A gentle weekly summary: what you learned + did, plus one small thing to try next week.",
-        "status": "pending",
+        "status": "done",
         "priority": "medium",
         "dependencies": [
           "13",
@@ -1134,13 +1134,14 @@
         ],
         "details": "Summarize the week's reads + activities + bonding actions; suggest one next step. Wire existing screen timeline/weekly_recap_screen.dart. Can be delivered as a nudge (push, later WhatsApp recap template).\nHard Rules: #18 celebrate, never shame; #13 idempotent if pushed.",
         "testStrategy": "A mom receives a warm weekly recap with one suggested next step; tone reviewed.",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-07-09T08:10:02.709Z"
       },
       {
         "id": "32",
         "title": "[Phase 2] Gentle streak / consistency",
         "description": "Soft, encouraging consistency indicator — never harsh.",
-        "status": "pending",
+        "status": "done",
         "priority": "low",
         "dependencies": [
           "18",
@@ -1148,13 +1149,14 @@
         ],
         "details": "A gentle streak surface celebrating small wins; never punishes a miss or shames a break.\nHard Rules: #18 no streak-shaming (this feature is the main risk for it).",
         "testStrategy": "Streak celebrates wins and shows no negative/guilt messaging on a missed day; tone sign-off.",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-07-09T08:10:02.730Z"
       },
       {
         "id": "33",
         "title": "[Phase 3] Co-parent / caregiver sharing (multi-member RLS)",
         "description": "Invite dad/grandparent to share a child profile and take part. Adds multi-member RLS via a security-definer membership check.",
-        "status": "pending",
+        "status": "review",
         "priority": "low",
         "dependencies": [
           "4",
@@ -1162,7 +1164,8 @@
         ],
         "details": "Activate family_members; invite + accept flow (status invited/active). Membership-based access uses a SECURITY DEFINER function for the lookup (not a join-in-policy), structured as id IN (select ... where user = uid) to stay fast. Co-parent cannot delete the child or remove the owner.\nHard Rules: #3 security-definer membership fn; #1 RLS+index; #20 RLS test for multi-member isolation.",
         "testStrategy": "An invited co-parent sees the shared child + participates; cannot delete the child/owner; non-members still excluded; membership query stays <50ms.",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-07-09T14:07:25.571Z"
       },
       {
         "id": "34",
@@ -1181,14 +1184,15 @@
         "id": "35",
         "title": "[Phase 3] Voice input for AI",
         "description": "Speech-to-text for hands-full moments in the AI chat/situational modes.",
-        "status": "pending",
+        "status": "done",
         "priority": "low",
         "dependencies": [
           "14"
         ],
         "details": "Add STT to the AI surfaces (after text works well). Same RAG + safety pipeline applies to transcribed input.\nHard Rules: #7 refer-out still runs; #10 keys server-side.",
         "testStrategy": "Spoken questions are transcribed and answered through the same grounded + safety-checked pipeline.",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-07-09T13:58:30.209Z"
       },
       {
         "id": "36",
@@ -1215,9 +1219,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-06-30T06:41:28.233Z",
+      "lastModified": "2026-07-09T14:07:25.571Z",
       "taskCount": 37,
-      "completedCount": 27,
+      "completedCount": 30,
       "tags": [
         "master"
       ]

@@ -70,3 +70,21 @@ supabase/functions/**/.env
 
 # Transient extracted text from reference books — NEVER commit (copyright)
 .book-extract/
+
+# The reference books themselves — NEVER commit. Third-party copyrighted works
+# (~354MB of PDF/EPUB), several of which exceed GitHub's per-file size limit
+# anyway. Only the distilled, original notes derived from them belong in git:
+# see supabase/seed/content/ and the reference_only corpus.
+docs/momzo knowledge base - books/
+
+# Loose credentials note (Sentry DSN + auth token) — never commit.
+sentry deets.txt
+
+# Planning board runtime state (liveness heartbeat) — regenerated, not source.
+planning/claude-online.beat
+
+# Scratch notes and screenshots kept alongside the repo but not part of it.
+changes.txt
+next steps.txt
+lessons structure.txt
+*.webp

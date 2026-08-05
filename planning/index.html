@@ -1,0 +1,1469 @@
+<title>Momzo — Planning Board</title>
+<style>
+  :root {
+    --ground: #FFF7F0;
+    --surface: #FFFFFF;
+    --surface-2: #FBF1E7;
+    --ink: #3D3330;
+    --ink-soft: #6B5D55;
+    --ink-faint: #9C8E85;
+    --line: #EFE4D8;
+    --accent: #EC8366;
+    --accent-ink: #8A5742;
+    --accent-soft: #FBE3D8;
+    --decided: #4E7A60;    --decided-soft: #E2F0E4;
+    --open: #9A7424;       --open-soft: #FCEFD0;
+    --idea: #6A5A9C;       --idea-soft: #ECE6F8;
+    --risk: #B5432E;       --risk-soft: #F6D8CE;
+    --proposed: #2E6675;   --proposed-soft: #E4F0F4;
+    --mono: "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
+    --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #241C1A; --surface: #2E2523; --surface-2: #3A2F2C;
+      --ink: #F5EAE1; --ink-soft: #D3C3B8; --ink-faint: #A2938A; --line: #43352F;
+      --accent: #EC8366; --accent-ink: #F0A085; --accent-soft: #3E2A22;
+      --decided: #8FC7A3; --decided-soft: #24352A;
+      --open: #E8B662;    --open-soft: #3A2E17;
+      --idea: #B7A6E4;    --idea-soft: #2C2542;
+      --risk: #E88A72;    --risk-soft: #3E211A;
+      --proposed: #93C6D6; --proposed-soft: #1E2E36;
+    }
+  }
+  :root[data-theme="light"] {
+    --ground: #FFF7F0; --surface: #FFFFFF; --surface-2: #FBF1E7;
+    --ink: #3D3330; --ink-soft: #6B5D55; --ink-faint: #9C8E85; --line: #EFE4D8;
+    --accent: #EC8366; --accent-ink: #8A5742; --accent-soft: #FBE3D8;
+    --decided: #4E7A60; --decided-soft: #E2F0E4;
+    --open: #9A7424;    --open-soft: #FCEFD0;
+    --idea: #6A5A9C;    --idea-soft: #ECE6F8;
+    --risk: #B5432E;    --risk-soft: #F6D8CE;
+    --proposed: #2E6675; --proposed-soft: #E4F0F4;
+  }
+  :root[data-theme="dark"] {
+    --ground: #241C1A; --surface: #2E2523; --surface-2: #3A2F2C;
+    --ink: #F5EAE1; --ink-soft: #D3C3B8; --ink-faint: #A2938A; --line: #43352F;
+    --accent: #EC8366; --accent-ink: #F0A085; --accent-soft: #3E2A22;
+    --decided: #8FC7A3; --decided-soft: #24352A;
+    --open: #E8B662;    --open-soft: #3A2E17;
+    --idea: #B7A6E4;    --idea-soft: #2C2542;
+    --risk: #E88A72;    --risk-soft: #3E211A;
+    --proposed: #93C6D6; --proposed-soft: #1E2E36;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--sans); font-size: 15px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent-ink); }
+
+  header.top {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--surface); border-bottom: 1px solid var(--line);
+    padding: 0.7rem 1.4rem;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.9rem;
+  }
+  .wordmark { display: flex; align-items: baseline; gap: 0.55rem; }
+  .wordmark .cat {
+    font-family: var(--display); font-weight: 700; font-size: 1.35rem;
+    letter-spacing: -0.02em; color: var(--accent-ink);
+  }
+  .wordmark .sub { font-size: 0.78rem; color: var(--ink-faint); letter-spacing: 0.04em; }
+  #search {
+    flex: 1 1 220px; max-width: 400px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px;
+    color: var(--ink); font: inherit; padding: 0.45rem 0.75rem;
+  }
+  #search:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  .filters { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .filters button {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.03em;
+    border: 1px solid var(--line); background: transparent; color: var(--ink-soft);
+    border-radius: 999px; padding: 0.28rem 0.7rem; cursor: pointer;
+  }
+  .filters button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .filters button.on { border-color: currentColor; }
+  .filters button[data-f="all"].on      { color: var(--accent-ink); background: var(--accent-soft); }
+  .filters button[data-f="decided"].on  { color: var(--decided); background: var(--decided-soft); }
+  .filters button[data-f="open"].on     { color: var(--open); background: var(--open-soft); }
+  .filters button[data-f="proposed"].on { color: var(--proposed); background: var(--proposed-soft); }
+  .filters button[data-f="idea"].on     { color: var(--idea); background: var(--idea-soft); }
+  .filters button[data-f="risk"].on     { color: var(--risk); background: var(--risk-soft); }
+
+  .layout { display: flex; align-items: flex-start; max-width: 1280px; margin: 0 auto; }
+  nav.sections {
+    position: sticky; top: 57px; z-index: 19;
+    flex: 0 0 185px; display: flex; flex-direction: column; gap: 0.15rem;
+    padding: 1.3rem 0.9rem 1.3rem 1.4rem;
+    max-height: calc(100vh - 57px); overflow-y: auto;
+  }
+  nav.sections a {
+    font-size: 0.84rem; color: var(--ink-soft); text-decoration: none; white-space: nowrap;
+    padding: 0.32rem 0.65rem; border-left: 2px solid transparent; border-radius: 0 6px 6px 0;
+  }
+  nav.sections a:hover { color: var(--accent-ink); background: var(--surface-2); }
+  nav.sections a.active { color: var(--accent-ink); border-left-color: var(--accent); background: var(--accent-soft); }
+
+  main { flex: 1; min-width: 0; max-width: 1060px; margin: 0; padding: 1.6rem 1.4rem 5rem; }
+
+  @media (max-width: 900px) {
+    .layout { display: block; }
+    nav.sections {
+      flex-direction: row; max-height: none; overflow-x: auto; overflow-y: hidden;
+      background: var(--ground); border-bottom: 1px solid var(--line);
+      padding: 0.45rem 1.4rem; gap: 0.5rem;
+    }
+    nav.sections a { border-left: none; border-radius: 6px; }
+    main { margin: 0 auto; }
+  }
+
+  .lede {
+    max-width: 68ch; color: var(--ink-soft); margin: 0.4rem 0 0.2rem;
+  }
+  .lede strong { color: var(--ink); }
+  .meta-note {
+    font-size: 0.8rem; color: var(--ink-faint); margin-top: 0.8rem;
+    border-left: 3px solid var(--open); padding-left: 0.7rem;
+  }
+
+  section { margin-top: 2.6rem; scroll-margin-top: 110px; }
+  h1 {
+    font-family: var(--display); font-weight: 700; font-size: 1.7rem;
+    letter-spacing: -0.02em; margin: 0; text-wrap: balance;
+  }
+  h2 {
+    font-family: var(--display); font-weight: 650; font-size: 1.15rem;
+    letter-spacing: -0.01em; margin: 0 0 0.9rem;
+    display: flex; align-items: center; gap: 0.6rem;
+  }
+  h2 .count {
+    font-family: var(--mono); font-size: 0.7rem; font-weight: 400;
+    color: var(--ink-faint); border: 1px solid var(--line); border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+  }
+  h2 .bar { width: 22px; height: 3px; background: var(--accent); border-radius: 2px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.9rem; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 0.9rem 1rem 1rem; display: flex; flex-direction: column; gap: 0.45rem;
+    position: relative;
+  }
+  .card.hide { display: none; }
+  .card.clamped { max-height: 230px; overflow: hidden; }
+  .card.clamped::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 58px;
+    background: linear-gradient(transparent, var(--surface)); pointer-events: none;
+  }
+  .card.expandable { padding-bottom: 2.2rem; }
+  .expander {
+    position: absolute; right: 0.6rem; bottom: 0.5rem; z-index: 2;
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.03em;
+    color: var(--accent-ink); background: var(--accent-soft);
+    border: 1px solid var(--accent); border-radius: 999px; padding: 0.18rem 0.65rem; cursor: pointer;
+  }
+  .expander:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 1px; }
+
+  .files-wrap {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: 0.8rem;
+  }
+  .files-add { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
+  #fileAddBtn {
+    font-family: var(--mono); font-size: 0.74rem; background: var(--accent); color: #fff;
+    border: 1px solid var(--accent); border-radius: 6px; padding: 0.35rem 0.8rem; cursor: pointer;
+  }
+  .filerows { display: flex; flex-direction: column; }
+  .frow {
+    display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;
+    padding: 0.5rem 0.2rem; border-top: 1px solid var(--line);
+  }
+  .frow .fname { font-size: 0.87rem; color: var(--accent-ink); text-decoration: none; overflow-wrap: anywhere; }
+  .frow .fname:hover { text-decoration: underline; }
+  .frow .fmeta { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-faint); margin-left: auto; white-space: nowrap; }
+  .fbtn {
+    font-family: var(--mono); font-size: 0.7rem; text-decoration: none; cursor: pointer;
+    color: var(--ink-soft); background: transparent; border: 1px solid var(--line);
+    border-radius: 999px; padding: 0.18rem 0.6rem;
+  }
+  .fbtn:hover { color: var(--accent-ink); border-color: var(--accent); }
+  .fbtn.danger:hover { color: var(--risk); border-color: var(--risk); }
+  .files-empty { font-size: 0.84rem; color: var(--ink-faint); padding-top: 0.4rem; }
+
+  /* Sub-tabs: any section can host tabbed sub-pages — a .subtabs button row plus
+     sibling .subpane divs (ids matched by data-pane). Generic; unused sections unaffected. */
+  .subtabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .subtabs button {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.03em;
+    border: 1px solid var(--line); background: transparent; color: var(--ink-soft);
+    border-radius: 999px; padding: 0.28rem 0.8rem; cursor: pointer;
+  }
+  .subtabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .subtabs button.on { color: var(--accent-ink); background: var(--accent-soft); border-color: var(--accent); }
+  .subpane.off { display: none; }
+  .card .head { display: flex; align-items: center; gap: 0.55rem; }
+  .card .id { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-faint); }
+  .chip {
+    font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.05em; text-transform: uppercase;
+    border-radius: 999px; padding: 0.14rem 0.55rem; margin-left: auto;
+  }
+  .chip.decided  { color: var(--decided);  background: var(--decided-soft); }
+  .chip.open     { color: var(--open);     background: var(--open-soft); }
+  .chip.proposed { color: var(--proposed); background: var(--proposed-soft); }
+  .chip.idea     { color: var(--idea);     background: var(--idea-soft); }
+  .chip.risk     { color: var(--risk);     background: var(--risk-soft); }
+  .chip.inbuild  { color: var(--proposed); background: var(--proposed-soft); }
+  .chip.shipped  { color: var(--decided);  background: var(--decided-soft); }
+  .chip.planned  { color: var(--ink-soft); background: var(--surface-2); }
+  .chip.active   { color: var(--accent-ink); background: var(--accent-soft); }
+  .chip.building { color: var(--proposed); background: var(--proposed-soft); }
+  .chip.done     { color: var(--decided);  background: var(--decided-soft); }
+
+  .presence { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; color: var(--ink-faint); }
+  .pdot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-faint); }
+  .presence.live .pdot { background: var(--decided); }
+  .presence.live .ptext { color: var(--decided); }
+
+  .card.hasnew { border-color: var(--accent); }
+  .newdot {
+    font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--accent-ink); background: var(--accent-soft); border-radius: 999px; padding: 0.1rem 0.45rem;
+  }
+
+  .linkchip {
+    display: inline-flex; align-items: center; gap: 0.3rem; margin: 0.1rem 0.25rem 0.1rem 0;
+    font-size: 0.76rem; padding: 0.14rem 0.55rem; background: var(--proposed-soft);
+    border: 1px solid var(--line); border-radius: 999px; color: var(--proposed);
+    text-decoration: none; white-space: nowrap;
+  }
+  .linkchip:hover { border-color: var(--proposed); }
+
+  .blockers { margin-top: 0.4rem; font-size: 0.76rem; color: var(--ink-faint); display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+  .blocker {
+    font-family: var(--mono); font-size: 0.7rem; border-radius: 999px; padding: 0.1rem 0.5rem;
+    color: var(--open); background: var(--open-soft);
+  }
+  .blocker.done { color: var(--decided); background: var(--decided-soft); }
+  .gate-clear {
+    font-size: 0.76rem; color: var(--accent-ink); background: var(--accent-soft);
+    border-radius: 999px; padding: 0.12rem 0.6rem;
+  }
+  .card h3 { font-size: 0.98rem; font-weight: 600; margin: 0; letter-spacing: -0.005em; text-wrap: balance; }
+  .card p { margin: 0; font-size: 0.87rem; color: var(--ink-soft); }
+  .card .rec {
+    font-size: 0.84rem; margin-top: 0.15rem; padding: 0.5rem 0.65rem;
+    background: var(--accent-soft); border-radius: 6px; color: var(--ink);
+  }
+  .card .rec b { color: var(--accent-ink); font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; margin-right: 0.35rem; }
+
+  .arch {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 1.1rem 1.2rem; overflow-x: auto;
+  }
+  .arch pre {
+    font-family: var(--mono); font-size: 0.78rem; line-height: 1.5; margin: 0;
+    color: var(--ink-soft);
+  }
+  .arch pre b { color: var(--accent-ink); font-weight: 600; }
+  .arch .note { font-size: 0.82rem; color: var(--ink-faint); margin: 0.8rem 0 0; max-width: 75ch; }
+
+  .phases { display: flex; flex-direction: column; gap: 0.7rem; }
+  .phase {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 0.85rem 1rem; display: grid; grid-template-columns: 64px 1fr; gap: 0.9rem;
+  }
+  .phase .num {
+    font-family: var(--mono); font-size: 0.8rem; color: var(--accent-ink);
+    border-right: 2px solid var(--accent); padding-right: 0.6rem; align-self: start; padding-top: 2px;
+  }
+  .phase h3 { margin: 0 0 0.2rem; font-size: 0.97rem; }
+  .phase p { margin: 0; font-size: 0.86rem; color: var(--ink-soft); }
+
+  footer { margin-top: 3.5rem; font-size: 0.78rem; color: var(--ink-faint); border-top: 1px solid var(--line); padding-top: 1rem; }
+
+  .reply { margin-top: 0.35rem; border-top: 1px dashed var(--line); padding-top: 0.55rem; }
+  .reply-toggle {
+    font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.04em;
+    background: transparent; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-soft); padding: 0.22rem 0.65rem; cursor: pointer;
+  }
+  .reply-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .reply-toggle.has { color: var(--accent-ink); border-color: var(--accent); background: var(--accent-soft); }
+  .reply-body { margin-top: 0.55rem; display: flex; flex-direction: column; gap: 0.45rem; }
+  .stances { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+  .stances button {
+    font-size: 0.74rem; border: 1px solid var(--line); background: transparent;
+    color: var(--ink-soft); border-radius: 999px; padding: 0.2rem 0.6rem; cursor: pointer;
+  }
+  .stances button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .stances button.on { color: var(--accent-ink); border-color: var(--accent); background: var(--accent-soft); }
+  .reply-body textarea {
+    font: inherit; font-size: 0.84rem; color: var(--ink);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 0.45rem 0.6rem; min-height: 58px; resize: vertical;
+  }
+  .reply-body textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  .reply-hint { font-size: 0.72rem; color: var(--ink-faint); }
+
+  #fbbar {
+    position: fixed; right: 1.1rem; bottom: 1.1rem; z-index: 30;
+    background: var(--surface); border: 1px solid var(--accent); border-radius: 10px;
+    padding: 0.6rem 0.8rem; display: none; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.18); max-width: min(92vw, 460px);
+  }
+  #fbbar.show { display: flex; }
+  #fbbar .n { font-family: var(--mono); font-size: 0.72rem; color: var(--accent-ink); white-space: nowrap; }
+  #fbname {
+    font: inherit; font-size: 0.8rem; color: var(--ink); width: 110px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 0.3rem 0.5rem;
+  }
+  #fbcopy, #fbclear {
+    font-family: var(--mono); font-size: 0.72rem; border-radius: 6px; padding: 0.35rem 0.7rem; cursor: pointer;
+  }
+  #fbcopy { background: var(--accent); color: #fff; border: 1px solid var(--accent); }
+  #fbclear { background: transparent; color: var(--ink-faint); border: 1px solid var(--line); }
+  .thread { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.6rem; }
+  .msg { background: var(--surface-2); border-radius: 6px; padding: 0.45rem 0.6rem; }
+  .msg.claude { border-left: 3px solid var(--accent); background: var(--accent-soft); }
+  .msg .who { font-family: var(--mono); font-size: 0.68rem; color: var(--accent-ink); }
+  .msg.claude .who { font-weight: 600; }
+  .msg .when { font-family: var(--mono); font-size: 0.64rem; color: var(--ink-faint); margin-left: 0.5rem; }
+  .msg p { margin: 0.2rem 0 0; font-size: 0.84rem; color: var(--ink); white-space: pre-wrap; }
+  .send {
+    align-self: flex-start;
+    font-family: var(--mono); font-size: 0.72rem; border-radius: 6px; padding: 0.35rem 0.8rem;
+    background: var(--accent); color: #fff; border: 1px solid var(--accent); cursor: pointer;
+  }
+  .send:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 1px; }
+
+  .chip.topic { color: var(--accent-ink); background: var(--accent-soft); }
+  .toplink {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.03em;
+    color: var(--ink-soft); text-decoration: none;
+    border: 1px solid var(--line); border-radius: 999px; padding: 0.28rem 0.8rem;
+  }
+  .toplink:hover { color: var(--accent-ink); border-color: var(--accent); }
+  #newtopic {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.03em;
+    background: var(--accent); color: #fff; border: 1px solid var(--accent);
+    border-radius: 999px; padding: 0.28rem 0.8rem; cursor: pointer;
+  }
+  #newtopic:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 1px; }
+  #askclaude, #addnote {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.03em;
+    background: transparent; color: var(--accent-ink); border: 1px solid var(--accent);
+    border-radius: 999px; padding: 0.28rem 0.8rem; cursor: pointer;
+  }
+  #askclaude:focus-visible, #addnote:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 1px; }
+
+  .chip.note { color: var(--ink-soft); background: var(--surface-2); }
+  .note-text { white-space: pre-wrap; font-size: 0.87rem; color: var(--ink); margin: 0; }
+  .note-meta { font-family: var(--mono); font-size: 0.7rem; color: var(--ink-faint); }
+  .note-actions { display: flex; gap: 0.4rem; margin-top: 0.2rem; }
+  .note-actions button {
+    font-family: var(--mono); font-size: 0.7rem; background: transparent;
+    color: var(--ink-soft); border: 1px solid var(--line); border-radius: 999px;
+    padding: 0.2rem 0.65rem; cursor: pointer;
+  }
+  .note-actions button:hover { color: var(--accent-ink); border-color: var(--accent); }
+  .note-actions button.danger:hover { color: var(--risk); border-color: var(--risk); }
+  .note-edit { font: inherit; font-size: 0.87rem; color: var(--ink); background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: 6px; padding: 0.45rem 0.6rem; min-height: 70px; resize: vertical; }
+  input.note-edit-title { min-height: 0; font-weight: 600; }
+  .filechip {
+    display: inline-flex; align-items: center; gap: 0.3rem; margin: 0.1rem 0.25rem 0.1rem 0;
+    font-size: 0.76rem; padding: 0.14rem 0.55rem; background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: 999px; color: var(--accent-ink);
+    text-decoration: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .filechip:hover { border-color: var(--accent); }
+  .files { margin-top: 0.25rem; }
+  input[type="file"] { font-size: 0.74rem; color: var(--ink-faint); max-width: 100%; }
+  #topicDlg input[type="file"] { background: transparent; border: none; padding: 0.2rem 0; }
+  .chip.ask { color: var(--proposed); background: var(--proposed-soft); }
+
+  .stage {
+    font-family: var(--mono); font-size: 0.7rem; font-weight: 400; letter-spacing: 0.05em;
+    text-transform: uppercase; color: var(--accent-ink); background: var(--accent-soft);
+    border-radius: 999px; padding: 0.12rem 0.6rem;
+  }
+  .status-wrap {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: 0.85rem;
+  }
+  .access { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  .access a {
+    font-size: 0.85rem; text-decoration: none; color: #fff; background: var(--accent);
+    border: 1px solid var(--accent); border-radius: 6px; padding: 0.4rem 0.8rem;
+  }
+  .access a .note { opacity: 0.75; font-size: 0.75rem; }
+  .access a:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 1px; }
+  .usage {
+    font-family: var(--mono); font-size: 0.8rem; line-height: 1.5; margin: 0;
+    background: var(--surface-2); border-radius: 6px; padding: 0.8rem 0.9rem;
+    white-space: pre-wrap; overflow-x: auto; color: var(--ink);
+  }
+  .kv { display: grid; grid-template-columns: minmax(140px, 200px) 1fr; gap: 0.35rem 1rem; font-size: 0.87rem; }
+  .kv .k { color: var(--ink-faint); }
+  .status-updated { font-size: 0.75rem; color: var(--ink-faint); margin: 0; }
+  #topicDlg {
+    background: var(--surface); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 10px; padding: 1.1rem 1.2rem; width: min(92vw, 460px);
+    font-family: var(--sans);
+  }
+  #topicDlg::backdrop { background: rgba(10, 14, 20, 0.55); }
+  #topicDlg h3 { margin: 0 0 0.8rem; font-family: var(--display); font-size: 1.05rem; }
+  #topicDlg label { display: block; font-size: 0.75rem; color: var(--ink-faint); margin: 0.6rem 0 0.25rem; }
+  #topicDlg input, #topicDlg textarea {
+    width: 100%; font: inherit; font-size: 0.88rem; color: var(--ink);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 0.45rem 0.6rem;
+  }
+  #topicDlg textarea { min-height: 90px; resize: vertical; }
+  #topicDlg input:focus, #topicDlg textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  .dlg-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
+  #topicCreate { background: var(--accent); color: #fff; border: 1px solid var(--accent); border-radius: 6px; padding: 0.4rem 0.9rem; font: inherit; font-size: 0.84rem; cursor: pointer; }
+  #topicCancel { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); border-radius: 6px; padding: 0.4rem 0.9rem; font: inherit; font-size: 0.84rem; cursor: pointer; }
+  @media (prefers-reduced-motion: no-preference) {
+    .card { transition: border-color 120ms ease; }
+    .card:hover { border-color: var(--accent); }
+  }
+</style>
+
+<header class="top">
+  <div class="wordmark">
+    <span class="cat">Momzo</span>
+    <span class="sub">A 3-minute daily bond with your 6–10 y/o · Planning Board</span>
+  </div>
+  <span id="presence" class="presence" hidden><span class="pdot"></span><span class="ptext"></span></span>
+  <span id="newcount" class="stage" hidden></span>
+  <input id="search" type="search" placeholder="Search decisions, questions, ideas…" aria-label="Search planning items">
+  <div class="filters" role="group" aria-label="Filter by status">
+    <button data-f="all" class="on">All</button>
+    <button data-f="decided">Decided</button>
+    <button data-f="open">Open</button>
+    <button data-f="proposed">Proposed</button>
+    <button data-f="idea">Idea</button>
+    <button data-f="risk">Risk</button>
+  </div>
+  <a class="toplink" href="#status">Status</a>
+  <a class="toplink" href="#files" id="filesLink" hidden>Files</a>
+  <button id="newtopic" hidden>＋ New topic</button>
+  <button id="askclaude" hidden>? Ask Claude</button>
+  <button id="addnote" hidden>＋ Add note</button>
+</header>
+
+<dialog id="topicDlg">
+  <h3 id="dlgTitle">New topic</h3>
+  <label for="topicTitle" id="dlgTitleLabel">Title</label>
+  <input id="topicTitle" maxlength="120" placeholder="e.g. Should we add a referral program?">
+  <label for="topicText" id="dlgTextLabel">Describe it</label>
+  <textarea id="topicText" placeholder="What's the question or idea? Any context that helps."></textarea>
+  <label for="dlgFiles">Attachments (optional)</label>
+  <input type="file" id="dlgFiles" multiple>
+  <div class="dlg-actions">
+    <button id="topicCancel" type="button">Cancel</button>
+    <button id="topicCreate" type="button">Create topic</button>
+  </div>
+</dialog>
+<div class="layout">
+<nav class="sections">
+  <a href="#overview">Overview</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#features">Feature areas</a>
+  <a href="#decisions">Decisions</a>
+  <a href="#questions">Open questions</a>
+  <a href="#ideas">Ideas</a>
+  <a href="#growth">Growth &amp; marketing</a>
+  <a href="#team-topics" id="navTopics" hidden>Team topics</a>
+  <a href="#notes" id="navNotes" hidden>Notes</a>
+  <a href="#roadmap">Roadmap</a>
+  <a href="#risks">Risks</a>
+</nav>
+
+<main>
+  <section id="overview">
+    <h1>Momzo</h1>
+    <p class="lede">
+      Momzo is a <strong>Flutter + Supabase mobile app</strong> — a <strong>calm, 3-minute-a-day habit</strong>
+      for busy mothers of <strong>6–10 year-olds</strong> to learn about and bond with their child. Three things
+      set it apart: <strong>per-child personalization</strong>, <strong>in-the-moment grounded AI help</strong>
+      (RAG over a vetted expert corpus, with safety refer-out), and a <strong>two-sided parent↔child bonding
+      loop</strong> including the kid wish wall. The core loop is a daily card + "why it matters", grounded AI
+      Q&A, a shared question of the day, and gentle no-guilt nudges. The <strong>Phase 1 core loop and most
+      Phase 2 depth features are built</strong>; the board now tracks the <strong>launch-readiness gate</strong>
+      — COPPA, no-train AI, backups, and real email/auth — plus Phase 3 expansion calls.
+    </p>
+    <p class="meta-note">
+      How we work: raise an item ID in chat ("decide Q4", "add idea: …") and Claude updates this board — Open
+      items move to Decided with the rationale kept. <strong>To reply:</strong> hit "Reply" on any card, pick a
+      stance, write your message, attach files if useful, and Send — it starts a thread under that card.
+      "＋ New topic" (top right) creates a card with its own thread under Team topics; "? Ask Claude" raises a
+      question card Claude answers directly; "＋ Add note" parks an idea, suggestion, observation or reminder
+      to discuss later (editable and deletable). While a Claude session is running on the host machine, Claude
+      reads new messages as they arrive, posts answers into the same thread, and triages new topics; board
+      updates (Open → Decided) follow. Start the board with
+      <span style="font-family:var(--mono)">planning\START-BOARD.cmd</span>; team members on the office
+      network open the LAN address the server prints — messages are attributed by machine name.
+      On the shared artifact copy (no server), use the "Copy feedback" button and paste the text to Claude.
+    </p>
+  </section>
+
+  <section id="status">
+    <h2><span class="bar"></span>Status <span class="stage" id="statusStage"></span></h2>
+    <div class="status-wrap">
+      <div class="access" id="statusAccess"></div>
+      <pre class="usage" id="statusUsage" hidden></pre>
+      <div class="kv" id="statusDetails"></div>
+      <p class="status-updated" id="statusUpdated"></p>
+    </div>
+  </section>
+
+  <section id="architecture">
+    <h2><span class="bar"></span>Proposed architecture <span class="count">for discussion</span></h2>
+    <div class="arch">
+      <pre>
+  <b>Flutter app (iOS / Android)</b>
+    ├─ Onboarding · child profile · consent gate
+    ├─ Daily card · AI Q&A · situational · activities · QotD
+    └─ Kid mode · wish wall · timeline · recap · mini-games
+            │  supabase_flutter (Auth, Realtime, Storage signed URLs)
+            ▼
+  <b>Supabase — FREE tier</b> (project nngjqhrxbhugnafyviqj)
+    ├─ Postgres 15  ·  RLS (cross-family isolation)  ·  pgvector(768)
+    ├─ Auth (email + Google/Apple)  ·  Storage  ·  Realtime
+    ├─ pg_cron (daily nudges, recap)  ·  consents audit + trigger
+    └─ <b>Edge Functions (Deno/TS)</b> — hold ALL secrets
+            │
+            ▼
+  <b>AI providers (split — server-side only)</b>
+    ├─ Embeddings → Gemini  gemini-embedding-001 @ 768d
+    ├─ Generation → Mistral  mistral-small → medium/large
+    └─ RAG grounding · citations · safety refer-out · cost caps
+            │
+            ▼
+  <b>Push / external</b>  FCM nudges (quiet hours)  ·  WhatsApp (Phase 2, cancelled)</pre>
+      <p class="note">
+        Edge Functions are the only place secrets live — the app never holds an AI key. Providers are
+        <strong>split</strong>: the Google key's <code>generateContent</code> quota is 0, so embeddings run on
+        Gemini and text generation on Mistral. Everything is verified to work on the <strong>Free</strong> tier
+        (Supavisor transaction pooler on 6543, prepared statements off); the two Free-tier costs — no automated
+        backups and 7-day inactivity auto-pause — are tracked as launch risks below.
+      </p>
+    </div>
+  </section>
+
+  <section id="features"><h2><span class="bar"></span>Feature areas <span class="count" data-count></span></h2><div class="grid" data-list="features"></div></section>
+  <section id="decisions"><h2><span class="bar"></span>Decisions taken <span class="count" data-count></span></h2><div class="grid" data-list="decisions"></div></section>
+  <section id="questions"><h2><span class="bar"></span>Open questions — need your call <span class="count" data-count></span></h2><div class="grid" data-list="questions"></div></section>
+  <section id="ideas"><h2><span class="bar"></span>Ideas backlog <span class="count" data-count></span></h2><div class="grid" data-list="ideas"></div></section>
+  <section id="growth"><h2><span class="bar"></span>Growth &amp; marketing <span class="count" data-count></span></h2><div class="grid" data-list="growth"></div></section>
+  <section id="team-topics" hidden><h2><span class="bar"></span>Team topics &amp; questions <span class="count" data-count></span></h2><div class="grid" data-list="team-topics"></div></section>
+  <section id="notes" hidden><h2><span class="bar"></span>Notes <span class="count" data-count></span></h2><div class="grid" data-list="notes"></div></section>
+
+  <section id="files" hidden>
+    <h2><span class="bar"></span>Files <span class="count" data-count></span></h2>
+    <div class="files-wrap">
+      <div class="files-add">
+        <input type="file" id="fileAdd" multiple>
+        <button id="fileAddBtn">Upload to project</button>
+        <span class="reply-hint">Project attachments — from cards or uploaded here. Deleting removes the file for every card that links it.</span>
+      </div>
+      <div class="filerows" id="fileRows"></div>
+    </div>
+  </section>
+
+  <section id="roadmap">
+    <h2><span class="bar"></span>Roadmap <span class="count">gated by decisions</span></h2>
+    <div class="phases" id="phasesHost"></div>
+  </section>
+
+  <section id="risks"><h2><span class="bar"></span>Risks <span class="count" data-count></span></h2><div class="grid" data-list="risks"></div></section>
+
+  <footer>Momzo planning board · maintained by Claude, updated as decisions land</footer>
+</main>
+</div>
+
+<script>
+const DATA = {
+  // Populate every array from the project's brief/brainstorm before first publish.
+  // Item shape: { id, s, t, b, r?, impact? }
+  //   id: "F1"/"D1"/"Q1"/"I1"/"R1" (prefix by section, numbered)
+  //   s:  "decided" | "open" | "proposed" | "idea" | "risk"  (drives the status chip)
+  //   t:  title    b: body    r: Claude's recommendation (optional; renders as "My take")
+  //   impact: optional one-line reason string — manually flags the card into the
+  //           "⚡ Answer these first" strip (questions gating phases are derived automatically)
+  features: [
+    { id:"F1", s:"shipped", t:"Onboarding + child profile", b:"Sign-in → consent gate → child profile capture. Feeds per-child personalization across the app." },
+    { id:"F2", s:"shipped", t:"Daily card + 'why it matters'", b:"The 3-minute daily habit: one vetted card a day with a short why-it-matters, drawn from the expert corpus." },
+    { id:"F3", s:"shipped", t:"Grounded AI Q&A (RAG + citations)", b:"Ask-anything parenting help, grounded in the vetted corpus via pgvector, with citations. Generation on Mistral." },
+    { id:"F4", s:"shipped", t:"Situational 'right now' mode", b:"In-the-moment help for a live situation — tighter, calmer, action-first answers." },
+    { id:"F5", s:"shipped", t:"AI safety refer-out + guardrails", b:"Classifier detects out-of-scope / risk topics (self-harm, abuse, medical) and refers out instead of answering." },
+    { id:"F6", s:"shipped", t:"Activities + time filter + 'did it'", b:"Bonding activities filtered by time available, with a lightweight 'did it' confirm." },
+    { id:"F7", s:"shipped", t:"Shared Question of the Day", b:"One question a day the parent and child answer together — the two-sided bonding loop." },
+    { id:"F8", s:"shipped", t:"Gentle nudge + quiet hours", b:"FCM daily nudge with quiet-hours respect and idempotency. No-guilt tone throughout." },
+    { id:"F9", s:"shipped", t:"Multiple children + edit profile", b:"More than one child per parent, with profile editing. RLS keeps families isolated." },
+    { id:"F10", s:"shipped", t:"Bookmarks + topic library", b:"Save cards/answers and browse a topic library of the vetted content." },
+    { id:"F11", s:"shipped", t:"Know-each-other quiz + mini-games", b:"Same-phone reveal quiz and a mini-games library (Two Truths & a Lie, etc.) for parent↔child play." },
+    { id:"F12", s:"shipped", t:"Kid wish wall + kid mode", b:"A kid-facing mode where the child posts wishes the parent can see and act on." },
+    { id:"F13", s:"shipped", t:"Memory timeline + milestones", b:"A running timeline of moments and milestones — post-activity photos/notes land here." },
+    { id:"F14", s:"shipped", t:"Weekly recap", b:"A gentle weekly summary of the week's bonding moments." },
+    { id:"F15", s:"shipped", t:"Gentle streak / consistency", b:"No-shame consistency nudge — encourages the habit without punishing gaps." },
+    { id:"F16", s:"shipped", t:"Voice input for AI", b:"Dictation button for hands-free AI questions." },
+    { id:"F17", s:"inbuild", t:"Co-parent / caregiver sharing", b:"Multi-member families (co-parent, caregiver) with multi-member RLS. Currently in review — migration 20260709 landed.",
+      links:[{label:"coparent migration", href:"../supabase/migrations/20260709090000_coparent_sharing.sql"}] },
+    { id:"F18", s:"proposed", t:"Audio letters", b:"Record short audio letters between parent and child. Phase 3, not yet started." },
+    { id:"F19", s:"proposed", t:"On-device AI", b:"Move some AI on-device for privacy/cost. Strategy drafted — see the on-device AI question and doc.",
+      links:[{label:"strategy doc", href:"../Momzo_OnDevice_AI_Strategy.md"}] },
+  ],
+  decisions: [
+    { id:"D1", s:"decided", t:"COPPA-first privacy regime (US primary)", b:"Kids are under 13, so COPPA applies fully: verifiable parental consent, no child-directed behavioral ads/tracking, strict data minimization, parental access + delete as Phase-0 work." },
+    { id:"D2", s:"decided", t:"Billing deferred entirely", b:"No feature-gating or IAP in Phase 1 — validate retention first. Freemium is a Phase-3 open question." },
+    { id:"D3", s:"decided", t:"Expert-provided vetted content", b:"Florie / an expert supplies the source material; Claude structures, chunks, embeds and seeds it. Same corpus feeds daily cards AND the RAG knowledge base." },
+    { id:"D4", s:"decided", t:"Split AI providers", b:"The Google key's generateContent quota is 0, so embeddings = Gemini (gemini-embedding-001 @ 768d) and text generation = Mistral (small→medium/large). Plain API key, our own Edge Function owns RAG/refer-out/routing." },
+    { id:"D5", s:"decided", t:"Supabase FREE tier (not Pro)", b:"Whole architecture verified on Free (RLS, pooler on 6543, pgvector, pg_cron, Edge Functions, Realtime, Storage). Costs: no automated backups + 7-day inactivity pause — both tracked as launch risks." },
+    { id:"D6", s:"decided", t:"Phase 1 scope LOCKED", b:"Locked to the PRD §14 core loop plus the COPPA consent + delete-my-child flows. Everything else is Phase 2+." },
+    { id:"D7", s:"decided", t:"Taskmaster is the build source-of-truth", b:"37 tasks / 60 subtasks in .taskmaster; mirrors Build Guide §8 / PRD §14. Read with task-master list/next." },
+    { id:"D8", s:"decided", t:"Consent = parent_attestation (interim)", b:"A consents audit table + DB trigger hard-blocks child creation until the parent attests. NOTE: attestation-only is NOT full verifiable consent — upgrading it is a launch blocker (Q1)." },
+  ],
+  questions: [
+    { id:"Q1", s:"open", t:"Upgrade to full COPPA verifiable parental consent?", b:"Current method is parent_attestation only. Real US launch needs card/ID/signed-form/KBA verification. Blocks the launch gate.",
+      r:"Pick one verification vendor before any real-mom cohort; attestation is fine for closed testing only.", impact:"gates the entire launch phase" },
+    { id:"Q2", s:"open", t:"Move AI off Gemini free tier before real child data?", b:"Google's free tier may train on submitted prompts, conflicting with COPPA child-data handling. Options: paid/no-train tier, or pseudonymize/strip child identifiers server-side.",
+      r:"Strip child identifiers in the Edge Function now (cheap), and budget a paid no-train tier before launch. Embedding public articles is already fine.", impact:"gates launch; child-data compliance" },
+    { id:"Q3", s:"open", t:"Revert dev auth config for real users?", b:"mailer_autoconfirm is ON (dev sign-ups skip email verification). Real SMTP + email confirmation must be restored before real users.",
+      r:"Bundle this with the consent-flow launch work — turn autoconfirm off, wire real SMTP, test the confirm link.", impact:"gates launch; auth integrity" },
+    { id:"Q4", s:"open", t:"Backups before real family data?", b:"Free tier has NO automated daily backups. Need either a Pro upgrade or a scheduled pg_dump before any real family data lands.",
+      r:"Scheduled pg_dump to object storage is enough for the pilot; revisit Pro when volume justifies it.", impact:"gates launch; data durability" },
+    { id:"Q5", s:"open", t:"Enable Google/Apple social login?", b:"App code is wired but providers are disabled in the dashboard — needs OAuth client credentials (Apple also needs a paid Apple Developer account).",
+      r:"Not launch-blocking; email works. Enable Google first (cheap), defer Apple until the paid dev account exists." },
+    { id:"Q6", s:"open", t:"Adopt the on-device AI strategy?", b:"A strategy doc exists for moving some AI on-device (privacy + cost). Decide whether it's in scope and when.",
+      r:"Keep as Phase 3+ — server RAG is working; on-device is an optimization, not a blocker." },
+    { id:"Q7", s:"open", t:"Build the small moderated community?", b:"Phase 3 feature, gated on 'only if validated'. Moderation + COPPA make it expensive.",
+      r:"Do not build until retention data justifies it; the moderation + child-safety cost is high." },
+    { id:"Q8", s:"open", t:"Legal review of the privacy policy copy?", b:"PrivacyPolicyScreen copy is placeholder. Needs a lawyer before it can back a real consent flow.",
+      r:"Get legal review on the same timeline as Q1 — the consent flow and the policy it points to must ship together." },
+  ],
+  ideas: [
+    { id:"I1", s:"idea", t:"Expand the mini-games library", b:"A mini-games knowledge base exists; more parent↔child games could deepen the bonding loop and retention." },
+    { id:"I2", s:"idea", t:"WhatsApp utility reminders", b:"Opt-in WhatsApp nudges were scoped then cancelled for Phase 2. Could return post-launch if push proves insufficient." },
+    { id:"I3", s:"idea", t:"Pinzzle cross-promo", b:"The standalone Pinzzle jigsaw game reuses Momzo's Supabase storage — a possible low-effort acquisition/retention channel." },
+  ],
+  growth: [
+    { id:"G1", s:"decided", t:"Community-first, then launch", b:"Build a mom community + content brand BEFORE the app, so it launches to a warm, waiting audience instead of cold. Lower-risk and free. Phase A = grow audience + waitlist; Phase B = launch into warm demand.",
+      links:[{label:"Viral Growth Playbook", href:"../docs/Momzo_Viral_Growth_Playbook.md"}] },
+    { id:"G2", s:"decided", t:"Channels: Instagram + Facebook only", b:"IG = growth engine (Reels for reach, carousels for saves, Broadcast Channel = owned waitlist). FB = distribution (Page repost) + seeding other people's groups. No TikTok, no paid influencers." },
+    { id:"G3", s:"decided", t:"Honest swaps (no growth-hacks that sink a parenting brand)", b:"No fake AI 'scan' (the real Know-Your-Child IS the hook), no fabricated reviews, no forced rating gate, never a child's face in before/afters. The emotional arc is the MOM's understanding." },
+    { id:"G4", s:"proposed", t:"The 5-beat content formula", b:"Every post: Hook → Insight (simplified child psych) → Reframe → Activity (the payoff/save-bait) → CTA (tag a mom). Tiny text, one idea, always ends on an activity — a free sample of the product's 'learn → do' promise." },
+    { id:"G5", s:"proposed", t:"AI content factory (no budget)", b:"Faceless brand engine. Carousels: NotebookLM → Claude → Nano Banana → Canva → post. New AI Reels: comic-style, text-over-broll, carousel-to-video. Volume: 1 Reel/day + 3–4 carousels/week; warm the account 5–7 days first." },
+    { id:"G6", s:"proposed", t:"Variable-testing system", b:"Turn 'going viral' into a machine: log every post, change ONE variable at a time (hook wording, format, emotional register, payoff, tag-bait, hashtags, audio, post time, CTA), kill losers, clone winners. Within ~2 weeks one hook/format carries most reach." },
+    { id:"G7", s:"proposed", t:"Waitlist + Founding Moms loops", b:"Tag loop (free targeted reach) · lead-magnet → DM → waitlist ('Comment CALM for the free meltdown-scripts guide' + founding-moms early-access ask) · 30–50 Founding Moms as beta = real testimonials, real reviews, first referrers." },
+    { id:"G8", s:"proposed", t:"'Know Your Child' hero launch", b:"The Phase-B curiosity hook: AI asks a few questions, reads the behaviour, gives tailored tips — free to try. The shareable insight card ('Aarav needs the why before the no 💛', watermarked + linked) is the viral artifact. Framed as grounded insight, NOT a diagnosis." },
+    { id:"G9", s:"decided", t:"Referral engine — gate premium, never core", b:"Invite 2 mom friends → both get Momzo+ free for a month (double-sided). WhatsApp one-tap share is the detonator (spreads via mom/class groups). Never gate core value behind referrals — only the premium upgrade." },
+    { id:"G10", s:"proposed", t:"Onboarding funnel + paywall timing", b:"No-friction start (feel one real insight before signup) · child profile = the investment moment · delay the paywall to a WIN-moment (after an insight lands / a script works) · honest rating prompt at that same win · honest win-back (dismiss → first month 50% off, once)." },
+    { id:"G11", s:"open", t:"Phase A exit threshold — what numbers trigger launch?", b:"Playbook says 'a few thousand engaged followers + a few hundred waitlist moms' — a threshold, not a date. Needs concrete numbers to aim at.",
+      r:"Set a firm target, e.g. 3,000 followers + 300 waitlist + 40 Founding Moms committed — then launch. Revisit after the first 2 testing weeks show real growth rate." },
+    { id:"G12", s:"open", t:"Own Facebook group — build or skip?", b:"A moderated FB group gives true community depth but recreates the social-media overwhelm Momzo exists to escape, and costs moderation time.",
+      r:"Skip for launch. Use the IG Broadcast Channel + waitlist as the 'community' — lighter and on-brand. Revisit only if moms actively want interaction." },
+    { id:"G13", s:"proposed", t:"Growth metrics + north star", b:"Phase A: follower growth · carousel save rate · Reel share/tag rate · waitlist signups · lead-magnet conversion. Phase B: onboarding ≥70% · Day-2 activation ≥40% · Week-4 retention ≥25% (the real moat) · referral share rate (north star) · K-factor → 1. Watch retention, not installs." },
+  ],
+  risks: [
+    { id:"R1", s:"risk", t:"COPPA compliance gap (attestation only)", b:"Shipping to real US families on attestation-only consent is a legal risk. Mitigation: Q1 verifiable-consent upgrade + Q8 legal review before launch." },
+    { id:"R2", s:"risk", t:"No automated backups on Free tier", b:"A data-loss event before launch would be unrecoverable. Mitigation: scheduled pg_dump or Pro upgrade (Q4) before real family data." },
+    { id:"R3", s:"risk", t:"Gemini free tier may train on prompts", b:"Child data in prompts on a training tier conflicts with COPPA. Mitigation: pseudonymize server-side + paid no-train tier (Q2)." },
+    { id:"R4", s:"risk", t:"Dev auth config reaching production", b:"mailer_autoconfirm ON means anyone can sign up without a verified email. Mitigation: revert before real users (Q3)." },
+    { id:"R5", s:"risk", t:"Observability not yet in place", b:"Sentry + slow-query monitoring (Task 8) is still pending — errors in a live pilot could go unseen. Mitigation: finish Task 8 before the pilot." },
+  ],
+};
+
+const label = { decided:"Decided", open:"Open", proposed:"Proposed", idea:"Idea", risk:"Risk", topic:"Topic", inbuild:"In build", shipped:"Shipped" };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+/* Roadmap phases. blockedBy lists the question IDs that gate the phase; when every
+   one is Decided the phase shows "gate clear" and Claude offers to generate the build
+   spec. status: planned | active | building | done (Claude updates as work progresses). */
+const PHASES = [
+  // One entry per roadmap phase. blockedBy = question IDs gating the phase (all Decided →
+  // "gate clear" badge, Claude offers to generate the build spec). status: planned |
+  // active | building | done — Claude updates as work progresses.
+  { id:"P0", title:"Foundation", status:"done", blockedBy:[],
+    body:"Monorepo, Supabase config + pooler, schema + RLS + cross-family test harness, auth, Edge Function scaffold, FCM, consent gate, delete-my-child flow. 9/10 done — only observability (Sentry) remains." },
+  { id:"P1", title:"Phase 1 — core loop", status:"active", blockedBy:[],
+    body:"The locked PRD §14 loop: content pipeline, onboarding, daily card, grounded AI Q&A + situational + refer-out, cost controls, activities, QotD, gentle nudge, no-guilt copy review. All built; the ship-readiness gate (Task 22) is the last open item." },
+  { id:"P2", title:"Phase 2 — depth", status:"done", blockedBy:[],
+    body:"Multiple children, bookmarks/library, quiz + mini-games, kid wish wall + kid mode, calendar, playdate reminders + photos, memory timeline, weekly recap, streaks. WhatsApp reminders cancelled." },
+  { id:"P3", title:"Phase 3 — expansion", status:"building", blockedBy:["Q6","Q7"],
+    body:"Co-parent sharing (in review), voice input (done), audio letters, on-device AI, moderated community (only if validated), freemium billing. Several items are still open questions." },
+  { id:"P4", title:"Launch readiness", status:"planned", blockedBy:["Q1","Q2","Q3","Q4"],
+    body:"The gate to real families: full verifiable COPPA consent, no-train AI for child data, real email/auth, and backups. When these four are Decided, the gate clears and we can generate the pre-launch checklist." },
+];
+const replyBlock = id => `
+      <div class="reply" data-id="${id}">
+        <div class="thread" data-thread hidden></div>
+        <button class="reply-toggle" aria-expanded="false">Reply</button>
+        <div class="reply-body" hidden>
+          <div class="stances" role="group" aria-label="Stance on ${id}">
+            <button data-st="Agree">👍 Agree</button>
+            <button data-st="Disagree">👎 Disagree</button>
+            <button data-st="Discuss">💬 Let's discuss</button>
+          </div>
+          <textarea placeholder="Your answer or feedback on ${id}…" aria-label="Feedback on ${id}"></textarea>
+          <input type="file" multiple class="attach" aria-label="Attach files to ${id}" hidden>
+          <button class="send">Save reply</button>
+          <span class="reply-hint">Saved in this browser. Use "Copy feedback" (bottom-right) to send everything to Claude.</span>
+        </div>
+      </div>`;
+for (const [key, items] of Object.entries(DATA)) {
+  const host = document.querySelector(`[data-list="${key}"]`);
+  host.innerHTML = items.map(it => `
+    <article class="card" data-key="${it.id}" data-s="${it.s}" data-text="${(it.id+' '+it.t+' '+it.b+' '+(it.r||'')).toLowerCase().replace(/"/g,'&quot;')}">
+      <div class="head"><span class="id">${it.id}</span><span class="chip ${it.s}">${label[it.s]}</span></div>
+      <h3>${it.t}</h3>
+      <p>${it.b}</p>
+      ${(it.links || []).length ? `<div class="files">${it.links.map(l => `<a class="linkchip" href="${l.href}" target="_blank" rel="noopener">🔗 ${l.label}</a>`).join("")}</div>` : ""}
+      ${it.r ? `<div class="rec"><b>My take</b>${it.r}</div>` : ""}
+      ${replyBlock(it.id)}
+    </article>`).join("");
+  const count = host.closest("section").querySelector("[data-count]");
+  if (count) count.textContent = items.length;
+}
+
+/* Fixed-height cards: everything clamps to 230px; overflowing cards get an
+   Expand/Collapse pill. Opening a reply composer or note editor auto-expands. */
+const expandedCards = new Set();
+function makeExpander(card) {
+  const b = document.createElement("button");
+  b.className = "expander";
+  b.addEventListener("click", () => {
+    const key = card.dataset.key;
+    if (expandedCards.has(key)) expandedCards.delete(key); else expandedCards.add(key);
+    applyClamp();
+  });
+  card.appendChild(b);
+  return b;
+}
+function applyClamp() {
+  document.querySelectorAll(".card[data-key]").forEach(card => {
+    if (card.classList.contains("hide")) return;
+    const key = card.dataset.key;
+    let btn = card.querySelector(".expander");
+    if (expandedCards.has(key)) {
+      card.classList.remove("clamped");
+      card.classList.add("expandable");
+      if (!btn) btn = makeExpander(card);
+      btn.textContent = "Collapse ▴";
+      return;
+    }
+    card.classList.add("clamped");
+    if (card.scrollHeight > card.clientHeight + 8) {
+      card.classList.add("expandable");
+      if (!btn) btn = makeExpander(card);
+      btn.textContent = "Expand ▾";
+    } else {
+      card.classList.remove("clamped", "expandable");
+      if (btn) btn.remove();
+    }
+  });
+}
+function expandCard(elInside) {
+  const card = elInside.closest(".card");
+  if (card && card.dataset.key) { expandedCards.add(card.dataset.key); applyClamp(); }
+}
+
+/* Sub-tabs: wire every .subtabs bar to its section's .subpane divs.
+   First tab activates by default; switching re-runs the card clamp. */
+document.querySelectorAll(".subtabs").forEach(bar => {
+  const btns = [...bar.querySelectorAll("button[data-pane]")];
+  const scope = bar.closest("section") || document;
+  function activate(id) {
+    btns.forEach(b => b.classList.toggle("on", b.dataset.pane === id));
+    scope.querySelectorAll(".subpane").forEach(p => p.classList.toggle("off", p.id !== id));
+    applyClamp();
+  }
+  btns.forEach(b => b.addEventListener("click", () => activate(b.dataset.pane)));
+  if (btns[0]) activate(btns[0].dataset.pane);
+});
+
+/* Roadmap phases with decision gates. */
+const byId = {};
+for (const arr of Object.values(DATA)) for (const it of arr) byId[it.id] = it;
+const phaseLabel = { planned:"Planned", active:"Active", building:"In build", done:"Done" };
+document.getElementById("phasesHost").innerHTML = PHASES.map(p => {
+  const done = q => byId[q] && byId[q].s === "decided";
+  const clear = p.blockedBy.length > 0 && p.blockedBy.every(done);
+  return `
+    <div class="phase">
+      <div class="num">${p.id}</div>
+      <div>
+        <h3>${p.title} <span class="chip ${p.status}">${phaseLabel[p.status]}</span></h3>
+        <p>${p.body}</p>
+        ${p.blockedBy.length ? `<div class="blockers">Gated on:
+          ${p.blockedBy.map(q => `<span class="blocker ${done(q) ? "done" : ""}">${q}${done(q) ? " ✓" : ""}</span>`).join("")}
+          ${clear && p.status === "planned" ? `<span class="gate-clear">Gate clear — ask Claude for the build spec</span>` : ""}
+        </div>` : ""}
+      </div>
+    </div>`;
+}).join("");
+applyClamp();
+
+const search = document.getElementById("search");
+const buttons = [...document.querySelectorAll(".filters button")];
+let activeFilter = "all";
+function apply() {
+  const q = search.value.trim().toLowerCase();
+  document.querySelectorAll(".card").forEach(c => {
+    const okF = activeFilter === "all" || c.dataset.s === activeFilter;
+    const okQ = !q || c.dataset.text.includes(q);
+    c.classList.toggle("hide", !(okF && okQ));
+  });
+  applyClamp();
+}
+search.addEventListener("input", apply);
+buttons.forEach(b => b.addEventListener("click", () => {
+  activeFilter = b.dataset.f;
+  buttons.forEach(x => x.classList.toggle("on", x === b));
+  apply();
+}));
+
+/* Scroll spy — highlight the sidebar link for the section in view. */
+const navLinks = [...document.querySelectorAll("nav.sections a")];
+const spy = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    navLinks.forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+  });
+}, { rootMargin: "-15% 0px -75% 0px" });
+document.querySelectorAll("main section").forEach(s => spy.observe(s));
+
+/* Status — Claude keeps this object current as the project develops. */
+const STATUS = {
+  stage: "Build — pre-launch",
+  updated: "20 Jul 2026",
+  access: [
+    { label: "Planning board (LAN)", href: "http://192.168.1.3:4321", note: "team · same network" },
+  ],
+  usage: "Flutter app — run from D:\\momzo\\app:\n  flutter pub get\n  flutter run            # device / emulator\nBackend: Supabase project nngjqhrxbhugnafyviqj (Free tier).\nBuild plan: task-master list   (source of truth in .taskmaster).\nStart this board: planning\\START-BOARD.cmd",
+  details: [
+    { k: "Product build", v: "Phase 1 core loop + most of Phase 2 shipped. 30/37 Taskmaster tasks done, 1 in review, 5 pending, 1 cancelled." },
+    { k: "In review", v: "Co-parent / caregiver sharing (F17) — multi-member RLS migration landed 9 Jul." },
+    { k: "Launch gate", v: "4 open blockers: verifiable COPPA consent (Q1), no-train AI for child data (Q2), real email/auth (Q3), backups (Q4)." },
+    { k: "Stack", v: "Flutter 3.x · Supabase (Postgres 15 + pgvector + Edge Functions) · embeddings Gemini · generation Mistral · FCM push." },
+    { k: "Next milestone", v: "Clear the P4 launch gate, then generate the pre-launch checklist (Task 22)." },
+  ],
+};
+document.getElementById("statusStage").textContent = STATUS.stage;
+document.getElementById("statusUpdated").textContent = "Status updated " + STATUS.updated;
+document.getElementById("statusAccess").innerHTML = STATUS.access.map(a =>
+  `<a href="${a.href}" target="_blank" rel="noopener">${esc(a.label)}${a.note ? ` <span class="note">· ${esc(a.note)}</span>` : ""}</a>`).join("");
+if (STATUS.usage && STATUS.usage.trim()) {
+  const u = document.getElementById("statusUsage");
+  u.hidden = false;
+  u.textContent = STATUS.usage;
+}
+document.getElementById("statusDetails").innerHTML = STATUS.details.map(d =>
+  `<span class="k">${esc(d.k)}</span><span>${esc(d.v)}</span>`).join("");
+
+/* ---------- feedback capture ---------- */
+const FB_KEY = "momzo-feedback-v1"; /* lowercase project slug — MUST be unique per project (artifact copies share a localStorage origin) */
+let fb;
+try { fb = JSON.parse(localStorage.getItem(FB_KEY)) || {}; } catch { fb = {}; }
+fb.items = fb.items || {};
+
+const titleById = {};
+for (const items of Object.values(DATA)) for (const it of items) titleById[it.id] = it.t;
+
+function saveFb() { try { localStorage.setItem(FB_KEY, JSON.stringify(fb)); } catch {} refreshBar(); }
+
+/* Live mode: when served by planning/server.mjs, every card carries a message thread
+   stored in threads.json on disk. Claude is woken by a file watcher, posts its reply to
+   the same thread, and the page polls so responses appear in place. On the shared
+   artifact copy fetch is blocked, so this stays off and the copy-paste flow remains. */
+let live = false;
+let threads = {};
+let lastVisit = 0; // set in initLive from localStorage; drives the "new since last visit" badges
+const isNew = ts => lastVisit > 0 && new Date(ts).getTime() > lastVisit;
+function updateNewCount() {
+  const n = document.querySelectorAll(".card.hasnew").length;
+  const el = document.getElementById("newcount");
+  el.hidden = n === 0;
+  el.textContent = n + " updated since your last visit";
+}
+
+function renderThreads() {
+  document.querySelectorAll(".reply").forEach(box => {
+    const id = box.dataset.id;
+    const host = box.querySelector("[data-thread]");
+    const msgs = threads[id] || [];
+    host.hidden = msgs.length === 0;
+    host.innerHTML = msgs.map(m => `
+      <div class="msg${m.who === "Claude" ? " claude" : ""}">
+        <span class="who">${esc(m.who)}${m.stance ? " · " + esc(m.stance) : ""}</span><span class="when">${new Date(m.ts).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+        ${m.text ? `<p>${esc(m.text)}</p>` : ""}
+        ${(m.files || []).length ? `<div class="files">${m.files.map(f => `<a class="filechip" href="/files/${encodeURIComponent(f.path)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a>`).join("")}</div>` : ""}
+      </div>`).join("");
+    if (live) {
+      const toggle = box.querySelector(".reply-toggle");
+      toggle.textContent = msgs.length ? `Reply (${msgs.length})` : "Reply";
+      const card = box.closest(".card");
+      if (card && msgs.some(m => isNew(m.ts))) card.classList.add("hasnew");
+    }
+  });
+  updateNewCount();
+  applyClamp();
+}
+
+async function refreshThreads() {
+  try {
+    const r = await fetch("/api/threads");
+    if (!r.ok) return;
+    const text = await r.text();
+    if (text === refreshThreads.last) return;
+    refreshThreads.last = text;
+    threads = JSON.parse(text);
+    renderThreads();
+  } catch {}
+}
+
+/* Team topics — cards created from the board via the "＋ New topic" button. */
+let topics = [];
+function renderTopics() {
+  const sec = document.getElementById("team-topics");
+  const host = sec.querySelector("[data-list]");
+  sec.hidden = topics.length === 0;
+  document.getElementById("navTopics").hidden = topics.length === 0;
+  sec.querySelector("[data-count]").textContent = topics.length;
+  host.innerHTML = topics.map(t => `
+    <article class="card${isNew(t.ts) ? " hasnew" : ""}" data-key="${esc(t.id)}" data-s="topic" data-text="${esc((t.id + " " + t.title + " " + t.who).toLowerCase())}">
+      <div class="head"><span class="id">${esc(t.id)}</span><span class="chip ${t.kind === "ask" ? "ask" : "topic"}">${t.kind === "ask" ? "Ask Claude" : "Topic"}</span></div>
+      <h3>${esc(t.title)}</h3>
+      <p>${t.kind === "ask" ? "Asked" : "Raised"} by ${esc(t.who)} · ${new Date(t.ts).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+      ${replyBlock(t.id)}
+    </article>`).join("");
+  host.querySelectorAll(".reply").forEach(wireReplyBox);
+  topics.forEach(t => { titleById[t.id] = t.title; });
+  renderThreads();
+  applyClamp();
+}
+async function refreshTopics() {
+  try {
+    const r = await fetch("/api/topics");
+    if (!r.ok) return;
+    const text = await r.text();
+    if (text === refreshTopics.last) return;
+    refreshTopics.last = text;
+    topics = JSON.parse(text);
+    renderTopics();
+  } catch {}
+}
+
+/* Notes — parked ideas/suggestions/observations/reminders with edit & delete. */
+let notes = [];
+const fmtWhen = ts => new Date(ts).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+function renderNotes() {
+  const sec = document.getElementById("notes");
+  const host = sec.querySelector("[data-list]");
+  sec.hidden = notes.length === 0;
+  document.getElementById("navNotes").hidden = notes.length === 0;
+  sec.querySelector("[data-count]").textContent = notes.length;
+  host.innerHTML = notes.map(n => `
+    <article class="card${isNew(n.edited || n.ts) ? " hasnew" : ""}" data-key="${esc(n.id)}" data-s="note" data-text="${esc((n.id + " " + (n.title || "") + " " + n.text + " " + n.who).toLowerCase())}" data-note="${esc(n.id)}">
+      <div class="head"><span class="id">${esc(n.id)}</span><span class="chip note">Note</span></div>
+      ${n.title ? `<h3>${esc(n.title)}</h3>` : ""}
+      <p class="note-text">${esc(n.text)}</p>
+      ${(n.files || []).length ? `<div class="files">${n.files.map(f => `<a class="filechip" href="/files/${encodeURIComponent(f.path)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a>`).join("")}</div>` : ""}
+      <span class="note-meta">${esc(n.who)} · ${fmtWhen(n.ts)}${n.edited ? " · edited " + fmtWhen(n.edited) : ""}</span>
+      <div class="note-actions">
+        <button data-act="edit">Edit</button>
+        <button data-act="promote">→ Topic</button>
+        <button data-act="delete" class="danger">Delete</button>
+      </div>
+    </article>`).join("");
+  applyClamp();
+}
+async function refreshNotes() {
+  try {
+    const r = await fetch("/api/notes");
+    if (!r.ok) return;
+    const text = await r.text();
+    if (text === refreshNotes.last) return;
+    refreshNotes.last = text;
+    notes = JSON.parse(text);
+    renderNotes();
+  } catch {}
+}
+/* Files tab — every stored project attachment, plus direct upload/delete. */
+const fmtSize = n => n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB";
+function renderFiles(files) {
+  const sec = document.getElementById("files");
+  sec.querySelector("[data-count]").textContent = files.length;
+  document.getElementById("fileRows").innerHTML = files.length ? files.map(f => `
+    <div class="frow">
+      <a class="fname" href="/files/${encodeURIComponent(f.path)}" target="_blank" rel="noopener">📎 ${esc(f.display)}</a>
+      <span class="fmeta">${fmtSize(f.size)} · ${fmtWhen(f.mtime)}</span>
+      <a class="fbtn" href="/files/${encodeURIComponent(f.path)}?dl=1">Download</a>
+      <button class="fbtn danger" data-del="${esc(f.path)}">Delete</button>
+    </div>`).join("") : `<p class="files-empty">No files yet — attach one to a card or upload here.</p>`;
+}
+async function refreshFiles() {
+  try {
+    const r = await fetch("/api/files");
+    if (!r.ok) return;
+    const text = await r.text();
+    if (text === refreshFiles.last) return;
+    refreshFiles.last = text;
+    renderFiles(JSON.parse(text));
+  } catch {}
+}
+document.getElementById("fileRows").addEventListener("click", async e => {
+  const btn = e.target.closest("button[data-del]");
+  if (!btn) return;
+  if (!confirm(`Delete "${btn.dataset.del.replace(/^\d+-/, "")}" from the project? Cards linking it will lose the file.`)) return;
+  await fetch("/api/file-delete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: btn.dataset.del }) });
+  refreshFiles.last = ""; await refreshFiles();
+});
+
+/* Edit-in-place and delete, via delegation so re-renders don't lose handlers. */
+document.getElementById("notes").addEventListener("click", async e => {
+  const btn = e.target.closest("button[data-act]");
+  if (!btn) return;
+  const card = btn.closest("[data-note]");
+  const id = card.dataset.note;
+  const note = notes.find(n => n.id === id);
+  if (!note) return;
+  if (btn.dataset.act === "delete") {
+    if (!confirm(`Delete note ${id}? Its attachments stay in the project.`)) return;
+    await fetch("/api/note-delete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
+    refreshNotes.last = ""; await refreshNotes();
+    return;
+  }
+  if (btn.dataset.act === "promote") {
+    const title = (note.title || note.text.split("\n")[0] || "Untitled note").slice(0, 120);
+    if (!confirm(`Turn note ${id} into a team topic titled "${title}"?`)) return;
+    await fetch("/api/topic", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title, text: note.text, files: note.files || [] }) });
+    await fetch("/api/note-delete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
+    refreshNotes.last = ""; refreshTopics.last = ""; refreshThreads.last = "";
+    await refreshNotes(); await refreshTopics(); await refreshThreads();
+    document.getElementById("team-topics").scrollIntoView({ behavior: "smooth" });
+    return;
+  }
+  if (btn.dataset.act === "edit") {
+    expandCard(card);
+    const p = card.querySelector(".note-text");
+    const ta = document.createElement("textarea");
+    ta.className = "note-edit";
+    ta.value = note.text;
+    p.replaceWith(ta);
+    const ti = document.createElement("input");
+    ti.className = "note-edit note-edit-title";
+    ti.placeholder = "Title (optional)";
+    ti.value = note.title || "";
+    const h = card.querySelector("h3");
+    if (h) h.replaceWith(ti); else ta.before(ti);
+    card.querySelector(".note-actions").innerHTML = `
+      <button data-act="save">Save</button>
+      <button data-act="cancel">Cancel</button>`;
+    ti.focus();
+    return;
+  }
+  if (btn.dataset.act === "save") {
+    const ta = card.querySelector("textarea.note-edit");
+    const ti = card.querySelector(".note-edit-title");
+    const text = ta.value.trim();
+    const title = ti ? ti.value.trim() : (note.title || "");
+    if (!text && !title && !(note.files || []).length) { ta.focus(); return; }
+    await fetch("/api/note-update", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, title, text }) });
+    refreshNotes.last = ""; await refreshNotes();
+    return;
+  }
+  if (btn.dataset.act === "cancel") { renderNotes(); }
+});
+
+/* Upload files as base64 JSON; server stores them in planning/attachments/ and
+   returns {name, path} refs that messages and notes carry. */
+async function uploadFiles(fileList) {
+  const refs = [];
+  for (const f of fileList) {
+    const data = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result).split(",")[1] || "");
+      r.onerror = rej;
+      r.readAsDataURL(f);
+    });
+    const resp = await fetch("/api/upload", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: f.name, data }),
+    });
+    const j = await resp.json();
+    if (j.ok) refs.push({ name: j.name, path: j.path });
+  }
+  return refs;
+}
+
+async function sendMsg(box) {
+  const id = box.dataset.id;
+  const ta = box.querySelector("textarea");
+  const attach = box.querySelector(".attach");
+  const text = ta.value.trim();
+  const stance = (fb.items[id] || {}).stance || "";
+  const hasFiles = attach && attach.files.length > 0;
+  if (!text && !stance && !hasFiles) return;
+  try {
+    /* No name needed — the server identifies the sender from the connecting machine. */
+    const files = hasFiles ? await uploadFiles(attach.files) : [];
+    await fetch("/api/message", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, text, stance, files }),
+    });
+    ta.value = "";
+    if (attach) attach.value = "";
+    fb.items[id] = {};
+    saveFb();
+    box.querySelectorAll(".stances button").forEach(b => b.classList.remove("on"));
+    refreshThreads.last = "";
+    await refreshThreads();
+  } catch {
+    alert("Couldn't reach the board server — is it still running?");
+  }
+}
+
+(async function initLive() {
+  try {
+    const r = await fetch("/api/threads");
+    if (!r.ok) return;
+    live = true;
+    document.querySelector(".wordmark .sub").textContent += " · live threads";
+    document.querySelectorAll(".reply-hint").forEach(h => { h.textContent = LIVE_HINT; });
+    document.querySelectorAll(".send").forEach(btn => { btn.textContent = "Send to Claude"; });
+    refreshBar();
+
+    const dlg = document.getElementById("topicDlg");
+    let dlgKind = "topic";
+    function openDlg(kind) {
+      dlgKind = kind;
+      const ask = kind === "ask", note = kind === "note";
+      document.getElementById("dlgTitle").textContent = note ? "Add note" : ask ? "Ask Claude" : "New topic";
+      document.getElementById("dlgTitleLabel").textContent = note ? "Title (optional)" : ask ? "Your question" : "Title";
+      document.getElementById("topicTitle").placeholder = note
+        ? "e.g. Referral program idea"
+        : ask
+        ? "e.g. Why did we choose a job queue over websockets?"
+        : "e.g. Should we add a referral program?";
+      document.getElementById("dlgTextLabel").textContent = note ? "Note" : ask ? "Context (optional)" : "Describe it";
+      document.getElementById("topicText").placeholder = note
+        ? "Idea, suggestion, observation, or reminder — parked here to discuss later."
+        : ask
+        ? "Anything that helps Claude answer — where you saw it, what you already checked."
+        : "What's the question or idea? Any context that helps.";
+      document.getElementById("topicCreate").textContent = note ? "Save note" : ask ? "Send question" : "Create topic";
+      dlg.showModal();
+    }
+    const newBtn = document.getElementById("newtopic");
+    const askBtn = document.getElementById("askclaude");
+    const noteBtn = document.getElementById("addnote");
+    newBtn.hidden = false;
+    askBtn.hidden = false;
+    noteBtn.hidden = false;
+    newBtn.addEventListener("click", () => openDlg("topic"));
+    askBtn.addEventListener("click", () => openDlg("ask"));
+    noteBtn.addEventListener("click", () => openDlg("note"));
+    document.getElementById("topicCancel").addEventListener("click", () => dlg.close());
+    document.getElementById("topicCreate").addEventListener("click", async () => {
+      const title = document.getElementById("topicTitle").value.trim();
+      const text = document.getElementById("topicText").value.trim();
+      const dlgFiles = document.getElementById("dlgFiles");
+      const isNote = dlgKind === "note";
+      if (isNote ? (!title && !text && !dlgFiles.files.length) : !title) {
+        document.getElementById(isNote ? "topicText" : "topicTitle").focus();
+        return;
+      }
+      try {
+        const files = dlgFiles.files.length ? await uploadFiles(dlgFiles.files) : [];
+        if (isNote) {
+          await fetch("/api/note", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ title, text, files }),
+          });
+        } else {
+          await fetch("/api/topic", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ title, text, kind: dlgKind, files }),
+          });
+        }
+        document.getElementById("topicTitle").value = "";
+        document.getElementById("topicText").value = "";
+        dlgFiles.value = "";
+        dlg.close();
+        if (isNote) {
+          refreshNotes.last = "";
+          await refreshNotes();
+          document.getElementById("notes").scrollIntoView({ behavior: "smooth" });
+        } else {
+          refreshTopics.last = ""; refreshThreads.last = "";
+          await refreshTopics(); await refreshThreads();
+          document.getElementById("team-topics").scrollIntoView({ behavior: "smooth" });
+        }
+      } catch {
+        alert("Couldn't reach the board server — is it still running?");
+      }
+    });
+
+    document.querySelectorAll(".attach").forEach(a => { a.hidden = false; });
+
+    /* Files tab — live mode only (needs the server). */
+    document.getElementById("filesLink").hidden = false;
+    document.getElementById("files").hidden = false;
+    document.getElementById("fileAddBtn").addEventListener("click", async () => {
+      const inp = document.getElementById("fileAdd");
+      if (!inp.files.length) { inp.click(); return; }
+      const btn = document.getElementById("fileAddBtn");
+      btn.textContent = "Uploading…";
+      try {
+        await uploadFiles(inp.files);
+        inp.value = "";
+        refreshFiles.last = ""; await refreshFiles();
+      } catch { alert("Upload failed — is the board server still running?"); }
+      btn.textContent = "Upload to project";
+    });
+    await refreshFiles();
+    setInterval(refreshFiles, 15000);
+
+    /* "New since last visit" — remember when this browser last opened the board. */
+    lastVisit = Number(localStorage.getItem(FB_KEY + "-lastvisit") || 0);
+    localStorage.setItem(FB_KEY + "-lastvisit", String(Date.now()));
+
+    /* Presence — is Claude's watcher heartbeat fresh? */
+    const pres = document.getElementById("presence");
+    pres.hidden = false;
+    async function pollPresence() {
+      try {
+        const p = await (await fetch("/api/presence")).json();
+        pres.classList.toggle("live", !!p.live);
+        pres.querySelector(".ptext").textContent = p.live
+          ? "Claude is listening"
+          : "Claude away — replies queue";
+      } catch {}
+    }
+    pollPresence();
+    setInterval(pollPresence, 10000);
+
+    await refreshTopics();
+    await refreshThreads();
+    await refreshNotes();
+    setInterval(refreshThreads, 4000);
+    setInterval(refreshTopics, 4000);
+    setInterval(refreshNotes, 4000);
+  } catch {}
+})();
+function replyCount() { return Object.values(fb.items).filter(v => v.stance || (v.note && v.note.trim())).length; }
+
+const LIVE_HINT = "Send posts to this card's thread under your machine's name — Claude picks it up and replies here.";
+function wireReplyBox(box) {
+  const id = box.dataset.id;
+  const toggle = box.querySelector(".reply-toggle");
+  const body = box.querySelector(".reply-body");
+  const ta = box.querySelector("textarea");
+  const stanceBtns = [...box.querySelectorAll(".stances button")];
+  const saved = fb.items[id];
+  if (live) {
+    box.querySelector(".reply-hint").textContent = LIVE_HINT;
+    box.querySelector(".send").textContent = "Send to Claude";
+    box.querySelector(".attach").hidden = false;
+  }
+
+  function paint() {
+    const v = fb.items[id] || {};
+    stanceBtns.forEach(b => b.classList.toggle("on", b.dataset.st === v.stance));
+    const has = !!(v.stance || (v.note && v.note.trim()));
+    toggle.classList.toggle("has", has);
+    if (!live) toggle.textContent = has ? "Replied ✓" : "Reply";
+  }
+  if (saved) { ta.value = saved.note || saved.draft || ""; }
+  paint();
+
+  toggle.addEventListener("click", () => {
+    const show = body.hidden;
+    body.hidden = !show;
+    toggle.setAttribute("aria-expanded", String(show));
+    if (show) { expandCard(box); ta.focus(); }
+  });
+  stanceBtns.forEach(b => b.addEventListener("click", () => {
+    const cur = fb.items[id] || {};
+    cur.stance = cur.stance === b.dataset.st ? "" : b.dataset.st;
+    fb.items[id] = cur; saveFb(); paint();
+  }));
+  /* Typing only stores a draft — nothing counts as a reply until Send/Save is clicked. */
+  ta.addEventListener("input", () => {
+    const cur = fb.items[id] || {};
+    cur.draft = ta.value; fb.items[id] = cur;
+    try { localStorage.setItem(FB_KEY, JSON.stringify(fb)); } catch {}
+  });
+  box.querySelector(".send").addEventListener("click", async (e) => {
+    if (live) { await sendMsg(box); return; }
+    const cur = fb.items[id] || {};
+    cur.note = ta.value; delete cur.draft;
+    fb.items[id] = cur; saveFb(); paint();
+    e.target.textContent = "Saved ✓";
+    setTimeout(() => { e.target.textContent = "Save reply"; }, 1500);
+  });
+}
+document.querySelectorAll(".reply").forEach(wireReplyBox);
+
+const bar = document.createElement("div");
+bar.id = "fbbar";
+bar.innerHTML = `
+  <span class="n"></span>
+  <input id="fbname" placeholder="Your name" aria-label="Your name">
+  <button id="fbcopy">Copy feedback</button>
+  <button id="fbclear">Clear</button>`;
+document.body.appendChild(bar);
+const nameInput = bar.querySelector("#fbname");
+nameInput.value = fb.name || "";
+nameInput.addEventListener("input", () => { fb.name = nameInput.value; saveFb(); });
+
+function refreshBar() {
+  const n = replyCount();
+  bar.classList.toggle("show", n > 0 && !live);
+  bar.querySelector(".n").textContent = n + (n === 1 ? " reply" : " replies");
+}
+refreshBar();
+
+bar.querySelector("#fbclear").addEventListener("click", () => {
+  if (!confirm("Clear all your replies on this board?")) return;
+  fb.items = {}; saveFb();
+  document.querySelectorAll(".reply textarea").forEach(t => t.value = "");
+  document.querySelectorAll(".stances button").forEach(b => b.classList.remove("on"));
+  document.querySelectorAll(".reply-toggle").forEach(t => { t.classList.remove("has"); t.textContent = "Reply"; });
+});
+
+bar.querySelector("#fbcopy").addEventListener("click", async () => {
+  const who = (fb.name || "").trim() || "unnamed";
+  const lines = [`Momzo planning board feedback — from ${who} — ${new Date().toISOString().slice(0,10)}`, ""];
+  for (const [id, v] of Object.entries(fb.items)) {
+    if (!v.stance && !(v.note && v.note.trim())) continue;
+    lines.push(`[${id}] ${titleById[id] || ""}${v.stance ? " — " + v.stance : ""}`);
+    if (v.note && v.note.trim()) lines.push(...v.note.trim().split("\n").map(l => "> " + l));
+    lines.push("");
+  }
+  const text = lines.join("\n").trim() + "\n";
+  const btn = bar.querySelector("#fbcopy");
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch {}
+  if (!ok) {
+    const tmp = document.createElement("textarea");
+    tmp.value = text; document.body.appendChild(tmp); tmp.select();
+    try { ok = document.execCommand("copy"); } catch {}
+    tmp.remove();
+  }
+  btn.textContent = ok ? "Copied ✓ — paste to Claude" : "Copy failed — select manually";
+  setTimeout(() => { btn.textContent = "Copy feedback"; }, 2500);
+  if (!ok) prompt("Copy this text:", text);
+});
+
+/* ================= Focus strip — "answer these first" =================
+   board-tpl-version: 2
+   Derives the most load-bearing open items: every not-yet-decided question
+   gating a not-done phase (earlier phase + more phases = higher score), plus
+   any card carrying a manual impact:"reason" field. Renders a chip strip
+   under the lede and a load-bearing badge on the cards; self-contained. */
+window.BOARD_TPL_VERSION = 2;
+(function () {
+  const fdata = typeof DATA !== "undefined" ? DATA : {};
+  const fphases = typeof PHASES !== "undefined" ? PHASES : [];
+  const fesc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  const settled = s => s === "decided" || s === "shipped" || s === "done";
+
+  const byId = {};
+  for (const arr of Object.values(fdata))
+    if (Array.isArray(arr)) for (const it of arr) if (it && it.id) byId[it.id] = it;
+
+  const picks = new Map(); // id → { it, score, gates[], manual? }
+  fphases.forEach((p, idx) => {
+    if (p.status === "done") return;
+    (p.blockedBy || []).forEach(qid => {
+      const it = byId[qid];
+      if (!it || settled(it.s)) return;
+      let e = picks.get(qid);
+      if (!e) { e = { it, score: 0, gates: [] }; picks.set(qid, e); }
+      e.gates.push(p);
+      e.score = Math.max(e.score, (fphases.length - idx) * 10);
+    });
+  });
+  picks.forEach(e => { e.score += e.gates.length; });
+  for (const it of Object.values(byId)) {
+    if (!it.impact || settled(it.s)) continue;
+    let e = picks.get(it.id);
+    if (!e) { e = { it, score: 1, gates: [] }; picks.set(it.id, e); }
+    e.manual = String(it.impact);
+  }
+  const focusItems = [...picks.values()].sort((a, b) => b.score - a.score);
+  if (!focusItems.length) return;
+
+  const why = e => {
+    const parts = [];
+    if (e.gates.length) {
+      parts.push("gates " + e.gates[0].id + " · " + e.gates[0].title);
+      if (e.gates.length > 1) parts.push("also blocks " + e.gates.slice(1).map(p => p.id).join(", "));
+    }
+    if (e.manual) parts.push(e.manual);
+    return parts.join(" · ");
+  };
+
+  const fcss = document.createElement("style");
+  fcss.textContent = `
+  .focus-strip { display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center; margin:1.1rem 0 0;
+    padding:0.65rem 0.8rem; border:1px solid var(--accent); border-radius:10px;
+    background:var(--accent-soft); scroll-margin-top:110px; }
+  .focus-strip .focus-label { font-family:var(--mono); font-size:0.72rem; letter-spacing:0.05em;
+    text-transform:uppercase; color:var(--accent-ink); font-weight:600; white-space:nowrap; }
+  .focus-chip { display:inline-flex; align-items:baseline; gap:0.4rem; font:inherit; font-size:0.8rem;
+    color:var(--ink); background:var(--surface, transparent); border:1px solid var(--line);
+    border-radius:999px; padding:0.3rem 0.75rem; cursor:pointer; max-width:100%; }
+  .focus-chip:hover, .focus-chip:focus-visible { border-color:var(--accent); outline:none; }
+  .focus-chip b { font-family:var(--mono); font-size:0.72rem; color:var(--accent-ink); font-weight:600; }
+  .focus-chip .why { font-size:0.72rem; color:var(--ink-faint); overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; max-width:38ch; }
+  .chip.loadbearing { color:var(--accent-ink); background:var(--accent-soft); border:1px solid var(--accent); }
+  .card.focus-flash { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }`;
+  (document.head || document.body).appendChild(fcss);
+
+  const strip = document.createElement("section");
+  strip.className = "focus-strip";
+  strip.id = "focus";
+  strip.setAttribute("aria-label", "Most load-bearing open items");
+  strip.innerHTML = `<span class="focus-label">⚡ Answer these first</span>` + focusItems.map(e =>
+    `<button class="focus-chip" data-target="${fesc(e.it.id)}" title="${fesc(why(e))}">
+       <b>${fesc(e.it.id)}</b> ${fesc(e.it.t)} <span class="why">${fesc(why(e))}</span>
+     </button>`).join("");
+  const lede = document.querySelector(".lede");
+  if (lede && lede.insertAdjacentElement) lede.insertAdjacentElement("afterend", strip);
+  else document.body.appendChild(strip);
+
+  strip.addEventListener("click", ev => {
+    const btn = ev.target && ev.target.closest ? ev.target.closest(".focus-chip") : null;
+    if (!btn) return;
+    const card = document.querySelector(`.card[data-key="${btn.getAttribute("data-target")}"]`);
+    if (!card) return;
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    card.classList.add("focus-flash");
+    setTimeout(() => card.classList.remove("focus-flash"), 1800);
+  });
+
+  // Badge each load-bearing card (DATA cards render once at load, so one pass suffices).
+  focusItems.forEach(e => {
+    const card = document.querySelector(`.card[data-key="${e.it.id}"]`);
+    if (!card) return;
+    const head = card.querySelector(".head");
+    if (!head || (head.querySelector && head.querySelector(".loadbearing"))) return;
+    if (head.insertAdjacentHTML) head.insertAdjacentHTML("beforeend",
+      `<span class="chip loadbearing" title="${fesc(why(e))}">⚡ load-bearing</span>`);
+  });
+})();
+</script>

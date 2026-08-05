@@ -1,0 +1,857 @@
+<title>Momzo — pilot lesson drafts</title>
+<style>
+  /* Momzo tokens — app/lib/core/theme/momzo_colors.dart */
+  :root{
+    --cream:#FFF7F0; --creamWarm:#FBF1E7; --card:#FFFFFF;
+    --ink:#3D3330; --body:#6B5D55; --muted:#9C8E85; --faint:#B6A89D;
+    --hairline:#F0E6DC; --cardBorder:#EFE4D8;
+    --coral:#EC8366; --coralDeep:#C26A4D; --coralText:#8A5742; --coralTint:#FBE3D8;
+    --honey:#F2B441; --honeyTint:#FCEFD0; --honeyText:#9A7424;
+    --sage:#84B89A; --sageTint:#E2F0E4; --sageText:#4E7A60;
+    --serif:"Newsreader",Charter,"Iowan Old Style","Source Serif Pro",Georgia,serif;
+    --sans:"Nunito Sans",ui-sans-serif,system-ui,"Segoe UI",Avenir,sans-serif;
+  }
+  /* Dark stays WARM — Momzo's rule is soft and warm, never neutral grey or pure black. */
+  @media (prefers-color-scheme:dark){
+    :root{
+      --cream:#221B18; --creamWarm:#2A211D; --card:#2C2320;
+      --ink:#F6EDE6; --body:#DAC9BE; --muted:#A89689; --faint:#8A7970;
+      --hairline:#3B2F2A; --cardBorder:#3B2F2A;
+      --coralText:#F0AB90; --coralTint:#3E2720;
+      --honeyTint:#3A2B12; --honeyText:#EFC069;
+      --sageTint:#1F2E25; --sageText:#A3D4B6;
+    }
+  }
+  :root[data-theme="dark"]{
+      --cream:#221B18; --creamWarm:#2A211D; --card:#2C2320;
+      --ink:#F6EDE6; --body:#DAC9BE; --muted:#A89689; --faint:#8A7970;
+      --hairline:#3B2F2A; --cardBorder:#3B2F2A;
+      --coralText:#F0AB90; --coralTint:#3E2720;
+      --honeyTint:#3A2B12; --honeyText:#EFC069;
+      --sageTint:#1F2E25; --sageText:#A3D4B6;
+  }
+  :root[data-theme="light"]{
+      --cream:#FFF7F0; --creamWarm:#FBF1E7; --card:#FFFFFF;
+      --ink:#3D3330; --body:#6B5D55; --muted:#9C8E85; --faint:#B6A89D;
+      --hairline:#F0E6DC; --cardBorder:#EFE4D8;
+      --coralText:#8A5742; --coralTint:#FBE3D8;
+      --honeyTint:#FCEFD0; --honeyText:#9A7424;
+      --sageTint:#E2F0E4; --sageText:#4E7A60;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cream);color:var(--body);font-family:var(--sans);
+    font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px;margin:0 auto;padding:40px 20px 96px;}
+
+  /* masthead */
+  .mast{border-bottom:1px solid var(--hairline);padding-bottom:26px;margin-bottom:38px;}
+  .kicker{font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--coralDeep);margin:0 0 12px;}
+  h1{font-family:var(--serif);font-weight:600;font-size:clamp(28px,4vw,40px);line-height:1.15;
+    color:var(--ink);margin:0 0 14px;text-wrap:balance;letter-spacing:-.01em;}
+  .standfirst{font-family:var(--serif);font-size:18px;color:var(--body);margin:0;max-width:62ch;}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;}
+  .stat{background:var(--card);border:1px solid var(--cardBorder);border-radius:99px;
+    padding:6px 13px;font-size:12.5px;font-weight:700;color:var(--muted);}
+  .stat b{color:var(--ink);font-variant-numeric:tabular-nums;}
+
+  .note{background:var(--honeyTint);border-radius:14px;padding:16px 18px;margin:26px 0 0;}
+  .note p{margin:0;font-size:14.5px;color:var(--honeyText);}
+  .note p + p{margin-top:8px;}
+  .note strong{color:var(--honeyText);}
+
+  /* per-source group */
+  .srcgroup{margin:0 0 46px;}
+  .srclabel{font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--faint);margin:0 0 14px;padding-bottom:9px;border-bottom:1px solid var(--hairline);}
+  .variants{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;align-items:start;}
+
+  .lesson{background:var(--card);border:1px solid var(--cardBorder);border-radius:20px;
+    padding:24px 26px 26px;max-width:56ch;}
+  .agechip{display:inline-block;background:var(--honeyTint);color:var(--honeyText);
+    font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    padding:5px 11px;border-radius:99px;margin:0;}
+  .dot{padding:0 6px;opacity:.55;}
+  .ltitle{font-family:var(--serif);font-weight:600;font-size:22px;line-height:1.25;
+    color:var(--ink);margin:13px 0 16px;text-wrap:balance;}
+
+  .lbl{font-size:10.5px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--muted);margin:20px 0 8px;}
+  .lbl.good{color:var(--sageText);} .lbl.warn{color:var(--coralDeep);}
+
+  .tldr{background:var(--coralTint);border-radius:14px;padding:15px 17px;}
+  .tldr .lbl{margin:0 0 7px;color:var(--coralText);}
+  .tldrtext{font-family:var(--serif);font-size:16.5px;font-weight:500;color:var(--coralText);margin:0;}
+
+  .scene p{font-family:var(--serif);font-style:italic;font-size:16px;margin:0 0 9px;color:var(--body);}
+  .scene p:last-child{margin-bottom:0;}
+
+  ul,ol{margin:0;padding-left:19px;}
+  .going li,.skip li,.try li,.steps li{font-family:var(--serif);font-size:15.5px;margin:0 0 7px;}
+  .skip li{color:var(--coralText);} .try li{color:var(--sageText);}
+
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media (max-width:560px){ .pair{grid-template-columns:1fr;} }
+
+  .activity{background:var(--sageTint);border-radius:14px;padding:15px 17px;margin-top:22px;}
+  .activity .lbl{margin:0 0 9px;}
+  .why{font-family:var(--serif);font-size:14.5px;color:var(--sageText);margin:11px 0 0;}
+
+  .remember{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--ink);
+    margin:22px 0 0;padding:2px 0 2px 15px;border-left:3px solid var(--coral);text-wrap:balance;}
+
+  details{margin-top:20px;border-top:1px solid var(--hairline);padding-top:14px;}
+  summary{cursor:pointer;font-size:12px;font-weight:800;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--faint);}
+  summary:focus-visible{outline:2px solid var(--coral);outline-offset:3px;border-radius:4px;}
+  .fullread{margin-top:12px;}
+  .fullread p{font-family:var(--serif);font-size:15.5px;margin:0 0 12px;}
+
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:18px;}
+  .tag{font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:99px;}
+  .tag.prob{background:var(--coralTint);color:var(--coralText);}
+  .tag.need{background:var(--sageTint);color:var(--sageText);}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <p class="kicker">Pilot draft · for review</p>
+    <h1>Sixteen lessons, rewritten for a mother with three minutes</h1>
+    <p class="standfirst">Forged from 8 of your source articles, two age variants each.
+      Every word is original — the source only decided which ideas a lesson covers.
+      The test to apply: could she stop after the 30-second version and still have gotten something real?</p>
+    <div class="meta">
+      <span class="stat"><b>16</b> lessons</span>
+      <span class="stat"><b>8</b> source articles</span>
+      <span class="stat">ages <b>6–7</b> and <b>8–10</b></span>
+    </div>
+    <div class="note">
+      <p><strong>Two known issues, so you can look past them:</strong> the closing reframes almost all
+        landed on the same “They’re not X, they’re Y” shape — too formulaic read back-to-back, and stiffer
+        than they should be. That’s fixed in the generator for the full run, not re-run here.</p>
+      <p>The screen-time 8–10 lesson is still on an earlier, untuned draft — its API quota ran out.</p>
+    </div>
+  </header>
+  
+<section class="srcgroup">
+  <h2 class="srclabel">Building Blocks for Healthy Self Esteem</h2>
+  <div class="variants"><article class="lesson">
+  <p class="agechip">6-7 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">I'm rubbish at this!</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">When your six-year-old collapses over a tiny mistake, they aren't just being dramatic. They are terrified of failing you. Instead of offering hollow praise or fixing the error for them, acknowledge the struggle and show them that messing up is a safe, normal part of learning.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>Your seven-year-old scribbles violently over their homework page and throws the pencil.</p><p>You look and see a single slightly crooked letter on an otherwise beautiful page.</p><p>You are stuck between telling them it looks great—which they won't believe—and erasing it for them, which feels like agreeing it was a failure.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>At six and seven, they desperately want to feel capable and worry that making a mistake means they are no longer the good kid you are proud of.</li><li>Hollow praise like "it looks perfect" doesn't work because their own eyes tell them it isn't, which makes them feel misunderstood.</li><li>True confidence doesn't come from never slipping up, but from seeing that a slip-up doesn't change how much they are loved.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Fixing the mistake for them</li><li>Insisting it looks perfect when they are unhappy with it</li><li>Telling them they are being dramatic</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Acknowledge the frustration first: "It is so annoying when your hand doesn't do what your brain wants."</li><li>Focus on their effort rather than the end product: "Look how hard you worked on that line."</li><li>Give them control over the fix: "Do you want to leave it for now, or use the rubber and try again?"</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Oops Club</p>
+    <ol class="steps"><li>At dinner, everyone shares one thing they messed up or found hard today.</li><li>You start by sharing a real, small adult mistake: "I took the wrong turn and got us stuck in traffic."</li><li>High-five each other for sharing, celebrating the courage it took to try.</li></ol>
+    <p class="why"><em>Why it works:</em> It normalizes mistakes, showing them that even the adults they look up to mess up and survive.</p>
+  </div>
+
+  <p class="remember">They are not fragile. They are just learning that mistakes are safe.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>When your six or seven-year-old throws a pencil across the room because they drew a line slightly crooked, it feels like a massive overreaction. You might feel a sudden urge to fix it, to smooth things over, or to tell them it looks beautiful anyway. We want to protect them from that sharp, hot sting of frustration. But rushing in to rescue them actually sends a quiet, accidental message: You are right to be upset, because making a mistake is a disaster.</p><p>Real self-esteem isn't built on a foundation of constant praise or flawless performances. It is built when a child realizes they can survive a mistake and try again. At this age, school has introduced them to the concept of being evaluated. They are starting to compare themselves to their classmates, and they are incredibly sensitive to failure. They worry that a messy page, a dropped cup, or a missed ball means they are no longer capable, or that they have let you down.</p><p>When they cry "I can't do it," they are usually asking if they are still safe when they fail. Instead of arguing with their frustration by saying "yes you can," stay close to them. Let them know that learning is physically uncomfortable. You can say, "That is really tricky. Your fingers are still learning how to do what your brain is telling them." By naming the physical reality of the struggle, you take the shame out of it.</p><p>Finally, step back. Resist the urge to take the pencil and draw the line for them, or to take over the task. Give them small, real choices instead. Ask if they want to take a break, use an eraser, or try a different color. When they make the choice and eventually finish, they will feel a genuine sense of ownership. They will learn that confidence doesn't come from getting it right the first time, but from knowing they can handle getting it wrong.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">perfectionism</span><span class="tag prob">meltdowns</span><span class="tag prob">homework-battles</span><span class="tag prob">frustration</span>
+    <span class="tag need">feeling-powerless</span><span class="tag need">losing-my-temper</span><span class="tag need">how-to-help</span>
+  </div>
+</article><article class="lesson">
+  <p class="agechip">8-10 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">When they want to quit the second it gets hard</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">An eight-year-old who quits a game or homework at the first hurdle is trying to protect their ego from looking incapable. They want to be skilled immediately, and struggle when reality does not match their ideal self. Instead of pushing them to win, focus on their actual control: give them real choices, small responsibilities, and celebrate the messy middle.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>Your nine-year-old slams their laptop shut during homework and yells, "I'm stupid, this math is impossible, and I am not doing it!"</p><p>You know they actually understand the concept, but they are terrified of getting a wrong answer and feeling foolish.</p><p>So you are stuck between two bad options: stepping in to do it for them just to end the tears, or forcing them to sit there, which only makes them feel more powerless.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>At this age, their self-esteem drops when they realize they are not naturally perfect at everything.</li><li>Quitting is a shield they use to reject the task before the task can reject them.</li><li>They need to feel in control of their progress rather than managed by your expectations.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Taking over and finishing the task for them</li><li>Saying "but you are so smart" which actually increases the pressure to be perfect</li><li>Lecturing them about how giving up is for babies or will hurt their future</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Acknowledge the friction without saving them: "It is incredibly annoying when your brain has to work this hard."</li><li>Offer a micro-choice to restore their agency: "Do you want to do the next two problems now, or take a five-minute break first?"</li><li>Praise the struggle, not the outcome: "I saw how long you stared at that puzzle before you figured it out."</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Draft Run</p>
+    <ol class="steps"><li>When starting a hard task, grab a scrap piece of paper and label it "The Rough Copy."</li><li>Tell your child that mistakes on this paper are actually required to train their brain.</li><li>Let them scribble, scratch out, or make three wrong attempts before moving to the final version.</li></ol>
+    <p class="why"><em>Why it works:</em> It removes the pressure of instant perfection by making mistakes a planned part of the learning process.</p>
+  </div>
+
+  <p class="remember">They are not being lazy. They are protecting themselves from feeling incapable.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>Around eight or nine, a shift happens. Your child is no longer just playing; they are comparing. They look at their classmates, their siblings, and the people they see online, and they form a picture of who they want to be—the star player, the straight-A student, the popular friend. When they sit down to do something and it does not immediately match that perfect picture, it hurts. To them, a mistake is not just a misstep; it feels like proof that they are fundamentally not enough.</p><p>When they shout that they quit and throw their pencil, they are trying to regain control. If they walk away first, they get to be the one who made the decision, rather than the kid who failed. It is a defense mechanism for a fragile, developing ego. As a mother, it is frustrating to watch them throw in the towel over something you know they can do. Your instinct might be to cheerlead them with praises, but to a child who feels incompetent in that moment, those words feel like a heavy weight they cannot lift.</p><p>To help them build real self-esteem, we have to lower the stakes of being wrong. This means shifting our focus from their natural talent to their effort and choice. When we step back and let them make decisions about how and when they tackle a challenge, we give them back their agency. They need to know that their position in the family and their value to you does not depend on them getting it right on the first try.</p><p>Instead of trying to fix the problem for them or shielding them from the struggle, let them feel the friction of learning. When they see that they can tolerate the frustration of a mistake and still come out okay on the other side, their confidence grows. They learn that competence is not something you are born with; it is something you build, one messy, imperfect attempt at a time.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">quitting</span><span class="tag prob">perfectionism</span><span class="tag prob">homework-battles</span><span class="tag prob">frustration</span>
+    <span class="tag need">losing-my-temper</span><span class="tag need">feeling-powerless</span><span class="tag need">helping-with-homework</span>
+  </div>
+</article></div>
+</section>
+<section class="srcgroup">
+  <h2 class="srclabel">is it tattling or telling</h2>
+  <div class="variants"><article class="lesson">
+  <p class="agechip">6-7 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">"Leo took the red Lego and it's my turn!"</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">Six-year-olds tattle because they are obsessed with rules and want your approval, not because they are trying to be mean. When they run to you with minor complaints, they are checking if the rules still hold. Instead of getting annoyed, teach them the difference between keeping others safe and just reporting rule-breakers, then give them one simple line to say.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>"Sam didn't put his shoes on the shelf and he's eating a biscuit!"</p><p>You know Sam is breaking a rule, but nobody is in danger and your child is looking at you, waiting for praise.</p><p>You are stuck between playing police officer for every tiny household rule, or telling them to stop snitching and making them feel dismissed.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>At six, rules are concrete boundaries that make their world feel safe and predictable.</li><li>They often report others to check if you still enforce the rules, seeking your reassurance and approval.</li><li>They genuinely cannot tell the difference yet between a dangerous situation and a harmless rule slip.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Snapping at them to "stop tattling" or calling them a snitch.</li><li>Solving the minor problem for them immediately.</li><li>Ignoring them, which makes them feel like the rules do not actually matter.</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Ask one simple question: "Is anyone hurt or unsafe?"</li><li>If everyone is safe, send them back with a direct phrase: "You can tell him, 'I am using this right now.'"</li><li>Praise them only when they report actual danger.</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Safe or Hurt Check</p>
+    <ol class="steps"><li>Create a simple rule: we only report "hurt or danger" to grownups, and we handle "small things" ourselves.</li><li>Practice with quick scenarios at dinner, like: "If someone takes your pencil, is that a tell or a tattle?"</li><li>Give them the exact words for small things: "Please stop, I don't like that."</li></ol>
+    <p class="why"><em>Why it works:</em> It gives them a clear, logical filter to run through before they run to you.</p>
+  </div>
+
+  <p class="remember">They are not trying to be a snitch. They are checking if their world is still safe.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>At six and seven, your child is suddenly obsessed with rules. They are entering a wider social world of school and playgrounds where rules are the glue holding everything together. To a concrete thinker, a rule is absolute. If the rule is "we put our toys away," then anyone who leaves a Lego on the floor is disrupting the order of the universe. When they run to you to report this crime, they aren't trying to be malicious. They are trying to be your helper, checking to see if you are still policing the borders of their safe world.</p><p>This is why simply telling them "don't tattle" feels so confusing to them. To a young child, you are giving them highly contradictory information: you want them to follow the rules, but you get annoyed when they point out someone who isn't. They don't yet have the social maturity to understand nuance, nor do they have the deep empathy required to realize how annoying constant reporting can be to others.</p><p>To help them, we have to draw a clear line between what actually needs adult intervention and what doesn't. The simplest way to do this is to divide reports into "tattling" and "telling." Tattling is about trying to get someone in trouble or get attention for yourself. Telling is about protecting someone from getting hurt.</p><p>When they run to you with a complaint, take a beat. Ask them calmly, "Is anyone hurt or unsafe?" If the answer is no, hand the job back to them. Give them a direct, simple script they can use on the playground or with a sibling. This teaches them that they have the agency to handle minor friction, while keeping your door wide open for the big, scary things that actually require a grown-up's help.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">tattling</span><span class="tag prob">sibling-fights</span><span class="tag prob">sharing</span><span class="tag prob">rule-breaking</span>
+    <span class="tag need">being-ignored</span><span class="tag need">losing-my-temper</span><span class="tag need">feeling-overwhelmed</span>
+  </div>
+</article><article class="lesson">
+  <p class="agechip">8-10 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">He is playing on his tablet and his time is up!</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">An eight-year-old who reports every minor rule-break isn't trying to be annoying; they are trying to master fairness and earn your approval. When they run to you with small violations, teach them the difference between keeping someone safe and getting someone in trouble. Thank them only when safety is at risk, and encourage them to handle the small stuff themselves.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>Your nine-year-old runs into the kitchen pointing: "Leo is playing Roblox and his thirty minutes was over ten minutes ago!"</p><p>You notice they are watching the clock like a hawk, waiting for their sibling to slip up.</p><p>So you are stuck between enforcing the limit — which rewards the policing — or letting it slide and looking completely unfair.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>At eight to ten, kids are obsessed with logic, justice, and absolute fairness.</li><li>They often report small things to get adult praise for being the good one who follows the rules.</li><li>They struggle to distinguish between a situation that is actually dangerous and one that is just annoying.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Investigating the crime and handing out punishments on the spot.</li><li>Snapping at them to mind their own business.</li><li>Ignoring it entirely, which makes them feel like house rules do not matter.</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Ask the safety question: "Is anyone hurt, or is anyone about to be hurt?"</li><li>Hand the problem back to them: "That sounds like a small thing you two can handle. What can you say to him?"</li><li>Set the boundary: "I only need to hear about it if someone is in danger."</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Trash vs. Fire Test</p>
+    <ol class="steps"><li>Draw a trash can and a fire engine on a piece of paper.</li><li>Give them age-appropriate scenarios, like a sibling using the wrong cup versus a sibling climbing on the high roof.</li><li>Ask them: "Does this need a firefighter to rescue someone, or can we just sweep it into the trash?"</li></ol>
+    <p class="why"><em>Why it works:</em> It gives logical older kids a visual scale to decide if a problem actually requires adult intervention.</p>
+  </div>
+
+  <p class="remember">They are not trying to be a pest. They are trying to understand justice.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>Around eight to ten years old, a child’s brain undergoes a massive shift. They suddenly care deeply about rules, contracts, and absolute fairness. To them, a rule is not a loose guideline; it is a law of the universe. When they see a sibling or classmate bend that law, it feels like a personal affront to the order of their world. So they run to you, expecting you to act as the supreme court.</p><p>The temptation is to either snap at them for being a tattle-tale or to immediately go police the other child. But both approaches backfire. If you rush to punish the rule-breaker, you reward the reporting, and you will soon find yourself arbitrating twenty tiny disputes a day. If you tell them to stop complaining, they feel dismissed and confused because they thought they were helping you maintain order.</p><p>Instead, we need to teach them the distinction between reporting for safety and reporting for control. An eight-year-old is highly logical and entirely capable of understanding this boundary. They can learn that "telling" is what we do to protect someone from getting physically or emotionally hurt, while "tattling" is what we do just to get someone in trouble or to make ourselves look superior.</p><p>When they come to you with a complaint, put the responsibility back on them with a calm, neutral question. Ask them directly if anyone is in danger of getting hurt. If the answer is no, explain that this is a small problem they are strong enough to handle on their own.</p><p>By doing this, you stop acting as the household referee. You are showing them that while you will always step in to keep things safe, you also trust their growing independence to handle the small, everyday friction of living with other people.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">tattling</span><span class="tag prob">sibling-fights</span><span class="tag prob">bickering</span><span class="tag prob">screen-time-arguments</span>
+    <span class="tag need">being-ignored</span><span class="tag need">losing-my-temper</span><span class="tag need">peace-and-quiet</span>
+  </div>
+</article></div>
+</section>
+<section class="srcgroup">
+  <h2 class="srclabel">kids-and-screen-time-the-5cs-of-screen-time</h2>
+  <div class="variants"><article class="lesson">
+  <p class="agechip">6-7 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">"But I just want to watch one more video!"</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">Using screens to soothe a tired six-year-old usually backfires into a bigger meltdown when it is time to turn it off. Instead of focusing only on strict hourly limits, look at what the device is replacing. Transition them with a physical, sensory task rather than a sudden countdown.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>Your seven-year-old throws their school bag on the floor and shouts, "I need my tablet right now!"</p><p>You see the dark circles under their eyes and know they are completely spent from a long day of school.</p><p>You are stuck between giving in for twenty minutes of kitchen peace, or saying no and triggering an immediate, high-pitched floor tantrum.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>They are using the screen as an artificial off-switch to numb their exhausted brains after school.</li><li>Because digital media is designed to hold their attention, their brains cannot handle the sudden chemical crash when the screen disappears.</li><li>The meltdown is not bad behavior; it is a physical system overload from a body that forgot how to settle down naturally.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Arguing about the clock or counting down minutes</li><li>Using the tablet as a reward for eating dinner</li><li>Snatching the device away mid-game</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Acknowledge the exhaustion first: "Your brain is so tired from school today."</li><li>Offer a high-sensory, low-effort physical swap like a sink full of warm soapy water or some playdough.</li><li>Schedule a fixed, predictable screen window so they do not have to beg for it all afternoon.</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Water Transition</p>
+    <ol class="steps"><li>As soon as they ask for a screen after school, fill the kitchen sink with warm water and bubbles.</li><li>Drop in a few plastic cups or spoons and invite them to wash them.</li><li>Stand nearby and let them splash quietly without asking them questions about their day.</li></ol>
+    <p class="why"><em>Why it works:</em> Warm water physically resets a highly stimulated nervous system, helping them wind down from school without the digital crash.</p>
+  </div>
+
+  <p class="remember">They are not being greedy for screens. They are trying to find an off-switch for their tired brains.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>When your child comes home from school, they are carrying a heavy load of invisible fatigue. Sitting still, following directions, and navigating playground politics for six hours takes an immense amount of physical and emotional control. By the time they cross your threshold, that control is entirely used up. They reach for the iPad or the television remote because it offers an instant, effortless escape where nothing is demanded of them. It feels like the quickest way to relax, but it is actually a trap.</p><p>The problem is not the screen itself, but how it acts as an artificial nervous system. While they watch, their body goes completely still, but their brain is actually being flooded with high-speed sensory input and rapid-fire dopamine. When you announce that screen time is over, that artificial stimulation vanishes instantly. This leaves their tired body suddenly flooded with all the pent-up exhaustion they were avoiding, resulting in a sudden, intense meltdown that feels impossible to soothe.</p><p>To break this cycle, we have to look at what the screen is crowding out. At six or seven, kids still need physical, sensory ways to discharge the tension of the school day. They need to move their muscles, feel different textures, and reconnect with you in a quiet space. If we transition them straight from the high-pressure classroom environment to a high-stimulation digital world, they never actually learn how to settle their own bodies.</p><p>Instead of fighting over minutes, try changing how they transition home. Give them a physical task that requires zero mental effort but offers rich sensory feedback. Let them jump on cushions, dig in a bin of dried beans, or wash plastic toys in a warm sink. By helping them land softly back in their physical bodies, you satisfy their need for calm and make it much easier for them to turn off the screen later without a fight.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">screen-time</span><span class="tag prob">tantrums</span><span class="tag prob">after-school-meltdowns</span><span class="tag prob">technology</span>
+    <span class="tag need">losing-my-temper</span><span class="tag need">peace-at-home</span><span class="tag need">being-ignored</span>
+  </div>
+</article><article class="lesson">
+  <p class="agechip">8-10 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">When the screen is more interesting than anything else</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">It's easy to feel frustrated when your 8-10 year old seems glued to a screen. But often, they're not trying to be difficult; they're looking for excitement, connection, or a way to unwind. Instead of just setting strict limits, try to understand what needs the screen is meeting for them and help them find those good things in real life too. Talk openly about what they watch and play, and make sure other important activities don't get pushed out.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>Your child rushes in after school, drops their bag, and immediately reaches for their tablet, saying, "Mom, can I just finish this level? It's really important!"</p><p>You notice they get grumpy or withdrawn when it's time to stop, and they seem to prefer staring at a screen over playing outside or talking with you.</p><p>You're stuck between two bad options: constantly fighting over screen time and feeling like a nag, or giving in and worrying they're missing out on other crucial parts of childhood.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>Screens offer instant rewards and a sense of belonging, which is very appealing to kids this age who are developing friendships and independence.</li><li>Your child might be using screens to relax, cope with boredom, or connect with friends in a way that feels comfortable to them.</li><li>They are still learning to manage their time and impulses, so relying on them to self-regulate screen use is often setting them up for a struggle.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Lecturing them about "too much screen time" with no explanation</li><li>Just taking away a device without warning or discussion</li><li>Comparing their screen habits to other kids or your own childhood</li><li>Using screens as the default babysitter for boredom or big feelings</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Ask them what they genuinely enjoy about the game or show they're on: "What's so great about this game right now? What do you like about it?"</li><li>Watch or play with them sometimes, even for a few minutes, to understand the content and connect with their interests.</li><li>Suggest other ways to relax or connect when they're stressed or bored, like reading, drawing, or kicking a ball outside.</li><li>Make sure there are planned times for other fun things like outdoor play, reading, or family games that don't involve screens.</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Daily Recharge</p>
+    <ol class="steps"><li>At dinner, ask everyone (including you) to share one non-screen activity they enjoyed or found relaxing today.</li><li>Go first: "I really liked listening to music while I cooked dinner, it helped me unwind."</li><li>If your child struggles, offer gentle suggestions: "Did you enjoy building that Lego? Or drawing that picture?"</li></ol>
+    <p class="why"><em>Why it works:</em> It helps everyone notice and value the different ways they can relax and have fun, shifting focus away from screens as the only option.</p>
+  </div>
+
+  <p class="remember">Your child is reaching for connection or calm. Help them find it in real life too.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>When your child seems lost in a screen, it's easy to feel like you're losing them to the digital world. But for an 8-10 year old, screens can represent a lot of different things: a way to feel competent, to connect with friends, to unwind after a busy day, or simply to escape boredom. It's rarely about trying to defy you. Instead of viewing it as a battle, think of it as an opportunity to understand what they're seeking.</p><p>Start by really looking at *who* your child is. Is your child drawn to fast-paced games because they love a challenge, or do they prefer quiet videos that help them calm down? Understanding their personality and motivations helps you suggest alternatives that genuinely appeal to them. Then, pay attention to the *content* they consume. Not all screen time is equal. Sit with them, watch or play a bit, and talk about what they're seeing. Is it creative? Is it kind? Is it full of ads? This helps them learn to make smart choices themselves.</p><p>Consider how your child *calms* down. If screens are their go-to for managing big emotions or boredom, they might be missing other tools. Help them discover non-digital ways to relax, like reading a book, building with blocks, or spending time outside. These activities are vital for their development and can be just as satisfying. Remember, screens can easily *crowd out* other important activities like sleep, homework, family time, and creative play. Look at your family's schedule and consciously make space for these things, rather than just trying to reduce screen time.</p><p>Most importantly, foster open *communication*. Talk about screen use often and calmly. Ask questions like, "What's the best thing you saw online today?" or "What makes that game so fun?" When you approach these conversations with curiosity rather than judgment, you build trust. This helps them come to you when they encounter something confusing or upsetting online, and it empowers them to develop their own healthy relationship with technology, guided by your support.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">screen-time-battles</span><span class="tag prob">ignoring-me</span><span class="tag prob">boredom</span><span class="tag prob">impulsivity</span><span class="tag prob">motivation</span>
+    <span class="tag need">feeling-guilty</span><span class="tag need">power-struggles</span><span class="tag need">wanting-control</span><span class="tag need">feeling-overwhelmed</span><span class="tag need">no-time</span>
+  </div>
+</article></div>
+</section>
+<section class="srcgroup">
+  <h2 class="srclabel">tantrums vs meltdowns</h2>
+  <div class="variants"><article class="lesson">
+  <p class="agechip">6-7 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">He is six and still screaming on the floor</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">Big meltdowns at age six or seven aren't manipulative power plays; they happen because your child's emotional brakes are lagging behind their big feelings. When they lose control, treating it as a discipline issue only escalates the panic. Instead, wait out the storm without arguing, then focus on teaching the calming skills they are missing once the air clears.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>"I hate this school and I hate you!" he screams, kicking the kitchen cabinet because he cannot get his shoe on.</p><p>You know he is exhausted from the new school routine, but he is too big for these toddler-style explosions.</p><p>You are stuck: do you send him to his room for shouting, which triggers an even louder panic, or do you do everything for him just to keep the peace?</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>At six, big school transitions drain their mental energy, leaving them with zero patience for small frustrations.</li><li>A true meltdown is a nervous system overload, not a conscious choice to behave badly.</li><li>They are not trying to manipulate you; they simply have not learned how to pause and put their frustration into words yet.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Trying to reason or lecture mid-scream</li><li>Sending them away to isolate until they calm down</li><li>Giving in to the original demand just to stop the noise</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Keep your own voice low and slow to show them the room is safe.</li><li>Say: "Your body is having a really hard time right now. I am right here."</li><li>Wait until they are fully calm before you try to talk about what happened.</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Cool-Down Rehearsal</p>
+    <ol class="steps"><li>Choose a happy, relaxed moment on the weekend to talk about how anger feels in the body.</li><li>Ask them what their angry body looks like, then practice taking three deep "balloon breaths" together.</li><li>Pick a quiet corner with a soft pillow and agree that this is where they can go next time the feelings get too big.</li></ol>
+    <p class="why"><em>Why it works:</em> It builds the physical calming skills they lack when they are too upset to think straight.</p>
+  </div>
+
+  <p class="remember">They are not acting out to control you. They are drowning in a feeling they cannot manage.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>It feels incredibly lonely when your six-year-old is having a full-blown, thrashing meltdown on the floor. You look at them and think they should have outgrown this years ago. When they were two, it made sense. But now they are in school, they can write their name, and they are still exploding over a lost sock or a broken crayon. It is easy to worry that you have missed a step, or that they are doing it on purpose to push your buttons.\n\nThe truth is that emotional regulation is a skill, much like reading or riding a bike. Some kids learn it naturally and early, while others have brains that develop these brakes a bit slower. When a six-year-old melts down, they are not calculating how to get their way. Their nervous system has genuinely perceived a threat—usually a mix of fatigue, hunger, and a small frustration—and has gone into a full fight-or-flight response. They cannot listen to logic because the thinking part of their brain has temporarily gone offline.\n\nWhen this happens, trying to teach a lesson or issue a consequence mid-meltdown is like trying to teach someone to swim while they are drowning. It only adds to their panic. Your main job in that moment is not to correct the behavior, but to be the anchor. Keep your voice quiet, keep your body still, and wait for the storm to pass. You are showing them that their big feelings are not too big for you to handle.\n\nOnce the storm clears and their breathing slows, that is when the real work happens. This is when you can help them name what happened and practice what to do next time. Over time, with your steady presence, they will learn to recognize the heat in their chest before the explosion happens, and they will find the words they need.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">tantrums</span><span class="tag prob">meltdowns</span><span class="tag prob">screaming</span><span class="tag prob">anger</span>
+    <span class="tag need">feeling-overwhelmed</span><span class="tag need">losing-my-temper</span><span class="tag need">embarrassed</span>
+  </div>
+</article><article class="lesson">
+  <p class="agechip">8-10 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">When your nine-year-old slams the door and screams</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">Big meltdowns in older kids aren't toddler tantrums; they happen because your child is overwhelmed by frustration or anxiety and lacks the skills to calm down. Instead of arguing about their behavior or giving in to keep the peace, wait for the storm to pass. Talk later about what triggered it and practice better ways to handle the pressure.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>Your nine-year-old rips up their math sheet, throws their pencil across the room, and screams, "This is stupid and I'm not doing it!"</p><p>You know they are smart enough to do the work, but they are completely overwhelmed by the frustration of getting one answer wrong.</p><p>You are trapped between yelling at them for the disrespect, or doing the work for them just to stop the screaming.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>Older kids melt down when their emotional cup overflows and they lack the self-soothing skills to handle big feelings like frustration or anxiety.</li><li>This is not a toddler tantrum for attention; it is a temporary brain hijack where logic completely shuts down.</li><li>They might be using these outbursts to escape hard tasks, not to manipulate you, but because they don't know how to ask for help.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Trying to reason or argue while they are mid-meltdown</li><li>Sending them to their room as a harsh punishment</li><li>Giving in and finishing the hard task for them</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Keep your voice quiet and steady to help lower the temperature.</li><li>Acknowledge the frustration without fixing the problem: "I know this math is frustrating, but we can't throw things."</li><li>Offer a physical reset: "Let's step away for five minutes and try again."</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Reset Button</p>
+    <ol class="steps"><li>When everyone is calm, agree on a physical signal or word that means "I need a break before I explode."</li><li>Put a physical "reset button" like a red coaster or a sticky note on their desk.</li><li>Practice using it: they slap the button, walk away, drink a glass of water, and return when ready.</li></ol>
+    <p class="why"><em>Why it works:</em> It gives them a concrete, socially safe way to pause and regulate before they lose control.</p>
+  </div>
+
+  <p class="remember">They are not acting out to manipulate you. They are drowning in frustration.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>When a toddler throws themselves on the floor because you cut their toast the wrong way, we expect it. But when an eight- or nine-year-old slams doors, rips up homework, or screams that you are ruining their life, it feels shocking. You might worry that they are becoming manipulative, or that you have missed some crucial parenting step. It is easy to feel judged, especially if this happens in public or in front of family.</p><p>The truth is that older kids still get overwhelmed by big emotions, but the triggers have changed. Now, it is often about school pressure, peer worries, or a deep sense of fairness. When a task gets too hard or a plan changes unexpectedly, their brain treats the disappointment like an actual threat. The logical part of their brain shuts down, and they revert to a primal fight-or-flight response. They aren't choosing to lose control; their system is simply overloaded.</p><p>During a meltdown, your child cannot hear your logic. Trying to explain why they shouldn't throw things or why math is important will only escalate the storm. Their system is flooded with stress hormones, making reasoning impossible. Your only job in that moment is to keep the environment safe and wait it out. Think of yourself as the anchor in their storm, keeping your own voice quiet and steady to avoid adding fuel to the fire.</p><p>Once the storm has passed and their breathing has returned to normal, you can address what happened. This is when you can teach the skills they are missing. Talk about how frustration feels in their body before the explosion happens—maybe a hot face or a tight chest. Work together to find a way they can signal for help or take a break before they reach the boiling point. They will learn that they can handle hard feelings without needing to blow up.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">meltdowns</span><span class="tag prob">homework-battles</span><span class="tag prob">anger</span><span class="tag prob">frustration</span>
+    <span class="tag need">losing-my-temper</span><span class="tag need">feeling-overwhelmed</span><span class="tag need">being-ignored</span>
+  </div>
+</article></div>
+</section>
+<section class="srcgroup">
+  <h2 class="srclabel">Understanding Anger</h2>
+  <div class="variants"><article class="lesson">
+  <p class="agechip">6-7 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">When they yell "You are the worst mom ever!"</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">A child's sudden fury isn't a behavior problem to be crushed; it is their clumsy way of saying they feel hurt or disconnected from you. When they lash out to make you feel bad, they are trying to show you how much they are hurting. Stop defending your rules and address the bruised feeling underneath instead.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>Your seven-year-old slams their binder on the floor and screams, "You never let me do anything, you're ruining my life!"</p><p>You feel the heat rise in your chest because you just spent an hour helping them with homework.</p><p>You are stuck between yelling back to demand respect, or giving in to their demands just to make the screaming stop.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>Anger is a primitive emotional SOS that means, "You hurt me, so now I am hurting you so you understand how it feels."</li><li>At six or seven, they cannot calmly say they feel left out or disappointed, so they throw an emotional punch instead.</li><li>They only throw these heavy punches at people they deeply care about and expect care from in return.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Screaming back to match their volume</li><li>Defending your rules like a lawyer</li><li>Sending them away to calm down alone</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Lower your voice to a quiet, steady whisper.</li><li>Acknowledge the pain under the anger: "Ouch. That really hurt my feelings, and I think you are feeling really hurt right now too."</li><li>Stick to your boundary while offering comfort: "We still can't go to the park tonight, but I can sit here with you while you're sad."</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Ouch Check-In</p>
+    <ol class="steps"><li>When a fight starts to escalate, pause and say, "Ouch, we are hurting each other."</li><li>Sit down on the floor so you are physically lower than them.</li><li>Ask, "What did I do that made your heart feel sore?"</li></ol>
+    <p class="why"><em>Why it works:</em> It shifts the focus from a shouting match about rules to a quiet conversation about feelings.</p>
+  </div>
+
+  <p class="remember">They are not trying to control you. They are trying to show you where it hurts.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>When your six-year-old lashes out with a sharp, mean comment, your body instantly goes into battle mode. It feels like an assault. You want to shut it down immediately, teach a lesson about respect, or defend yourself against their unfair accusations. It is completely natural to want to protect yourself when an emotional fist comes flying at you.</p><p>But if we look closely at why young kids throw these emotional punches, the picture changes. A child this age cannot sit you down and explain that they feel disconnected, ignored, or deeply disappointed by your decisions. Instead, their brain uses a very primitive shortcut: "You hurt my feelings, so I will hurt yours. Now you will finally understand how much pain I am in." Their anger is actually a clumsy, desperate attempt to find empathy.</p><p>This means every loud outburst is a signal that the connection has broken between you. If you respond by defending your rules, explaining your logic, or sending them to their room, you keep that connection broken. They are left alone with their big, scary feelings, believing that you do not care about their pain. You do not have to change your mind or give them the toy they are screaming for, but you do have to acknowledge the hurt underneath the noise.</p><p>When you stop fighting the anger and start addressing the hurt, something incredible happens in their developing brain. By putting their pain into words for them, you help quiet the storm. They learn that they do not need to scream to be heard. The next time the temperature rises, take a slow breath, look past the shouting, and speak directly to the sore spot underneath.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">anger</span><span class="tag prob">screaming</span><span class="tag prob">tantrums</span><span class="tag prob">disrespect</span>
+    <span class="tag need">losing-my-temper</span><span class="tag need">feeling-rejected</span><span class="tag need">being-ignored</span>
+  </div>
+</article><article class="lesson">
+  <p class="agechip">8-10 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">When they slam the door and yell "You don't care!"</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">When an eight-year-old lashes out in anger, they are usually trying to make you feel the exact hurt or disappointment they are feeling inside. It is a clumsy attempt to get you to understand them. Instead of defending your rules or scolding their tone, look past the shouting to find the hurt, and name it for them.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>Your nine-year-old throws their backpack down and snaps, "You never let me do anything fun, you're ruining my life!" because you said no to a late sleepover.</p><p>You feel the heat rise in your chest, knowing you set a perfectly reasonable boundary for a school night.</p><p>So you are stuck: either yell back to defend your authority and escalate the fight, or give in just to make the angry shouting stop.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>Anger is a smoke alarm for disappointment, telling you that your child feels disconnected from you right now.</li><li>When they lash out, they are trying a primitive shortcut: "If I hurt you back, you will finally understand how much this hurts me."</li><li>You don't have to change your boundary to fix this; you just have to acknowledge the painful feeling beneath the noise.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Defending your decision ("It is a school night, you need sleep!")</li><li>Counter-attacking their attitude ("Don't you dare speak to me like that")</li><li>Minimizing the disappointment ("It is just one sleepover, it is not a big deal")</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Lower your own voice to quiet the room.</li><li>Acknowledge the disappointment directly: "You're really mad because it feels like I'm the only one stopping you from having fun with your friends."</li><li>Invite them to tell you more: "I know it feels unfair. Tell me what you're feeling right now."</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Hurt Translator</p>
+    <ol class="steps"><li>The next time they yell or stomp away, wait three minutes for the initial physical rush of anger to pass.</li><li>Sit near them and say, "When you yelled, I think you wanted me to feel as sad as you do. Is that right?"</li><li>Listen without defending your rules, even if they complain about your parenting.</li></ol>
+    <p class="why"><em>Why it works:</em> It bypasses the fighting loop by showing them they don't need to attack you to make their pain visible.</p>
+  </div>
+
+  <p class="remember">They are not attacking your authority. They are trying to make you feel how much they hurt.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>When your child turns eight or nine, their anger starts to feel much more personal. When they were toddlers, a tantrum was just a physical storm. But now, they have the words to target your pain points. They know exactly how to make you feel guilty, unfair, or incompetent. It is incredibly easy to take this personally and treat their anger as a behavioral problem that needs to be shut down immediately. But if we only focus on stopping the shouting, we miss the actual message.</p><p>Anger in a family is almost always a signal of a broken connection. At this age, friendships and social standing mean everything to them. When you say no to something they desperately want, it doesn't just feel like a rule—it feels like you don't care about their happiness or their social life. Because they don't yet have the emotional maturity to say, "I feel left out and scared my friends will forget me," they translate that pain into anger. They lash out to make you feel a fraction of the hurt they are carrying.</p><p>When we fire back with defensive arguments or demands for respect, we accidentally keep the fight going. We are trying to make them understand our adult perspective, while they are screaming for us to understand their child perspective. This doesn't mean you have to change your mind or let them go to the sleepover. You are the parent, and holding safe boundaries is your job. But you can hold the boundary while still caring about how much it hurts them to face it.</p><p>By choosing to look past the rude tone and addressing the disappointment directly, you teach their brain a healthier way to communicate. When you say, "I know this feels incredibly unfair," you restore the connection without giving in on the rule. Once they realize they don't have to yell to get you to see their pain, the anger naturally begins to quiet down.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">anger</span><span class="tag prob">screaming</span><span class="tag prob">disrespect</span><span class="tag prob">boundaries</span>
+    <span class="tag need">losing-my-temper</span><span class="tag need">feeling-attacked</span><span class="tag need">being-ignored</span>
+  </div>
+</article></div>
+</section>
+<section class="srcgroup">
+  <h2 class="srclabel">why kids act out</h2>
+  <div class="variants"><article class="lesson">
+  <p class="agechip">6-7 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">Why she melts down the second you open the math book</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">Children don't explode during homework or chores just to be difficult; they do it because stalling successfully gets them out of the hard task. When we argue or comfort them for an hour, they win the delay they wanted. To break the cycle, keep the task non-negotiable but make starting it much smaller and easier.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>Your seven-year-old throws their pencil across the kitchen table. "I can't do this, it's too hard and I hate school!"</p><p>You look at the clock and realize this happens every single afternoon at exactly 4:00 PM.</p><p>So you are stuck between two bad options: let them walk away and skip their practice, or spend the next hour pleading, explaining, and doing the work for them.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>The meltdown is serving a very specific purpose: it successfully delays the hard thing they want to avoid.</li><li>Even a big, angry argument counts as a win for them, because while you are arguing, they aren't doing math.</li><li>Once you spot the pattern of what triggers the blow-up, you can change the payoff.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Giving up and doing the worksheet for them</li><li>Getting drawn into a long debate about why school matters</li><li>Sending them to their room, which accidentally gives them the escape they wanted</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Acknowledge the feeling quickly, but keep the boundary: "I know it feels big, but we are doing this page today."</li><li>Shrink the starting step: "Just write your name and do the very first problem, then we can take a two-minute stretch."</li><li>Offer a tiny reward for starting immediately, like letting them use a special glitter pen.</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Ten-Tick Timer</p>
+    <ol class="steps"><li>Before the hard task starts, set a visual timer on your phone for just ten minutes.</li><li>Tell your child: "We are only working until the timer goes off, even if we only finish one sentence."</li><li>When it rings, stop immediately and praise their focus, not their output.</li></ol>
+    <p class="why"><em>Why it works:</em> It proves to their busy brain that the task has an ending, stripping away the need to fight for an escape.</p>
+  </div>
+
+  <p class="remember">They are not trying to make you angry. They are trying to make the hard thing stop.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>It helps to think of your child as a tiny, clever scientist. They don't have the words to say, "I am feeling incredibly overwhelmed by this reading homework, and my brain is too tired from school to process it." Instead, they run a quick experiment. They throw the pencil, slide under the table, or start a massive argument about why the teacher is mean. And guess what? The experiment works. While you are reacting, lecturing, or comforting them, the reading book remains closed. They have successfully delayed the scary thing.</p><p>This isn't malicious. At six or seven, their brain is wired to avoid discomfort and seek safety—and to them, a hard task feels physically threatening. When they act out, they are looking for a payoff. Sometimes that payoff is escaping a chore. Sometimes it's getting your undivided, high-energy attention, even if that attention looks like you raising your voice. To a child who has been sharing their teacher's attention with twenty other kids all day, a big, dramatic reaction from Mom feels like a win.</p><p>To change the behavior, you have to look at the sequence of events. What happens right before the explosion? And what happens right after? If the result of the meltdown is that they get to skip tidying their room, or if they get to play with your phone while you try to calm them down, the brain logs that as a successful strategy. It will use it again tomorrow.</p><p>You can break this loop without becoming a drill sergeant. The secret is to make sure the meltdown never successfully buys them an escape. Keep your voice quiet, keep your demands very small, but keep moving forward. If they won't put their shoes on, calmly hold their feet and help them do it, rather than arguing for twenty minutes. When they realize that the stall tactic no longer works, their brain will eventually stop choosing it.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">stalling</span><span class="tag prob">homework-battles</span><span class="tag prob">tantrums</span><span class="tag prob">defiance</span>
+    <span class="tag need">being-ignored</span><span class="tag need">losing-my-temper</span><span class="tag need">feeling-overwhelmed</span>
+  </div>
+</article><article class="lesson">
+  <p class="agechip">8-10 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">Why they pick a fight when it is time for homework</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">When your older kid suddenly starts an argument or slams a door right before homework, they aren't just being difficult. They are using anger to escape a task that makes them feel slow or embarrassed. Instead of fighting about their attitude, remove the escape route by making the start incredibly small and non-negotiable.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>"This history project is stupid and I’m not doing it," your nine-year-old snaps, throwing their pencil across the kitchen table.</p><p>You notice this explosive anger only happens right when the textbooks open, never during free time.</p><p>You are stuck choosing between fighting them into doing the work while everyone screams, or letting them storm off to their room just to get some peace.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>Their bad behavior has a hidden job: it successfully delays or gets them out of doing hard things.</li><li>At this age, looking angry feels much safer to them than feeling stupid or struggling with a task.</li><li>By tracking what happens right before the blowout, you can spot their exact triggers.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Taking the bait and arguing about their tone of voice</li><li>Letting them walk away to cool down if it means the work never gets done</li><li>Lecturing them about their future and middle school expectations</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Acknowledge the escape attempt calmly: "I know this paragraph feels huge, but we aren't skipping it."</li><li>Shrink the hill by offering a tiny, immediate start: "Just write the first sentence, then you can take a two-minute stretch."</li><li>Create a simple contract before the books open, like offering a favorite snack the moment the first page is done.</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Five-Minute Deal</p>
+    <ol class="steps"><li>Before they start a hard task, set a timer on your phone for exactly five minutes.</li><li>Tell them they only have to work with absolute focus until the buzzer goes off, with no pressure to finish.</li><li>When it rings, let them choose to either stop completely or keep going for another five minutes.</li></ol>
+    <p class="why"><em>Why it works:</em> It lowers the giant wall of anxiety that makes them want to run away, proving to them that starting is the hardest part.</p>
+  </div>
+
+  <p class="remember">They are not trying to push you away. They are trying to escape feeling incapable.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>When an eight- or nine-year-old starts throwing fits, slamming doors, or talking back, it is easy to think we have a respect problem. We want to address the attitude, the tone, and the defiance. But if you look closer, you will often find these blowouts happen on a schedule. They flare up right before math practice, right when it is time to put the shoes on, or the minute you ask them to clean their desk.</p><p>The secret to stopping these outbursts is realizing that the behavior is working for them. It has a job. If screaming at you results in twenty minutes of arguing, that is twenty minutes they did not have to spend facing a task that makes them feel anxious or out of their depth. At this age, kids are deeply sensitive to feeling incompetent or embarrassed. Storming off to their room feels much better than sitting at the table feeling like they cannot do the work.</p><p>To break this loop, you have to become a bit of a detective. Start noticing the exact moment the storm starts. What happened thirty seconds before they threw the pencil? Usually, it is a demand they want to escape. Once you see the pattern, you can change your response. You stop fighting about the attitude and focus entirely on making the escape route disappear.</p><p>You do this by making the first step ridiculously small. If they are avoiding a whole worksheet, ask them to do just one problem. If they are refusing to clean a messy room, ask them to pick up three red things. When you shrink the demand, you lower their anxiety. They lose the need to fight you because the mountain suddenly looks like a molehill they can actually climb.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">homework-battles</span><span class="tag prob">defiance</span><span class="tag prob">stalling</span><span class="tag prob">back-talk</span>
+    <span class="tag need">losing-my-temper</span><span class="tag need">feeling-frustrated</span><span class="tag need">being-ignored</span>
+  </div>
+</article></div>
+</section>
+<section class="srcgroup">
+  <h2 class="srclabel">why kids have problems with transition</h2>
+  <div class="variants"><article class="lesson">
+  <p class="agechip">6-7 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">When they melt down every time you say "time to go"</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">Leaving a fun game for shoes and coats feels like a physical shock to a six-year-old brain. They aren't trying to ignore you; their focus is locked on the high-reward activity. Instead of warning them from across the room, walk over, touch their shoulder, and help them bridge the gap with a tiny, predictable step.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>"Just one more minute, please!" your seven-year-old begs, completely ignoring the shoes you've laid out by the door.</p><p>You see their knuckles whitening around the game controller and know the inevitable scream is coming the second you turn it off.</p><p>You are stuck between ripping the plug out and starting a massive crying fit, or letting them stay on it and being twenty minutes late again.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>A six-year-old brain cannot easily shift gears from a high-dopamine activity to a boring task.</li><li>They are concrete thinkers who need physical cues, not abstract time warnings like "five minutes."</li><li>Resistance is often their only way of trying to regain control when their world feels like it is moving too fast.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Yelling warnings from the kitchen</li><li>Counting down "3, 2, 1" in a threatening voice</li><li>Threatening to throw the toys away</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Go to them, get on their level, and gently touch their arm to break the hyper-focus.</li><li>Give them a physical job to close the activity: "Can you click the off button yourself?"</li><li>Acknowledge the shift: "It is hard to stop playing. Let's race to the front door."</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Handover Ritual</p>
+    <ol class="steps"><li>Sit next to them for thirty seconds and watch what they are doing before you ask them to stop.</li><li>Ask them to show you one cool thing they just built or did.</li><li>Have them physically hand you the toy or device as a clean closing gesture.</li></ol>
+    <p class="why"><em>Why it works:</em> It honors their focus first, making them feel seen before they have to let go.</p>
+  </div>
+
+  <p class="remember">They are not defying your schedule. They are struggling to shift their brain's gears.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>When your child screams because it is time to put the Lego away and get in the car, it feels like a personal attack. You gave them a ten-minute warning. You gave them a five-minute warning. Yet, when the moment arrives, they act as if you have pulled the rug from under their feet. It is exhausting to face this daily friction over simple routines like shoes, dinner, and bedtime.\n\nBut to a six- or seven-year-old, transitions are not just annoying; they are physically difficult. Their brains are wired to chase what is rewarding. When they are deep in play, their focus is absolute. Asking them to stop playing and put on boots is asking them to trade a high-dopamine joy for a low-reward chore. Their concrete minds cannot easily bridge that gap, and the sudden shift feels like a physical jolt.\n\nThe secret is to stop shouting warnings from another room. Distance makes it easy for them to tune you out, not because they are bad, but because their brains are protecting their current focus. Instead, walk over. Step into their world for just ten seconds. Touch their shoulder gently so they know you are there.\n\nOnce you have their eyes, help them close the loop. Give them a physical action to end the play, rather than just snatching the toy away. Let them park the car in the garage or put the last block on the tower. By giving them a small, active role in ending the task, you reduce the shock of the transition and help them feel in control of their own body.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">transitions</span><span class="tag prob">meltdowns</span><span class="tag prob">screen-time</span><span class="tag prob">bedtime-battles</span>
+    <span class="tag need">losing-my-temper</span><span class="tag need">being-ignored</span><span class="tag need">no-time</span>
+  </div>
+</article><article class="lesson">
+  <p class="agechip">8-10 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">When you say it's time to log off and they slam the screen</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">Shifting from a high-reward game to homework is a physical shock to an eight-year-old's brain, not a behavioral choice. Their focus is locked, and sudden changes feel like an unfair attack. To stop the slamming and arguing, give them a logical pathway out of their task instead of demanding an instant shutdown.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>Your nine-year-old is mid-game and yells, "Just five more minutes, I'm almost at the next level!"</p><p>You know the timer finished ten minutes ago, but their eyes are glued to the screen and their shoulders are tense.</p><p>So you are stuck between snatching the device away and starting a screaming match, or letting them slide and feeling like a pushover.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>Shifting attention from a high-dopamine screen to a boring chore feels physically painful to their developing brain.</li><li>At this age, they crave control and feel deeply insulted when a transition feels sudden or forced.</li><li>They are not trying to ignore you; their brain is genuinely struggling to unlock its focus from one track to another.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Yelling instructions across the room</li><li>Snatching the device or power cord out of their hands</li><li>Arguing about why homework matters more than games</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Walk over, touch their shoulder, and wait for eye contact before speaking.</li><li>Acknowledge their game: "Show me what level you're on before we save and close."</li><li>Create a buffer zone: "I need you at the table in three minutes. Do you want to walk there or race me?"</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Saving Point</p>
+    <ol class="steps"><li>Before they start a high-focus activity, agree on what a natural stopping point looks like, like a game save or a chapter end.</li><li>When time is nearly up, sit next to them for sixty seconds and watch what they are doing.</li><li>Ask them to narrate their final move: "Show me how you finish this part."</li><li>Let them hit the actual save button themselves so they feel in control of the transition.</li></ol>
+    <p class="why"><em>Why it works:</em> It respects their need for closure and turns a sudden interruption into a cooperative, shared moment.</p>
+  </div>
+
+  <p class="remember">They are not defying your authority. They are struggling to shift their gears.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>Think about how you feel when you are deep in a book or drafting a tricky email, and someone suddenly demands you stand up and put your shoes on right now. It is jarring. For an eight-to-ten-year-old, that feeling is magnified tenfold. Their brains are still building the pathways that allow them to smoothly switch gears. When they are locked into something highly engaging, like a video game or a Lego build, their focus is like a train moving at full speed. Stopping it instantly requires a massive crash.\n\nAt this age, children are also developing a strong sense of personal agency. They want to feel like they have some say in their day. When we walk into a room and hand down an instant command to stop what they are doing, it feels to them like an abuse of power. Their immediate pushback—the eye-rolls, the heavy sighs, the negotiating—is often a clumsy attempt to regain a sense of control over their own time.\n\nThe secret to smoother transitions is bridging the gap between their world and yours. Instead of shouting instructions from the kitchen, walk into their space. Sit down next to them for just one minute. Look at what they are doing and show a brief, genuine interest. By joining them in their activity for a moment, you help them feel seen rather than managed.\n\nOnce you have their attention, offer a clear, predictable ramp down. Give them a physical action to perform that signals the end of the activity, like closing the laptop lid themselves or placing the last block on the tower. This small act of physical closure helps their brain register that the task is finished, making it much easier to move on to whatever comes next without a fight.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">transitions</span><span class="tag prob">video-games</span><span class="tag prob">screen-time</span><span class="tag prob">back-talk</span><span class="tag prob">meltdowns</span>
+    <span class="tag need">being-ignored</span><span class="tag need">losing-my-temper</span><span class="tag need">feeling-guilty</span>
+  </div>
+</article></div>
+</section>
+<section class="srcgroup">
+  <h2 class="srclabel">why kids lie - tips to stop it</h2>
+  <div class="variants"><article class="lesson">
+  <p class="agechip">6-7 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">When they swear they did their school reading</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">When a six-year-old lies about a small task, they are usually panic-reacting to avoid disappointing you. Do not trap them in a corner or demand a confession. Instead, call a pause, give them a ten-minute 'truth pass' to change their story without any trouble, and focus on solving the task together.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>Your six-year-old looks you in the eye and says, "Yes, I did my reading folder!"</p><p>You can see the folder is still zipped inside their school bag across the room.</p><p>You are stuck between trapping them in a lie ("Then why is it in your bag?") or letting them get away with a blatant untruth.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>At six, lying is often just a quick, impulsive reflex to escape your disappointment.</li><li>They are testing how this new social tool works and what happens when they use it.</li><li>Cornering them forces them to double down on the lie to protect their pride.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Setting a trap by asking questions you already know the answer to</li><li>Calling them a liar, which makes them feel like they cannot be trusted</li><li>Overreacting with a huge punishment for a small, impulsive reflex</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>State the facts plainly without the quiz: "I see your reading folder is still in your bag. Let's do it now."</li><li>Give them a ten-minute escape hatch: "I'm going to fold this laundry. If you want to change your answer in five minutes, you won't be in any trouble."</li><li>Keep your tone light and neutral, treating the lie as a mistake rather than a character flaw.</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Ten-Minute Truth Pass</p>
+    <ol class="steps"><li>When you catch them in a panic-lie, walk away and set a timer for ten minutes.</li><li>Tell them: "I'm giving us a truth check. If you want to tell me what really happened when the timer rings, we will just solve it together, no penalty."</li><li>When they tell the truth, thank them warmly for their honesty and move straight to fixing the issue.</li></ol>
+    <p class="why"><em>Why it works:</em> It lowers their adrenaline and gives their impulsive brain time to choose honesty without the fear of immediate punishment.</p>
+  </div>
+
+  <p class="remember">They are not trying to manipulate you. They are panic-reacting to protect your good opinion of them.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>Around age six or seven, children start testing the boundaries of truth. It can feel incredibly jarring when your sweet child looks you dead in the eye and tells a flat-out fib. You might worry you are raising a dishonest person, but this is actually a normal developmental milestone. They have discovered that their thoughts are private, and they are experimenting with this powerful new tool called secrecy.</p><p>For a child this age, a lie is rarely a calculated plot. Most often, it is an impulsive reaction. When you ask, "Did you pack your lunchbox?" and they haven't, their brain registers your potential disappointment as an emergency. They say "yes" before they even think, just to make the scary feeling go away. Once the lie is out, they do not know how to back down without losing face.</p><p>The biggest trap we fall into as parents is playing detective. We ask questions we already know the answer to, hoping they will confess. This just corners them. When a child feels trapped, their survival instinct kicks in and they will double down on the lie. It turns a simple forgotten task into a massive power struggle over honesty.</p><p>Instead of building a trap, build an exit. If you know they didn't brush their teeth, don't ask if they did. Just say, "I see your toothbrush is dry. Let's go get it wet." By bypassing the interrogation, you remove the need for them to lie. You teach them that mistakes can be fixed quietly, without a trial.</p><p>If they do lie, give them a graceful way out. Give them a few minutes to think, and promise them that the truth will not bring anger. When they see that being honest is safe, they will gradually stop needing the shield of a lie.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">lying</span><span class="tag prob">school-struggles</span><span class="tag prob">back-talk</span>
+    <span class="tag need">losing-my-temper</span><span class="tag need">being-ignored</span><span class="tag need">feeling-guilty</span>
+  </div>
+</article><article class="lesson">
+  <p class="agechip">8-10 years<span class="dot">·</span>3 min</p>
+  <h3 class="ltitle">I swear I didn't have any homework today!</h3>
+
+  <div class="tldr">
+    <p class="lbl">The 30-second version</p>
+    <p class="tldrtext">An eight-year-old lying about homework or chores is usually trying to dodge immediate trouble or avoid disappointing you. When you trap them in a lie, they shut down to protect their pride. Instead of cornering them with questions you already know the answer to, give them a safe out to change their story without extra shame.</p>
+  </div>
+
+  <p class="lbl">Sound familiar?</p>
+  <div class="scene"><p>"I did it at school, I swear," your nine-year-old says, closing their backpack.</p><p>You saw the empty maths sheet on the kitchen island five minutes ago.</p><p>You are stuck between calling them out and starting a screaming match over the lie, or letting it slide and helping them avoid their actual work.</p></div>
+
+  <p class="lbl">What's actually going on</p>
+  <ul class="going"><li>At this age, lying is often an impulsive reflex to escape feeling like they have failed you.</li><li>Cornering them with a trap question forces them to defend the lie to save face.</li><li>They are testing boundaries and trying to figure out how much control they have over their own life.</li></ul>
+
+  <div class="pair">
+    <div>
+      <p class="lbl warn">Skip these</p>
+      <ul class="skip"><li>Setting a trap by asking questions when you already know the truth</li><li>Labeling them a liar, which makes them feel like they have already failed</li><li>Dragging out massive punishments that make them too angry to learn</li></ul>
+    </div>
+    <div>
+      <p class="lbl good">Try this instead</p>
+      <ul class="try"><li>Skip the trial and state the facts gently: "I know the maths sheet isn't done yet. Let's look at it together."</li><li>Offer a ten-minute reset: "I'm going to walk away for ten minutes. If you want to change your answer then, there's no extra trouble."</li><li>Lower the stakes of telling the truth by keeping your voice level and calm.</li></ul>
+    </div>
+  </div>
+
+  <div class="activity">
+    <p class="lbl good">Try tonight<span class="dot">·</span>The Ten-Minute Grace</p>
+    <ol class="steps"><li>When you catch them in an obvious lie, stop the conversation immediately.</li><li>Say: "I'm going to make a cup of tea. If you want to tell me a different version when I get back, we will just solve the problem together, no extra consequences."</li><li>Walk away completely to give them space to process their panic and choose honesty.</li></ol>
+    <p class="why"><em>Why it works:</em> It cools down their fight-or-flight reflex and lets them save face, making it safe to tell the truth.</p>
+  </div>
+
+  <p class="remember">They are not trying to deceive you. They are trying to survive their own mistake.</p>
+
+  <details>
+    <summary>The full read — optional depth</summary>
+    <div class="fullread"><p>Around eight or nine, your child’s brain is doing some complex social math. They understand rules, they understand consequences, and they care deeply about what you think of them. Because they value your approval so much, the urge to cover up a mistake can be incredibly strong. Lying at this age isn't usually a sign of a moral failing; it is a desperate, clumsy attempt to keep your high opinion of them.</p><p>When you ask, "Did you do your chores?" and you already know they didn't, you are setting a trap. Their survival instinct kicks in, and they lie before they even have time to think. Once the lie is out of their mouth, they feel completely stuck. To admit they lied feels like admitting they are a bad kid, so they double down to protect their pride.</p><p>You can break this cycle by changing how you open the conversation. If you already know the truth, don't ask. Just state what you see. Saying, "I see your room isn't tidy yet," is much cleaner than asking, "Did you tidy your room?" It removes the temptation to lie entirely and keeps the focus on the task.</p><p>If they do fib, try to separate the lie from the original issue. There should be a small, predictable consequence for the undone task, but a massive relief for coming clean. When they finally tell you the truth, even after a struggle, make sure to notice it. Tell them, "Thank you for telling me the truth. It makes it much easier for us to solve things together."</p><p>Over time, they will learn that mistakes don't ruin their relationship with you. When the truth stops feeling like a danger zone, they won't need to build walls of fiction to keep themselves safe.</p></div>
+  </details>
+
+  <div class="tags">
+    <span class="tag prob">lying</span><span class="tag prob">homework</span><span class="tag prob">back-talk</span><span class="tag prob">parenting-school-age</span>
+    <span class="tag need">losing-my-temper</span><span class="tag need">being-ignored</span><span class="tag need">feeling-frustrated</span>
+  </div>
+</article></div>
+</section>
+</div>

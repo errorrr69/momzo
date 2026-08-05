@@ -1,0 +1,80 @@
+{
+  "R1": [
+    {
+      "who": "Florie",
+      "stance": "",
+      "text": "what does this mean exactly? i dont know about this stuff coppa and all",
+      "files": [],
+      "ts": "2026-07-20T09:51:53.055Z"
+    },
+    {
+      "who": "Claude",
+      "stance": "",
+      "text": "Good question — here it is in plain words, no jargon.\n\nCOPPA is a US law that protects kids under 13 online. Because Momzo's kids are 6–10, it applies to us fully. The core rule: before you collect ANY data about a child, you must get real, provable permission from that child's parent.\n\nRight now Momzo only asks the parent to tick a box saying 'yes, I'm the parent and I agree.' That's called attestation. It's totally fine for testing with friends and family — but the law wants something stronger than a checkbox before you open to real US families: an actual verification step (e.g. a small card charge, an ID check, or a signed form) that proves the person really is the parent.\n\nWhy it's on the RISK list: if we launched to real families on just the checkbox, we could face fines or get pulled from the App Store. So it's a 'must fix before public US launch,' not a 'the app is broken today' problem.\n\nThe good news: it's already tracked and has a clear fix —\n• Q1 = add one real parent-verification step before launch (pick one vendor, it's a known, buyable thing).\n• Q8 = have a lawyer review the privacy-policy wording so it's real, not placeholder.\n\nNothing to panic about — while we're testing, attestation is fine. We just need to switch on real verification before the doors open to the public. Want me to look into what a verification step would cost and recommend one?",
+      "files": [],
+      "ts": "2026-07-20T09:52:31.764Z"
+    },
+    {
+      "who": "Florie",
+      "stance": "",
+      "text": "okay but we arent adding any childs personal data..just behavioral info ..so then what?",
+      "files": [],
+      "ts": "2026-07-20T14:07:23.370Z"
+    },
+    {
+      "who": "Claude",
+      "stance": "",
+      "text": "Really good instinct — and the data-minimising you're doing is exactly right. But two things make COPPA still apply here:\n\n1) 'Personal info' under COPPA is broader than name/address. It also covers: a child's first name, their age, a photo or avatar of them, their voice, and device identifiers. And Momzo already stores several of these — the child profile keeps the child's NAME and AGE and an avatar; the memory timeline can hold photos; voice input records the child's voice; and kid mode / the wish wall collect things straight from the child. So it's not only behavioural notes — there's identifying data in there too.\n\n2) COPPA is about STORING/collecting the data at all, not just whether we send it to the AI. I noticed the code already keeps the child's name away from the AI (smart — keep doing that!). But that protects the AI step; COPPA still cares that the name/age/photo/voice are collected and saved in our database in the first place.\n\nSo where does that leave us? COPPA applies — but honestly this is not a problem for the product, because:\n• The PARENT is the account owner and the one entering everything and giving permission. So 'verifiable parental consent' fits Momzo naturally — we're not asking anything of the child.\n• Nothing about the app has to change or be removed. The only thing we add is one real 'confirm you're the parent' step before public US launch (that's Q1).\n\nThe ONLY way to be fully outside COPPA would be to collect zero identifying data about the child — no name, no age, no photos, no voice, no kid mode — which would gut what makes Momzo special. So the right path is minimise-within-COPPA (which you're already doing well), not avoid it.\n\nOne honest caveat: I'm not a lawyer, and the exact 'which of our fields count' line is precisely what the Q8 legal review pins down. But my strong read is: yes, it applies, and yes, it's very manageable. Want me to write a one-page 'what data Momzo stores about a child + why' summary you could hand a lawyer? It'd make the Q8 review faster and cheaper.",
+      "files": [],
+      "ts": "2026-07-20T14:08:48.154Z"
+    }
+  ],
+  "R3": [
+    {
+      "who": "Florie",
+      "stance": "",
+      "text": "what does mean ? please explainin simple terms and tell m how to fix this issue also",
+      "files": [],
+      "ts": "2026-07-20T09:52:20.054Z"
+    },
+    {
+      "who": "Claude",
+      "stance": "",
+      "text": "Sure — plain words again.\n\nThe worry: some AI services, especially their FREE tiers, may keep and learn from whatever text you send them. That's normally fine — but a child's personal details (name, age, 'my son hits his sister when…') must never become training data for an outside company. That would clash with the COPPA rule we just talked about on R1.\n\nHow Momzo actually sends data today, so you know the real exposure:\n• When we look up the right expert content, we only send Google (Gemini) the vetted public articles — NO child data. That part is already safe.\n• When the AI writes an answer, it goes to a different service (Mistral). A parent's question there could include details about her child.\n\nSo the fix is two simple steps, and neither is expensive:\n1. Scrub before sending (do this now, cheap): in our own server, strip out the child's name and identifying details and swap in something neutral (like 'the child') before the question ever leaves for the AI. The AI still gives a great answer; it just never sees who the kid is.\n2. Use a 'no-training' tier before public launch: pay for the tier that contractually promises they won't train on our data. Small monthly cost, removes the risk entirely.\n\nThat's it. Step 1 alone already de-risks most of it; step 2 closes it fully before real families join. This is tracked as Q2. Want me to wire up the name-scrubbing (step 1) as a task, and price the no-train tiers (step 2) so you can pick one?",
+      "files": [],
+      "ts": "2026-07-20T09:53:18.310Z"
+    }
+  ],
+  "A1": [
+    {
+      "who": "192.168.1.2",
+      "stance": "",
+      "text": "I think, we had also thought of task and reward feature in the app, what happened to this feature? was is it dropped?",
+      "files": [],
+      "ts": "2026-07-20T16:25:10.757Z"
+    },
+    {
+      "who": "Claude",
+      "stance": "",
+      "text": "Good catch — I went and checked the actual docs before answering. Short version: a 'task & reward' feature isn't in the current plan, and I can't find a record of it being formally built-then-dropped either. It's not in the PRD, the Build Guide, the Bonding Games spec, or the 37-task build plan. So it looks like it was an early idea from a conversation that never made it into the written scope — not something that shipped and got cut.\n\nWhat DOES exist today that's in the same spirit:\n• Gentle streak / consistency (F15) — encourages the daily habit without punishing gaps.\n• Activities + 'did it' (F6) — a light 'we did this together' confirm.\n• Kid wish wall + kid mode (F12) — the kid-facing side.\n\nOne important design flag if we do add it: a kids' points/rewards/chore-chart system cuts against Momzo's no-guilt, no-pressure, anti-addictive philosophy (it's in the Hard Rules — no engagement-maxxing, no shame mechanics). A classic 'earn stars, don't lose them' system can quietly become a pressure machine, which is the opposite of what Momzo is for. It's doable, but it would need to be framed as warm encouragement between parent and child, not a compliance tracker.\n\nWant me to capture this as a tracked Idea card (in the Ideas backlog) with that no-guilt framing noted, so it's not lost and Florie can weigh it as a possible Phase 3+ item? I won't add it unless you'd like me to.",
+      "files": [],
+      "ts": "2026-07-20T16:26:25.748Z"
+    }
+  ],
+  "A2": [
+    {
+      "who": "192.168.1.2",
+      "stance": "",
+      "text": "I think, we had also thought of task and reward feature in the app, what happened to this feature? was is it dropped?",
+      "files": [],
+      "ts": "2026-07-20T16:25:14.328Z"
+    },
+    {
+      "who": "Claude",
+      "stance": "",
+      "text": "This looks like a double-tap of A1 (same question landed twice). I've answered in full on A1 — let's keep that as the live thread, feel free to reply there. Short version: the task & reward feature isn't in the current plan or docs, and I don't see a record of it being formally dropped — likely an early idea that never got written into scope. Full details + a design note on the no-guilt angle are on A1.",
+      "files": [],
+      "ts": "2026-07-20T16:26:25.983Z"
+    }
+  ]
+}

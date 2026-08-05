@@ -113,10 +113,11 @@ class ChildService {
   static Future<List<Child>> loadChildren() async {
     final user = AuthService.currentUser;
     if (user == null) return const [];
+    // No owner_id filter: RLS returns every child the parent may access — the ones
+    // they own PLUS any shared with them as an active co-parent (Task 33).
     final rows = await supabase
         .from('children')
         .select()
-        .eq('owner_id', user.id)
         .order('created_at');
     _children
       ..clear()

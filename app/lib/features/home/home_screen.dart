@@ -12,6 +12,7 @@ import '../../services/recap_service.dart';
 import '../activities/activities_list_screen.dart';
 import '../ai/ai_home_screen.dart';
 import '../daily/daily_card_screen.dart';
+import '../family/coparent_screen.dart';
 import '../onboarding/child_basics_screen.dart';
 import '../onboarding/edit_child_screen.dart';
 
@@ -274,6 +275,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
                   },
                 ),
+                if (ChildService.current != null)
+                  _pickerAction(
+                    icon: Icons.people_alt_outlined,
+                    label: 'Co-parents & sharing',
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      final cur = ChildService.current;
+                      if (cur != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => CoparentScreen(child: cur)),
+                        );
+                      }
+                    },
+                  ),
                 _pickerAction(
                   icon: Icons.add_rounded,
                   label: 'Add a child',

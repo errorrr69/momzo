@@ -197,6 +197,73 @@ test('multi-child: a parent sees all their own children; another family sees non
   assert.equal(theirs.data.length, 0, 'LEAK: family B can see family A children');
 });
 
+// Multi-member isolation (Task 33): an ACTIVE co-parent can see + participate in the
+// shared child; a pending (invited) membership grants nothing; a non-member sees
+// nothing; and a co-parent can never delete the child. Proves the security-definer
+// membership path (accessible_child_ids) opens access ONLY as intended.
+test('co-parent membership: active member shares the child; pending/non-member do not', async () => {
+  const childA = families.A.rows.children;
+  const dailyA = families.A.rows.daily_assignments;
+  const extra = { coparent: 'rls-test-coparent@momzo.test', outsider: 'rls-test-outsider@momzo.test' };
+  const made = [];
+  try {
+    // Two fresh users: one we'll make a co-parent of child A, one an unrelated outsider.
+    const clients = {};
+    for (const [role, email] of Object.entries(extra)) {
+      const { data, error } = await admin.auth.admin.createUser({ email, password: PASSWORD, email_confirm: true });
+      if (error) throw new Error(`createUser ${role} failed: ${error.message}`);
+      made.push(data.user.id);
+      await ins('users', { id: data.user.id, display_name: role });
+      const c = createClient(config.url, config.anonKey, { auth: { autoRefreshToken: false, persistSession: false } });
+      const signIn = await c.auth.signInWithPassword({ email, password: PASSWORD });
+      if (signIn.error) throw new Error(`signIn ${role} failed: ${signIn.error.message}`);
+      clients[role] = { id: data.user.id, client: c };
+    }
+
+    // Start the co-parent as INVITED (not yet accepted) — should grant no access.
+    const memId = randomUUID();
+    await ins('family_members', {
+      id: memId, child_id: childA, user_id: clients.coparent.id,
+      relationship: 'coparent', invited_by: families.A.id, status: 'invited',
+    });
+
+    const pendingChild = await clients.coparent.client.from('children').select('id').eq('id', childA);
+    assert.equal(pendingChild.data.length, 0, 'pending (invited) member must NOT see the child yet');
+
+    // Activate the membership → access opens.
+    const act = await admin.from('family_members').update({ status: 'active' }).eq('id', memId).select('id');
+    assert.equal((act.data || []).length, 1, 'membership should activate');
+
+    const seesChild = await clients.coparent.client.from('children').select('id').eq('id', childA);
+    assert.equal(seesChild.data.length, 1, 'active co-parent should see the shared child');
+
+    const seesDaily = await clients.coparent.client.from('daily_assignments').select('id').eq('id', dailyA);
+    assert.equal(seesDaily.data.length, 1, 'active co-parent should see the shared child-scoped rows');
+
+    // The co-parent may participate (log an activity for the shared child)…
+    const logId = randomUUID();
+    const wrote = await clients.coparent.client.from('activity_logs')
+      .insert({ id: logId, owner_id: clients.coparent.id, child_id: childA, user_id: clients.coparent.id })
+      .select('id');
+    assert.ifError(wrote.error);
+    assert.equal((wrote.data || []).length, 1, 'active co-parent should be able to participate');
+
+    // …but may NOT delete the child or edit its profile (owner-only).
+    const delChild = await clients.coparent.client.from('children').delete().eq('id', childA).select('id');
+    assert.equal((delChild.data || []).length, 0, 'co-parent must NOT delete the shared child');
+    const stillThere = await admin.from('children').select('id').eq('id', childA);
+    assert.equal(stillThere.data.length, 1, 'child must survive a co-parent delete attempt');
+
+    // The unrelated outsider sees nothing of family A.
+    const outChild = await clients.outsider.client.from('children').select('id').eq('id', childA);
+    assert.equal(outChild.data.length, 0, 'LEAK: outsider can see a child they are not a member of');
+    const outDaily = await clients.outsider.client.from('daily_assignments').select('id').eq('id', dailyA);
+    assert.equal(outDaily.data.length, 0, "LEAK: outsider can see another family's child-scoped rows");
+  } finally {
+    for (const id of made) await admin.auth.admin.deleteUser(id); // cascades memberships + logs
+  }
+});
+
 // Coverage guard: any public table with an owner_id/user_id column must be tested above.
 test('coverage: every family table is covered by an RLS test', async () => {
   const client = new pg.Client({

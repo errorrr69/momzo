@@ -7,6 +7,11 @@ class Child {
   final String name;
   final int age;
 
+  /// The parent who owns this child. Null in UI-only preview. When the child was
+  /// shared via co-parent sharing (Task 33), this is someone else's id, so the
+  /// app can gate owner-only actions (edit/delete/invite) with [isOwnedBy].
+  final String? ownerId;
+
   /// Q3 — what she'd love to help with (primary content/activity targeting).
   final List<String> focusGoals;
 
@@ -31,6 +36,7 @@ class Child {
     required this.id,
     required this.name,
     required this.age,
+    this.ownerId,
     this.focusGoals = const [],
     this.challenges = const [],
     this.interests = const [],
@@ -57,6 +63,7 @@ class Child {
         id: m['id'] as String,
         name: (m['name'] ?? '') as String,
         age: (m['age'] ?? 0) as int,
+        ownerId: m['owner_id'] as String?,
         focusGoals: _strList(m['focus_goals']),
         challenges: _strList(m['challenges']),
         interests: _strList(m['interests']),
@@ -68,4 +75,8 @@ class Child {
 
   /// Band for the bonding games (A 4–5 / B 6–7 / C 8–10).
   String get band => age <= 5 ? 'A' : (age <= 7 ? 'B' : 'C');
+
+  /// Whether [uid] owns this child (owner-only actions: edit, delete, invite).
+  /// Unknown owner (preview) defaults to true so the gallery keeps full controls.
+  bool isOwnedBy(String? uid) => ownerId == null || ownerId == uid;
 }

@@ -5,6 +5,7 @@ import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_bottom_nav.dart';
 import '../../services/child_service.dart';
 import '../../services/memory_service.dart';
+import 'weekly_recap_screen.dart';
 
 /// 23 · Memory Timeline — a private, treasured keepsake of activities & milestones
 /// (Task 30). Photos load via short-lived signed URLs from private storage.
@@ -65,6 +66,8 @@ class _MemoryTimelineScreenState extends State<MemoryTimelineScreen> {
                   Text('A private keepsake of you & $_childName.',
                       style: MomzoText.serif(15, color: MomzoColors.muted)),
                   const SizedBox(height: 18),
+                  _weeklyRecapBanner(),
+                  const SizedBox(height: 14),
                   if (_memories.isEmpty)
                     _empty()
                   else
@@ -74,6 +77,45 @@ class _MemoryTimelineScreenState extends State<MemoryTimelineScreen> {
                     ],
                 ],
               ),
+      ),
+    );
+  }
+
+  /// Entry point to the gentle Weekly Recap (Task 31).
+  Widget _weeklyRecapBanner() {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const WeeklyRecapScreen()),
+      ),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+        decoration: BoxDecoration(
+          color: MomzoColors.coralTint,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Row(
+          children: [
+            const Text('🌸', style: TextStyle(fontSize: 22)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Your week with $_childName',
+                      style: MomzoText.sans(15,
+                          color: MomzoColors.ink, weight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  Text('A gentle look back at what you shared',
+                      style: MomzoText.sans(12.5,
+                          color: MomzoColors.muted, weight: FontWeight.w600)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: MomzoColors.coralDeep),
+          ],
+        ),
       ),
     );
   }

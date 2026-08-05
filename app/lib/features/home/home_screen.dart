@@ -8,6 +8,7 @@ import '../../models/daily_card.dart';
 import '../../services/auth_service.dart';
 import '../../services/child_service.dart';
 import '../../services/daily_service.dart';
+import '../../services/recap_service.dart';
 import '../activities/activities_list_screen.dart';
 import '../ai/ai_home_screen.dart';
 import '../daily/daily_card_screen.dart';
@@ -30,10 +31,16 @@ class _HomeScreenState extends State<HomeScreen> {
   String _childName = 'Aarav';
   DailyCard? _card; // today's real card, when loaded
   bool _haveCard = false;
+  // Gentle streak (Task 32). Keeps a warm default for the UI-only preview; the
+  // real, never-shaming line loads from RecapService once signed in.
+  String _streakMsg = "You've connected 3 days this week — lovely.";
 
   // Preview mode shows the sample tie-in; a real card shows it only when the
   // why_it_matters line exists (it's null until backfilled — Gemini key issue).
   bool get _showWhy => !_haveCard || (_card?.whyItMatters?.isNotEmpty ?? false);
+
+  /// Whether today's card has been read (drives the hero CTA's done state).
+  bool get _isRead => _card?.isRead ?? false;
   String get _whyText => _haveCard
       ? (_card?.whyItMatters ?? '')
       : "He's still learning to ride big feelings without melting down.";
@@ -42,6 +49,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadContext();
+    // Home is kept alive in the shell's IndexedStack, so it won't rebuild when the
+    // reader pops. Re-read the card (and streak) whenever today's read is recorded.
+    DailyService.readRevision.addListener(_loadContext);
+  }
+
+  @override
+  void dispose() {
+    DailyService.readRevision.removeListener(_loadContext);
+    super.dispose();
   }
 
   Future<void> _loadContext() async {
@@ -61,7 +77,11 @@ class _HomeScreenState extends State<HomeScreen> {
         parent = row?['display_name'] as String?;
       }
       DailyCard? card;
-      if (child != null) card = await DailyService.todaysCard(child);
+      int? streakDays;
+      if (child != null) {
+        card = await DailyService.todaysCard(child);
+        streakDays = await RecapService.connectedDays();
+      }
       if (!mounted) return;
       setState(() {
         if (child != null) _childName = child.name;
@@ -70,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _card = card;
           _haveCard = true;
         }
+        if (streakDays != null) _streakMsg = RecapService.streakMessage(streakDays);
       });
     } catch (_) {
       // Keep defaults on any load failure.
@@ -124,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            "You've connected 3 days this week — lovely.",
+                            _streakMsg,
                             style: MomzoText.sans(13,
                                 color: const Color(0xFF5C6B5F),
                                 weight: FontWeight.w700),
@@ -399,13 +420,19 @@ class _HomeScreenState extends State<HomeScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                color: MomzoColors.coral,
+                // Once she's read today's card the CTA becomes a calm "done" state
+                // rather than still nagging her to read it.
+                color: _isRead ? MomzoColors.sageTint : MomzoColors.coral,
                 borderRadius: BorderRadius.circular(14),
+                border: _isRead
+                    ? Border.all(color: MomzoColors.sage, width: 1.5)
+                    : null,
               ),
-              child: Text("Read today's card",
+              child: Text(_isRead ? 'Read today ✓' : "Read today's card",
                   textAlign: TextAlign.center,
                   style: MomzoText.sans(15,
-                      color: Colors.white, weight: FontWeight.w800)),
+                      color: _isRead ? MomzoColors.sageText : Colors.white,
+                      weight: FontWeight.w800)),
             ),
           ),
         ],

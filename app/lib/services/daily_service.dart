@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../core/supabase/supabase_init.dart';
 import '../models/child.dart';
 import '../models/daily_card.dart';
@@ -11,6 +13,11 @@ import 'auth_service.dart';
 /// `content_cards` (Hard Rule #6).
 class DailyService {
   const DailyService._();
+
+  /// Bumps whenever today's card is marked read, so any visible view can refresh
+  /// (Home is kept alive in the shell's IndexedStack, so it won't rebuild on its
+  /// own when the reader screen pops). Same idiom as LibraryService.savedRevision.
+  static final ValueNotifier<int> readRevision = ValueNotifier<int>(0);
 
   // Onboarding focus-goal / challenge labels -> content_card tags (seeded corpus).
   // Unmatched labels just fall through to any age-appropriate unseen card.
@@ -113,5 +120,6 @@ class DailyService {
         .from('daily_assignments')
         .update({'read_at': DateTime.now().toIso8601String()})
         .eq('id', assignmentId);
+    readRevision.value++;
   }
 }

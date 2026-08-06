@@ -48,10 +48,12 @@ class CloudProvider implements AiProvider {
   // Game-bank top-up writes into the GLOBAL bank server-side (cost amortised across
   // families). Returns how many were added.
   Future<AiResult> _gameTopUp(AiRequest req) async {
-    final res = await supabase.functions.invoke('generate-game-items', body: {
-      'game_slug': req.gameSlug,
-      'child_id': req.childId,
-    });
+    final res = await supabase.functions.invoke('generate-game-items',
+        region: kFunctionRegion,
+        body: {
+          'game_slug': req.gameSlug,
+          'child_id': req.childId,
+        });
     final d = res.data;
     final added = (d is Map && d['added'] is int) ? d['added'] as int : null;
     return AiResult(source: 'cloud', itemsAdded: added);

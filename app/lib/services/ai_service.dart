@@ -34,7 +34,7 @@ class AiService {
     String? conversationId,
     String mode = 'qa', // 'qa' | 'situational'
   }) async {
-    final res = await supabase.functions.invoke('ai-chat', body: {
+    final res = await supabase.functions.invoke('ai-chat', region: kFunctionRegion, body: {
       'question': question,
       'child_id': childId,
       'mode': mode,

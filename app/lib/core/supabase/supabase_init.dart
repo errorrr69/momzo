@@ -24,3 +24,19 @@ Future<bool> initSupabase() async {
 /// Convenience accessor for the initialized client.
 /// Only valid after [initSupabase] returned `true`.
 SupabaseClient get supabase => Supabase.instance.client;
+
+/// The region every Edge Function call is pinned to — the region the DATABASE
+/// lives in, not the one nearest the parent.
+///
+/// By default Supabase runs a function at the edge closest to the caller. That
+/// is right for a function that mostly computes, and badly wrong for ours, which
+/// is chatty with Postgres: ai-chat makes roughly ten sequential round trips
+/// (ownership, conversation, rate limit, breaker, memory, cache, retrieval,
+/// persistence, telemetry). Measured from India, each hop to the us-west-1
+/// database cost ~244ms and opening the connection ~1.5s, so the round trips —
+/// not the model — were the wait.
+///
+/// Pinning execution beside the database turned those hops into ~3ms each and
+/// cut a measured probe from 5126ms to 1418ms. The parent still pays one long
+/// hop to reach the function, instead of paying it ten times over.
+const String kFunctionRegion = 'us-west-1';

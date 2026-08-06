@@ -5,7 +5,7 @@ import { captureError } from '../_shared/sentry.ts';
 import { getUser } from '../_shared/auth.ts';
 import {
   embedQuery, mistralChat, referOutReason, REFER_OUT_MESSAGE,
-  MODEL_DEFAULT, MODEL_ESCALATE, isSensitive,
+  MODEL_DEFAULT, MODEL_ESCALATE, isSensitive, WEAK_RETRIEVAL,
 } from '../_shared/ai.ts';
 import { buildPersonalizationContext } from '../_shared/personalization.ts';
 import { buildPrompt, type Mode } from '../_shared/prompts.ts';
@@ -171,9 +171,14 @@ Deno.serve(async (req) => {
       { card_id: string; title: string; chunk: string; similarity: number }[];
 
     // Distinct cards (cited), and a context block for grounding.
+    // Only chunks that actually matched are citable: every excerpt still goes to
+    // the model as context, but a card below WEAK_RETRIEVAL did not source the
+    // answer and must not be shown as if it had. A question the corpus does not
+    // cover now returns zero citations rather than three plausible-looking ones.
     const seen = new Set<string>();
     const citations: { card_id: string; title: string }[] = [];
     for (const h of hits) {
+      if (Number(h.similarity) < WEAK_RETRIEVAL) continue;
       if (!seen.has(h.card_id)) { seen.add(h.card_id); citations.push({ card_id: h.card_id, title: h.title }); }
     }
     const topCitations = citations.slice(0, 3);
@@ -193,7 +198,7 @@ Deno.serve(async (req) => {
     // Cheap-by-default routing (Hard Rule #8): escalate only when retrieval is weak
     // or the topic is emotionally sensitive (Q&A only; situational stays short+cheap).
     const topSim = hits.length ? Math.max(...hits.map((h) => Number(h.similarity))) : 0;
-    const escalate = mode === 'qa' && (topSim < 0.5 || isSensitive(question));
+    const escalate = mode === 'qa' && (topSim < WEAK_RETRIEVAL || isSensitive(question));
     const model = escalate ? MODEL_ESCALATE : MODEL_DEFAULT;
 
     const { text: answer, usage, cachedTokens } = await mistralChat(messages, {

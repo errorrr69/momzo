@@ -30,6 +30,15 @@ export interface ChatMsg { role: 'system' | 'user' | 'assistant'; content: strin
 export const MODEL_DEFAULT = 'mistral-small-latest';
 export const MODEL_ESCALATE = 'mistral-medium-latest';
 
+/// Cosine similarity below which retrieval counts as WEAK: the corpus has
+/// nothing squarely on this question, so the answer leans on the model's general
+/// knowledge rather than our vetted material. Two things hang off this:
+///   * the model escalates (a harder question deserves the better model), and
+///   * we stop showing citations, because a card that matched this poorly did
+///     not source the answer, and presenting it as though it did is a false
+///     claim of grounding — the one thing a parenting app must not fake.
+export const WEAK_RETRIEVAL = 0.5;
+
 export interface ChatUsage {
   prompt_tokens?: number;
   completion_tokens?: number;
@@ -85,13 +94,31 @@ export function isSensitive(q: string): boolean { return SENSITIVE.test(q); }
 // high recall on real risk, but NOT on ordinary parenting questions ("is it normal
 // that he's shy", "won't share") — those get a grounded answer. The system prompt
 // is the softer second layer ("never diagnose").
+// Every pattern here is pinned by a probe in safety_test.ts, in BOTH directions:
+// a risk phrasing that must match, and a near-miss ordinary question that must
+// not. Widen these freely, but add the probe first — the precision cases exist
+// because an over-broad pattern silently turns Momzo into a wall of referrals.
 const REFER_OUT: Record<string, RegExp[]> = {
   // (a) child-safety / self-harm / abuse
   safety: [
-    // self-harm / suicidal ideation — incl. third-person and "doesn't want to be here"
-    /suicid|kill (my|him|her|them)self|end (my|his|her|their) life|self[-\s]?harm|hurt (him|her|them|my)self|cutting (him|her|my)self|harm (him|her|them)self|want(s|ing)? to (die|disappear)|(does ?n'?t|do ?n'?t|doesnt|dont|not) want(ing)? to (be here|live|be alive)|wish(es|ed)? (he|she|they|i) (was|were)n'?t (here|alive|born)|better off (without|dead)/i,
+    // Suicidal ideation, named directly.
+    /suicid|kill(s|ing)? (my|him|her|them)self|end(s|ing)? (my|his|her|their) life|self[-\s]?harm|harm (him|her|them)self/i,
+    // Not wanting to be alive. Parents and children rarely say "suicidal" — this
+    // is the phrasing that actually arrives.
+    /(does ?n'?t|do ?n'?t|doesnt|dont|did ?n'?t|not) want(ing)? to (be here|live|be alive)|want(s|ing)? to (die|disappear)|wish(es|ed)? (he|she|they|i) (was|were)n'?t (here|alive|born)/i,
+    // The commonest euphemism of all: sleep that doesn't end.
+    /(never|not) wake up|sleep forever|go to sleep and never/i,
+    // Burden ideation — "everyone would be happier without me".
+    /better off (without (me|him|her|them|us)|dead)|(everyone|we|they|you|people) (would|'d) be (happier|better off)/i,
+    // Cutting and other self-injury. Body parts are enumerated so "cutting her
+    // hair" and "cutting his sandwich" stay ordinary questions.
+    /cut(s|ting)? (him|her|them|my)self|cut(s|ting)? (his|her|their|my) (arm|arms|wrist|wrists|leg|legs|thigh|thighs|skin)|cuts? on (his|her|their|my) (arm|arms|wrist|wrists|leg|legs|thigh|thighs)|burn(s|ing)? (him|her|them|my)self/i,
+    // Deliberate self-hurt only. Bare "hurt himself" is excluded on purpose:
+    // "he fell off his bike and hurt himself" is a comfort question, not a crisis.
+    /(want(s|ing)? to|trying to|tried to|threaten(s|ed|ing)? to|going to|plans? to) hurt (him|her|them|my)self/i,
+    /hurt(s|ing)? (him|her|them|my)self (on purpose|deliberately|intentionally)|keeps? hurting (him|her|them|my)self/i,
     // abuse: named terms
-    /\b(abuse|abused|abusing|molest|sexually|neglect|shaken baby|hitting (his|her|the) head)\b/i,
+    /\b(abuse|abused|abusing|molest|sexually|neglect(ed|ing)?|shaken baby|hitting (his|her|the) head)\b/i,
     // abuse: an adult described hitting/beating the child
     /\b(i|we|my (partner|husband|wife|boyfriend|girlfriend|mom|mum|mother|dad|father|stepdad|stepmom|in[- ]?law)) (hit|hits|hitting|beat|beats|beating|slap|slaps|spank|spanks|punch|punches|whip|whips|hurt|hurts) (him|her|them|the (kid|child|baby|boy|girl))\b/i,
   ],
@@ -100,9 +127,12 @@ const REFER_OUT: Record<string, RegExp[]> = {
     /not breathing|won'?t wake|unconscious|seizure|convuls|overdose|swallowed (a|some|something)|poison|bleeding (a lot|badly|heavily)|high fever|won'?t stop (crying|vomiting)|emergency|chok(e|ing)/i,
     /\b(medication|dosage|how much (medicine|tylenol|ibuprofen)|prescri|antibiotic)\b/i,
   ],
-  // (c) clinical / developmental concern (seeking a diagnosis) — NOT casual "is this normal"
+  // (c) clinical / developmental concern (seeking a diagnosis) — NOT casual worry.
+  // "Should I be worried that he's shy" used to land here and be refused; it is
+  // the single most common shape of question Momzo exists to answer, so the
+  // trigger is now a named clinical term rather than the word "worried".
   developmental: [
-    /\b(autis|asperger|adhd|on the spectrum|bipolar|ocd|disorder|developmental delay|speech delay|global delay|regress|not (talk|speak|walk)ing at all|isn'?t (talking|speaking|walking) (yet|at all)|behind on (his|her|their)? ?(milestones|development)|should i (be )?(worried|concerned) (that|about|he|she)|something (is )?wrong with (him|her|my))/i,
+    /\b(autis|asperger|adhd|on the spectrum|bipolar|ocd|disorder|developmental delay|speech delay|global delay|regress|not (talk|speak|walk)ing at all|isn'?t (talking|speaking|walking) (yet|at all)|behind on (his|her|their)? ?(milestones|development)|something (is )?wrong with (him|her|my))/i,
   ],
 };
 

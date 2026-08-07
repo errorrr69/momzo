@@ -20,10 +20,14 @@
 // Changing a prefix invalidates the cache globally, so it is versioned: bump
 // PROMPT_VERSION in the same commit as any edit, deliberately.
 
-// v2: the prefix now describes the ABOUT THIS FAMILY and EARLIER IN THIS
-// CONVERSATION sections. Bump this whenever a prefix changes — it invalidates the
-// provider's cached blocks globally, so it must be a deliberate act.
-export const PROMPT_VERSION = 'v2';
+// v3: answers now match the SHAPE of the question — a request for several ideas
+// comes back as a short list rather than one dense paragraph. v2 forbade bullets
+// outright, which kept the warm single-idea answers lovely but flattened "give me
+// some maths activities" into a wall of prose with four activities hidden in it.
+//
+// Bump this whenever a prefix changes — it invalidates the provider's cached
+// blocks globally, so it must be a deliberate act.
+export const PROMPT_VERSION = 'v3';
 
 export type Mode = 'qa' | 'situational';
 
@@ -46,7 +50,21 @@ const FORMAT_RULES =
   `- Ground your answer ONLY in (1) the EXCERPTS supplied below and (2) well-established,\n` +
   `  mainstream child-development knowledge. If the excerpts don't cover it and you are\n` +
   `  not confident, say so gently — never invent specifics.\n` +
-  `- No preamble, no headings, no bullet-point dumps, no emoji spam.\n` +
+  `- DEFAULT: warm, flowing prose. ONE idea, explained kindly, in a short paragraph.\n` +
+  `  This is what almost every answer should look like.\n` +
+  `- Use a list ONLY when she EXPLICITLY asked for several things — "some activities",\n` +
+  `  "ideas", "ways to", "things to say", "a few options". Her words must ask for\n` +
+  `  more than one. Then:\n` +
+  `      * one item per line, each starting with "- ", no blank lines between them\n` +
+  `      * each item ONE sentence she could act on today\n` +
+  `      * at most 4 items, and one short warm line before them\n` +
+  `  A list of four things must never arrive as a single paragraph.\n` +
+  `- If she describes a problem, a worry, or something that just happened, answer with\n` +
+  `  ONE idea in prose — even when several things might help. She is not shopping for\n` +
+  `  options; she wants a person who has understood her. Offering a menu at that moment\n` +
+  `  reads as being handed a leaflet.\n` +
+  `- Plain text only: no markdown headings, no **bold**, no numbered lists, no tables.\n` +
+  `- No preamble, no sign-off, no emoji spam.\n` +
   `- Plain, warm, everyday language a tired parent can act on.\n` +
   `- Never guilt, never shame, never imply she is failing.\n`;
 

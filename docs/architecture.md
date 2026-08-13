@@ -137,7 +137,7 @@ place provider keys live**) · `personalization` (ownership choke-point) · `pro
 
 | Interface | Protocol / shape | Rule |
 |---|---|---|
-| features → services | Dart method calls | Features never import supabase/http directly — **Partial: 3 of 45 files still do** (`home_screen`, `sign_in_screen`, `quiz_match_screen`) |
+| features → services | Dart method calls | Features never import supabase/http directly — **enforced in CI** by `scripts/check_feature_imports.mjs`. **Partial: 3 of 45 files predate the rule** (`home_screen`, `sign_in_screen`, `quiz_match_screen`) and are allowlisted with the fix each needs |
 | app → Supabase | supabase-dart over HTTPS, anon key + JWT | Family-isolated + shared-read tables only; RLS is the guard. **Built** |
 | app → Edge Functions | HTTPS POST, JWT header | Anything needing a secret or heavier logic. **Built** |
 | Edge Fn → Postgres | transaction pooler :6543, `prepare: false`, max 5 | Never direct :5432 (except the backup job's `pg_dump`, which requires :5432). **Built** |
@@ -440,7 +440,7 @@ Recorded so they are decisions, not surprises. Fuller detail in `docs/BUILD_STAT
 | Gap | Where |
 |---|---|
 | ~~RLS coverage guard is not pattern-aware~~ — **resolved 2026-08-13** | rule 5 above |
-| 3 feature files still import Supabase directly — blocks the rule-1 lint | §2.4 |
+| 3 feature files import Supabase directly — allowlisted, not blocking. Each needs: `home_screen` → move the `users.display_name` query to `ProfileService`; `sign_in_screen` → `AuthService` should expose its own error/provider types; `quiz_match_screen` → `QuizService` should own unsubscribe. **Needs a Flutter toolchain to verify** | §2.4 |
 | No central router; `app_router.dart` is dead code | §7 |
 | Child's name is never re-inserted into AI answers, though specified | §4.1 |
 | No kid-mode gate — the wish wall's lock badge is only a back button | — |

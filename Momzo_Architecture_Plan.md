@@ -431,12 +431,16 @@ New entries whenever rules 2, 4, or state-management/nav structure change.
   status on every claim.
 - ✅ **Done (2026-08-13).** [`docs/adr/`](docs/adr/) exists with **eleven** records —
   the ten backfilled, plus 011 for the flat-structure decision.
-- ⬜ **Outstanding.** A lint/CI check enforcing rule 1 (no `supabase`/`http` imports
-  under `features/`). *Blocked on the 3 known violations* — `home_screen`,
-  `sign_in_screen`, `quiz_match_screen`. The existing guards (RLS coverage, LLM call
-  sites) stay green.
-- ⬜ **Outstanding.** The §9 checklist as the repo's PR template, with a checkbox tying
-  boundary-changing PRs to a `docs/architecture.md` update.
+- ✅ **Done (2026-08-13).** `scripts/check_feature_imports.mjs` enforces rule 1, wired
+  into the `app` CI job. It fails on any **new** violation, and also fails if an
+  allowlisted file stops violating (so the list can't go stale). The 3 pre-existing
+  violations — `home_screen`, `sign_in_screen`, `quiz_match_screen` — are **allowlisted
+  with the fix each needs**, making the debt visible and bounded rather than blocking
+  the guard. Retiring them needs a working Flutter toolchain to verify; see
+  `docs/architecture.md` §10.
+- ✅ **Done (2026-08-13).** The §9 checklist is the repo's PR template
+  ([`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md)), including
+  the checkbox tying boundary-changing PRs to a `docs/architecture.md` update.
 - ⬜ **Outstanding.** One walkthrough proof: the next feature built (per the Expansion
   Plan) visibly follows §9, updates the diagrams, and adds its ADR if needed.
 

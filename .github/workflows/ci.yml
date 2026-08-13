@@ -20,13 +20,19 @@ on:
 
 jobs:
   app:
-    name: Flutter app — analyze
+    name: Flutter app — analyze + layering guard
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: app
     steps:
       - uses: actions/checkout@v4
+      # Architecture rule 1: features reach the outside through services, never by
+      # importing a backend client. Runs before the Flutter setup because it needs
+      # nothing but Node, so a layering break fails fast.
+      - name: Layering guard (architecture rule 1)
+        working-directory: .
+        run: node scripts/check_feature_imports.mjs
       - uses: subosito/flutter-action@v2
         with:
           channel: stable

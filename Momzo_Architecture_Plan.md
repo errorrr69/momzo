@@ -317,11 +317,12 @@ Only the zero-residual test must be extended.
    write; moderator via security-definer). There is no third pattern without an ADR.
 5. Policy columns are indexed; the RLS coverage CI guard must stay green; shared
    tables get negative tests (non-author edit, non-moderator hide).
-   > ⚠️ **Blocking gap.** The guard detects tables by looking for `owner_id` /
-   > `user_id`. Forum tables keyed on `author_id` / `reporter_id` would pass **silently
-   > untested**, while `moderators` and `forum_profiles` would trip it and demand a
-   > *family-isolation* test that is wrong for them. **The guard must be made
-   > pattern-aware before Expansion Phase E.**
+   > ✅ **Resolved 2026-08-13.** The guard previously detected tables by looking for
+   > `owner_id` / `user_id`, which would have let forum tables keyed on `author_id`
+   > ship **silently untested** while forcing `moderators` through a *family-isolation*
+   > test that is wrong for it. It now requires **every** table in `public` to be
+   > classified as family-isolated, shared-content or server-only **and** to have RLS
+   > enabled. Unclassified tables, stale entries and RLS-off tables each fail the build.
 6. Any table holding child data joins the delete-child cascade **in the same PR**
    that creates it, and the zero-residual test extends to it.
 7. Realtime only for **`question_responses`** (the quiz reveal), always filtered to one

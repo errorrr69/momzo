@@ -327,10 +327,13 @@ Binding, additive to Build Guide §6.
    **shared-content**. No third pattern without an ADR.
 5. Policy columns are indexed; the RLS coverage guard stays green; shared tables get
    **negative** tests (non-author cannot edit, non-moderator cannot hide).
-   > **Gap:** the guard currently detects only `owner_id` / `user_id` columns. Forum
-   > tables using `author_id` / `reporter_id` would pass untested, while `moderators`
-   > and `forum_profiles` would trip it and demand the *wrong* (family-isolation) test.
-   > **The guard must become pattern-aware before Expansion Phase E.**
+   > **Resolved 2026-08-13.** The guard no longer infers a table's pattern from its
+   > column names. It requires **every** table in `public` to be classified into
+   > exactly one of `FAMILY_TABLES` / `SHARED_TABLES` / `SERVER_ONLY_TABLES` **and** to
+   > have RLS enabled — so a forum table keyed on `author_id` cannot ship untested, and
+   > `moderators` cannot be forced through the wrong test. The five shared reference
+   > tables now carry real write-denial tests, which they previously lacked entirely.
+   > Forum tables join `SHARED_TABLES` when Phase E adds them.
 6. Any table holding child data joins the delete-child cascade in the same PR, and the
    zero-residual test extends to it.
 7. Realtime is enabled for **`question_responses` only**, filtered to one family. Adding
@@ -436,7 +439,7 @@ Recorded so they are decisions, not surprises. Fuller detail in `docs/BUILD_STAT
 
 | Gap | Where |
 |---|---|
-| RLS coverage guard is not pattern-aware — blocks Phase E | rule 5 above |
+| ~~RLS coverage guard is not pattern-aware~~ — **resolved 2026-08-13** | rule 5 above |
 | 3 feature files still import Supabase directly — blocks the rule-1 lint | §2.4 |
 | No central router; `app_router.dart` is dead code | §7 |
 | Child's name is never re-inserted into AI answers, though specified | §4.1 |

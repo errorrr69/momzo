@@ -42,12 +42,17 @@ chosen display name and emoji avatar, never the account name.
 **Good.** The pattern is reusable — `social_posts` and `learning_games` need the same
 shape, so the content hub and games catalog land on proven ground.
 
-**Cost — blocking.** The RLS coverage guard is **not currently capable of policing
-this**. It finds tables by looking for `owner_id` / `user_id`, so `forum_threads`,
-`forum_replies` and `forum_reports` (keyed on `author_id` / `reporter_id`) would pass
-**silently untested**, while `moderators` and `forum_profiles` would trip it and demand
-a family-isolation test that is wrong for them. **The guard must be made pattern-aware
-before this ships.**
+**Prerequisite — met 2026-08-13.** The RLS coverage guard was not originally capable of
+policing this: it found tables by looking for `owner_id` / `user_id`, so `forum_threads`,
+`forum_replies` and `forum_reports` (keyed on `author_id` / `reporter_id`) would have
+passed **silently untested**, while `moderators` and `forum_profiles` would have tripped
+it and demanded a family-isolation test that is wrong for them.
+
+The guard now requires every table in `public` to be explicitly classified as
+family-isolated, shared-content or server-only, and to have RLS on. **Adding a forum
+table without declaring its pattern and testing it now fails CI.** Phase E's job is to
+add the forum tables to `SHARED_TABLES` and write the moderator negative tests; the
+mechanism to enforce that is in place.
 
 **Cost — operational, not technical.** A forum is ongoing human work: replies, moderation,
 tending. This is why it is sequenced **last** of the five expansion phases — it should

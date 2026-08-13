@@ -47,9 +47,16 @@ fails CI when a new table appears untested**.
 
 **Cost.** `owner_id` denormalisation must be kept correct on insert.
 
-**Cost — active.** The coverage guard detects tables by looking for an `owner_id` or
-`user_id` column. That was sufficient while every table was family-isolated. It is not
-sufficient for shared-content tables: forum tables keyed on `author_id` or `reporter_id`
-would pass untested, while `moderators` and `forum_profiles` would trip the guard and
-demand a family-isolation test that is wrong for them. **The guard must be made
-pattern-aware before the forum ships.**
+**Cost — resolved 2026-08-13.** The coverage guard originally detected tables by looking
+for an `owner_id` or `user_id` column. That was sufficient while every table was
+family-isolated, and would have failed in both directions once shared-content tables
+arrived: forum tables keyed on `author_id` or `reporter_id` would have passed untested,
+while `moderators` and `forum_profiles` would have tripped the guard and demanded a
+family-isolation test that is wrong for them.
+
+The guard no longer infers anything from column names. It now requires **every** table in
+`public` to be classified into exactly one of three declared buckets — family-isolated,
+shared-content, server-only — and to have RLS enabled. Unclassified tables, stale
+entries, and RLS-disabled tables each fail the build. The five shared reference tables
+gained write-denial tests they had never had.
+

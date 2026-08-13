@@ -39,6 +39,7 @@ const g = {
   questionId: '00000000-0000-4000-8000-000000000003',
   gameItemId: '00000000-0000-4000-8000-000000000004',
   gameSlug:   'rls-test-game',
+  learningGameSlug: 'rls-test-learning-game',
 };
 
 // ─── Bucket 1: family-isolated ────────────────────────────────────────────────
@@ -52,7 +53,7 @@ const FAMILY_TABLES = [
   'users', 'consents', 'children', 'daily_assignments', 'activity_logs',
   'ai_conversations', 'ai_messages', 'ai_usage', 'question_responses', 'wishes',
   'scheduled_events', 'reminders', 'milestones', 'family_members', 'device_tokens',
-  'saved_cards', 'game_play_history', 'onboarding_state',
+  'saved_cards', 'game_play_history', 'onboarding_state', 'game_play_sessions',
 ];
 
 // ─── Bucket 2: shared-content ─────────────────────────────────────────────────
@@ -78,6 +79,9 @@ const SHARED_TABLES = [
   { table: 'game_items',    key: 'id',   read: () => g.gameItemId,
     write: () => ({ id: randomUUID(), game_slug: g.gameSlug, band: 'B', item_type: 'question', payload: {} }),
     patch: { payload: { hacked: true } } },
+  { table: 'learning_games', key: 'slug', read: () => g.learningGameSlug,
+    write: () => ({ slug: `rls-nope-${randomUUID().slice(0, 8)}`, title: 'Nope', category: 'maths', entry_path: '/play/nope' }),
+    patch: { title: 'HACKED' } },
 ];
 
 // ─── Bucket 3: server-only ────────────────────────────────────────────────────
@@ -117,6 +121,7 @@ async function seedFamily(key) {
     device_tokens: randomUUID(),
     saved_cards: randomUUID(),
     game_play_history: randomUUID(),
+    game_play_sessions: randomUUID(),
     onboarding_state: randomUUID(),
   };
   const now = new Date().toISOString();
@@ -138,6 +143,7 @@ async function seedFamily(key) {
   await ins('device_tokens', { id: f.rows.device_tokens, user_id: owner, token: `tok-${key}-${owner}`, platform: 'android' });
   await ins('saved_cards', { id: f.rows.saved_cards, owner_id: owner, card_id: g.cardId });
   await ins('game_play_history', { id: f.rows.game_play_history, owner_id: owner, child_id: childId, game_slug: g.gameSlug, item_id: g.gameItemId });
+  await ins('game_play_sessions', { id: f.rows.game_play_sessions, owner_id: owner, child_id: childId, game_slug: g.learningGameSlug });
   await ins('onboarding_state', { id: f.rows.onboarding_state, user_id: owner, child_id: childId, step: 0 });
 }
 
@@ -155,6 +161,8 @@ async function deleteGlobals() {
   await admin.from('activities').delete().eq('id', g.activityId);
   await admin.from('questions').delete().eq('id', g.questionId);
   await admin.from('games').delete().eq('slug', g.gameSlug); // cascades to game_items
+  // Cascades to game_play_sessions.
+  await admin.from('learning_games').delete().eq('slug', g.learningGameSlug);
 }
 
 test.before(async () => {
@@ -167,6 +175,10 @@ test.before(async () => {
   await ins('questions', { id: g.questionId, type: 'daily', prompt: 'Q?' });
   await ins('games', { slug: g.gameSlug, title: 'Test Game', type: 'question' });
   await ins('game_items', { id: g.gameItemId, game_slug: g.gameSlug, band: 'B', item_type: 'question', payload: {} });
+  await ins('learning_games', {
+    slug: g.learningGameSlug, title: 'Test Learning Game',
+    category: 'maths', entry_path: `/play/${g.learningGameSlug}`,
+  });
 
   for (const key of Object.keys(families)) {
     const { data, error } = await admin.auth.admin.createUser({

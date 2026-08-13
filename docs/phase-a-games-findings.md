@@ -183,19 +183,54 @@ are not modified. The route is purely additive.
 
 ---
 
-## What I need from you
+## Decisions — Florie, 2026-08-13
 
-1. **Opposite Game** — parent supplies the command word, or generate it from the round?
-2. **Freeze Dance** — add a game-specific Dance/Freeze parent control, or drop the game
-   from together-mode v1?
-3. **Mirror Faces + the "Florie" copy** — reword for a parent audience? (I'd suggest
-   "your grown-up", matching the bonding-games spec's family-shape-neutral rule.)
+> **Together mode is two people in one room.** Mother and child, in person. No teacher,
+> no video call, no remote session.
+>
+> - **"Florie" must not appear** anywhere the child sees in together mode.
+> - **Mirror Faces** — the mother is looking at the child's face directly.
+> - **Freeze Dance** — they play their own music.
 
-A fourth thing, not a question but a prerequisite: **the games repo currently exists here
-only as a temporary clone in the session scratchpad.** Building Phase B needs a permanent
-working copy, and a decision on whether the together-mode route is committed to
-`errorrr69/games-for-5-6yr-olds` (recommended — it keeps that repo the single source of
-truth for game content, per §A2.6).
+### ⚠️ This cannot be a find-and-replace — it would change the classroom
+
+`src/pages/StudentSession.tsx:158` renders **the same `GameStage`**, so Mirror Faces,
+Freeze Dance and Opposite Game in Florie's live tutoring sessions are the *same files*.
+Rewriting "Florie says" in place would change what real students see mid-lesson, which
+§A2.6 forbids ("teacher mode stays untouched").
+
+**The copy has to become mode-aware**, which is a small change made once rather than per
+game:
+
+```ts
+// GameProps gains one field; teacher mode passes 'Florie', together mode passes null.
+driver?: string          // who is calling the game — a teacher's name, or nobody
+```
+
+- **Teacher mode** — `driver = 'Florie'` → *"Florie says"*, unchanged behaviour.
+- **Together mode** — `driver = null` → the in-person voice: *"Say the opposite of…"*,
+  *"Hold it — show your grown-up!"*. "Your grown-up" matches the Bonding Games spec's
+  family-shape-neutral rule (§1.4), so it also covers a grandmother or an aunt playing.
+
+### What each game becomes in together mode
+
+| Game | Together-mode design |
+|---|---|
+| **Mirror Faces** | Drop the video-call line. The mother is right there — *"Hold it — show your grown-up!"* Functionally already works; copy only. |
+| **Freeze Dance** | They supply the music, so the **mother calls the switch**: a Dance / Freeze control on the parent strip. Replaces *"Wait for Florie to start the music…"* with a ready state. |
+| **Opposite Game** | **Recommended:** the round supplies the word instead of a teacher — the card shows it directly (*"Say the opposite of: BIG"*), and `correct` compares against the round rather than `cue?.expect`. For a pre-reader the mother reads it aloud, which is the in-person framing anyway. **This is the one I'd like confirmed** — it's the only game where the fix changes logic, not just words. |
+
+---
+
+## Still open
+
+1. **Opposite Game** — confirm the round-supplies-the-word approach above.
+2. **Navigation** — Expansion Plan §6 Q1, Option A or B. Gates the games area's placement
+   *and* when the central router gets built.
+3. **A permanent games working copy.** The repo currently exists only as a temporary
+   clone in the session scratchpad. Phase B needs a real one, plus a decision on
+   committing the together-mode route to `errorrr69/games-for-5-6yr-olds` — recommended,
+   as it keeps that repo the single source of truth for game content (§A2.6).
 
 ---
 

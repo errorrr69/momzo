@@ -39,6 +39,11 @@ jobs:
       - run: flutter pub get
       # Infos (deprecations, prefer_const) shouldn't fail CI; real errors/warnings still do.
       - run: flutter analyze --no-fatal-infos
+      # The AI routing tests — the risk table, the on-device guards, cloud fallback,
+      # and the native channel contract. They existed for months without CI ever
+      # running them, which meant the one safety-critical unit in the app was
+      # unverified on every push.
+      - run: flutter test
 
   edge-functions:
     name: Edge Functions — LLM call-site guard + AI cost tests

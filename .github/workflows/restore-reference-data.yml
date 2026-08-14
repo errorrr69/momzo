@@ -63,17 +63,33 @@ jobs:
 
       - name: Fetch the backup artifact
         run: |
+          set -euo pipefail
           gh run download "${{ inputs.backup_run_id }}" --repo "$GITHUB_REPOSITORY" --dir ./restore
-          find ./restore -name '*.dump' -print
-          echo "DUMP=$(find ./restore -name '*.dump' | head -1)" >> "$GITHUB_ENV"
+          # `gh run download` unpacks into a DIRECTORY named after the artifact, and
+          # that directory is itself called *.dump — so `find -name '*.dump'` without
+          # -type f hands pg_restore a directory and it fails looking for toc.dat.
+          DUMP=$(find ./restore -type f -name '*.dump' | head -1)
+          if [ -z "$DUMP" ]; then echo "No .dump file found in the artifact"; exit 1; fi
+          # A custom-format dump starts with the magic bytes PGDMP.
+          if [ "$(head -c 5 "$DUMP")" != "PGDMP" ]; then
+            echo "$DUMP is not a custom-format pg_dump"; exit 1
+          fi
+          ls -lh "$DUMP"
+          echo "DUMP=$DUMP" >> "$GITHUB_ENV"
 
       # Session pooler (5432), not the transaction pooler: pg_restore needs a
       # session-mode connection, same reason the backup job uses 5432.
+      # No --disable-triggers: that needs superuser, which the postgres role on a
+      # managed project is not. pg_restore replays tables in the dump's own
+      # dependency order, so foreign keys are satisfied without it.
+      #
+      # Errors are FATAL here. An earlier version downgraded them to a warning and
+      # the job reported success while restoring precisely nothing.
       - name: Restore reference tables
         run: |
-          set -o pipefail
+          set -euo pipefail
           pg_restore \
-            --data-only --no-owner --no-privileges --disable-triggers \
+            --data-only --no-owner --no-privileges \
             --table=content_cards \
             --table=content_embeddings \
             --table=activities \
@@ -81,9 +97,7 @@ jobs:
             --table=games \
             --table=game_items \
             -h "$POOLER_HOST" -p 5432 -U "postgres.$PROJECT_REF" -d postgres \
-            "$DUMP" 2>&1 | tee restore.log || {
-              echo "::warning::pg_restore reported errors — review the log above"
-            }
+            "$DUMP"
 
       - name: What landed
         run: |

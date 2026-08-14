@@ -1,0 +1,92 @@
+name: Restore reference data
+
+# Restores the GLOBAL reference content — the corpus, activities, questions and
+# bonding-game banks — from a nightly backup artifact into the linked project.
+#
+# Deliberately NOT a general restore. It touches only tables that are shared
+# reference data, never a family's rows and never auth.users, so it cannot
+# resurrect a deleted child or clobber live family data. A full disaster restore
+# is a different, more careful operation — see docs/OPERATIONS.md.
+#
+# Written for the August 2026 project rebuild: the original Supabase project
+# became unadministrable when its Google account was lost, and the corpus had to
+# move to a project we own. Kept because "put the content back" is a thing you
+# want a tested path for, not an improvised one.
+#
+# Restoring rather than re-seeding also skips ~800 Gemini embedding calls, which
+# matters when the Google key is exactly what you have lost.
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_run_id:
+        description: 'Run ID of the "DB Backup" workflow to restore from'
+        required: true
+        type: string
+      confirm:
+        description: 'Type the project ref to confirm the target'
+        required: true
+        type: string
+
+jobs:
+  restore:
+    name: Restore reference tables
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_REF: uwpmwqsxqociiojeauuk
+      POOLER_HOST: ${{ secrets.SUPABASE_POOLER_HOST }}
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Confirm the target project
+        run: |
+          if [ "${{ inputs.confirm }}" != "$PROJECT_REF" ]; then
+            echo "Confirmation '${{ inputs.confirm }}' does not match $PROJECT_REF — refusing."
+            exit 1
+          fi
+          echo "Target confirmed: $PROJECT_REF"
+
+      # Match the server (Postgres 17). An older client cannot read a 17 dump.
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Fetch the backup artifact
+        run: |
+          gh run download "${{ inputs.backup_run_id }}" --repo "$GITHUB_REPOSITORY" --dir ./restore
+          find ./restore -name '*.dump' -print
+          echo "DUMP=$(find ./restore -name '*.dump' | head -1)" >> "$GITHUB_ENV"
+
+      # Session pooler (5432), not the transaction pooler: pg_restore needs a
+      # session-mode connection, same reason the backup job uses 5432.
+      - name: Restore reference tables
+        run: |
+          set -o pipefail
+          pg_restore \
+            --data-only --no-owner --no-privileges --disable-triggers \
+            --table=content_cards \
+            --table=content_embeddings \
+            --table=activities \
+            --table=questions \
+            --table=games \
+            --table=game_items \
+            -h "$POOLER_HOST" -p 5432 -U "postgres.$PROJECT_REF" -d postgres \
+            "$DUMP" 2>&1 | tee restore.log || {
+              echo "::warning::pg_restore reported errors — review the log above"
+            }
+
+      - name: What landed
+        run: |
+          psql -h "$POOLER_HOST" -p 5432 -U "postgres.$PROJECT_REF" -d postgres -A -F' | ' -c "
+            select 'content_cards'      as table, count(*) from content_cards
+            union all select 'content_embeddings', count(*) from content_embeddings
+            union all select 'activities',         count(*) from activities
+            union all select 'questions',          count(*) from questions
+            union all select 'games',              count(*) from games
+            union all select 'game_items',         count(*) from game_items
+            order by 1;"

@@ -41,5 +41,5 @@ GitHub Actions secrets (see `.github/workflows/ci.yml`). It drives the **live li
 project**; the harness cleans up its seed data (and the two test auth users) on every
 run, before and after.
 
-> `SUPABASE_POOLER_HOST` defaults to `aws-1-us-west-1.pooler.supabase.com` (this
+> `SUPABASE_POOLER_HOST` defaults to `aws-0-us-west-1.pooler.supabase.com` (this
 > project's region). Override via env if the project moves.

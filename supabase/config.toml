@@ -1,9 +1,9 @@
 # Supabase project config (source of truth for local dev + CLI).
-# Project id: nngjqhrxbhugnafyviqj  (project name: Momzo)
+# Project id: uwpmwqsxqociiojeauuk  (project name: Momzo)
 # Schema/RLS changes go through supabase/migrations only (Hard Rule #19) —
 # never hand-edited in the dashboard.
 
-project_id = "nngjqhrxbhugnafyviqj"
+project_id = "uwpmwqsxqociiojeauuk"
 
 [db]
 # Local dev Postgres major version — match prod. The Supabase project provisioned

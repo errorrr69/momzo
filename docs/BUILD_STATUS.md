@@ -34,7 +34,7 @@ Taskmaster (`.taskmaster/`).
 | AI — embeddings | Google **Gemini** `gemini-embedding-001` (768-dim) |
 | AI — generation | **Mistral** (`mistral-small` default → `mistral-medium` escalation) |
 | Push | Firebase Cloud Messaging (FCM HTTP v1) |
-| Project | Supabase ref `nngjqhrxbhugnafyviqj`; Firebase project `momzo-3a942`; Android package `app.momzo` |
+| Project | Supabase ref `uwpmwqsxqociiojeauuk`; Firebase project `momzo-3a942`; Android package `app.momzo` |
 
 **Architecture:** the app talks to Supabase **directly** for ordinary reads/writes,
 protected by Row-Level Security (anon key only). Anything needing a secret (AI keys,

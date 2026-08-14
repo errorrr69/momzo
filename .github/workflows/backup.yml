@@ -23,9 +23,9 @@ jobs:
   dump:
     runs-on: ubuntu-latest
     env:
-      PROJECT_REF: nngjqhrxbhugnafyviqj
+      PROJECT_REF: uwpmwqsxqociiojeauuk
       # Pooler host isn't secret; fall back to the known value if the secret is unset.
-      POOLER_HOST: ${{ secrets.SUPABASE_POOLER_HOST || 'aws-1-us-west-1.pooler.supabase.com' }}
+      POOLER_HOST: ${{ secrets.SUPABASE_POOLER_HOST || 'aws-0-us-west-1.pooler.supabase.com' }}
       PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
     steps:
       - name: Install PostgreSQL 17 client (match server major version)

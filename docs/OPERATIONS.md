@@ -39,7 +39,7 @@ Restoring **overwrites** the target database — only do this intentionally.
 3. Restore through the session pooler (replace `<…>` with the values from `supabase/.env`):
    ```bash
    PGPASSWORD='<SUPABASE_DB_PASSWORD>' pg_restore \
-     -h '<SUPABASE_POOLER_HOST>' -p 5432 -U 'postgres.nngjqhrxbhugnafyviqj' -d postgres \
+     -h '<SUPABASE_POOLER_HOST>' -p 5432 -U 'postgres.uwpmwqsxqociiojeauuk' -d postgres \
      --clean --if-exists --no-owner --no-privileges \
      momzo-<timestamp>.dump
    ```

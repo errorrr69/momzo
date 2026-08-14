@@ -23,7 +23,7 @@ import pg from 'pg';
 import { config } from './config.mjs';
 
 const ref = config.url.match(/https:\/\/([^.]+)\./)[1];
-const POOLER_HOST = process.env.SUPABASE_POOLER_HOST || 'aws-1-us-west-1.pooler.supabase.com';
+const POOLER_HOST = process.env.SUPABASE_POOLER_HOST || 'aws-0-us-west-1.pooler.supabase.com';
 const PASSWORD = 'Rls-Test-Pass-123!';
 
 // Service-role client: bypasses RLS, used only to seed/clean and to confirm rows survive

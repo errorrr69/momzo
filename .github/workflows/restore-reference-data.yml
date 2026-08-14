@@ -27,6 +27,11 @@ on:
         description: 'Type the project ref to confirm the target'
         required: true
         type: string
+      only_tables:
+        description: 'Optional: restore only these tables (comma-separated). Blank = all.'
+        required: false
+        default: ''
+        type: string
 
 jobs:
   restore:
@@ -85,19 +90,31 @@ jobs:
       #
       # Errors are FATAL here. An earlier version downgraded them to a warning and
       # the job reported success while restoring precisely nothing.
+      # TWO PASSES, PARENTS FIRST. pg_restore replays --table selections in the
+      # dump's own order, which is alphabetical — so `game_items` arrives before
+      # `games` exists and the foreign key rejects the whole COPY. Restoring
+      # referenced tables first is the fix; --disable-triggers would also do it but
+      # needs superuser, which a managed project's postgres role is not.
       - name: Restore reference tables
         run: |
           set -euo pipefail
-          pg_restore \
-            --data-only --no-owner --no-privileges \
-            --table=content_cards \
-            --table=content_embeddings \
-            --table=activities \
-            --table=questions \
-            --table=games \
-            --table=game_items \
-            -h "$POOLER_HOST" -p 5432 -U "postgres.$PROJECT_REF" -d postgres \
-            "$DUMP"
+          ONLY="${{ inputs.only_tables }}"
+
+          restore() {  # restore <table>...
+            local args=()
+            for t in "$@"; do
+              # Honour only_tables when it was given.
+              if [ -n "$ONLY" ] && ! echo ",$ONLY," | grep -q ",$t,"; then continue; fi
+              args+=("--table=$t")
+            done
+            [ ${#args[@]} -eq 0 ] && return 0
+            echo "--- restoring: ${args[*]}"
+            pg_restore --data-only --no-owner --no-privileges "${args[@]}" \
+              -h "$POOLER_HOST" -p 5432 -U "postgres.$PROJECT_REF" -d postgres "$DUMP"
+          }
+
+          restore content_cards activities questions games   # parents
+          restore content_embeddings game_items              # children
 
       - name: What landed
         run: |

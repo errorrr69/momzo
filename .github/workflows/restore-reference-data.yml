@@ -32,6 +32,11 @@ jobs:
   restore:
     name: Restore reference tables
     runs-on: ubuntu-latest
+    # `actions: read` is what lets this run download another run's artifact.
+    # Without it the default token 403s on the artifacts API.
+    permissions:
+      contents: read
+      actions: read
     env:
       PROJECT_REF: uwpmwqsxqociiojeauuk
       POOLER_HOST: ${{ secrets.SUPABASE_POOLER_HOST }}

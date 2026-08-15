@@ -34,6 +34,7 @@ class _GamePlayerScreenState extends State<GamePlayerScreen> {
   bool _loading = true;
   bool _failed = false;
   bool _sawSummary = false;
+  bool _routed = false;
 
   @override
   void initState() {
@@ -45,18 +46,31 @@ class _GamePlayerScreenState extends State<GamePlayerScreen> {
     // Fire and forget: a session row is nice to have, never a reason to wait.
     LearningGameService.startSession(widget.game.slug).then((id) => _sessionId = id);
 
-    // HashRouter inside the bundle (file:// has no History API), so the route
-    // rides after the #. The games repo picks its router by protocol for exactly
-    // this reason — see assets/games/README.md.
-    final url = 'assets/games/index.html#${widget.game.entryPath}';
-
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(MomzoColors.cream)
       ..addJavaScriptChannel('MomzoBridge', onMessageReceived: _onBridgeMessage)
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageFinished: (_) {
+          onPageFinished: (_) async {
+            // The route is applied AFTER load, not baked into the URL.
+            //
+            // loadFlutterAsset takes an asset KEY, not a URL — passing
+            // 'index.html#/play/x' makes it hunt for an asset of that literal
+            // name, find nothing, and hang with no error and no page-finished.
+            // So: load the document, then move the hash. HashRouter picks that
+            // up as navigation without a reload, and the spinner stays up until
+            // it has, so the home route never flashes past.
+            if (!_routed) {
+              _routed = true;
+              try {
+                await _controller.runJavaScript(
+                  "window.location.hash = '${widget.game.entryPath}';",
+                );
+              } catch (_) {
+                // Fall through: the game is on screen, just on the wrong route.
+              }
+            }
             if (mounted) setState(() => _loading = false);
           },
           onWebResourceError: (e) {
@@ -72,7 +86,21 @@ class _GamePlayerScreenState extends State<GamePlayerScreen> {
               : NavigationDecision.navigate,
         ),
       );
-    await _controller.loadFlutterAsset(url);
+
+    try {
+      await _controller.loadFlutterAsset('assets/games/index.html');
+    } catch (_) {
+      if (mounted) setState(() => _failed = true);
+      return;
+    }
+
+    // Everything here is on-device, so a load that has not finished in a few
+    // seconds is not slow — it is stuck. Say so rather than spinning forever,
+    // which is precisely how the asset-key bug presented: no error, no page,
+    // no end.
+    Future.delayed(const Duration(seconds: 8), () {
+      if (mounted && _loading) setState(() => _failed = true);
+    });
   }
 
   void _onBridgeMessage(JavaScriptMessage message) {

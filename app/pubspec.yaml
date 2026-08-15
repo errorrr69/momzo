@@ -25,6 +25,10 @@ dependencies:
   flutter_tts: ^4.2.0
   image_picker: ^1.2.2
   speech_to_text: ^7.4.0
+  # Hosts the bundled learning-games SPA (ADR 008). The games ship as assets and
+  # talk to the app only through the MomzoBridge JS channel — no network, no
+  # Supabase inside the WebView (ADR 009).
+  webview_flutter: ^4.10.0
 
 dev_dependencies:
   flutter_lints: ^3.0.0
@@ -33,3 +37,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    # The compiled learning-games SPA, vendored from the games repo. Build
+    # artifact, not source — see assets/games/README.md for how to regenerate and
+    # which commit it came from. Listed as a directory so the hashed filenames
+    # change freely between rebuilds without touching this file.
+    - assets/games/
+    - assets/games/assets/

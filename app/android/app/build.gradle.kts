@@ -3,8 +3,25 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    // Firebase (FCM).
-    id("com.google.gms.google-services")
+}
+
+// Firebase (FCM) — applied only when the credentials file is actually present.
+//
+// google-services.json is git-ignored (it identifies the Firebase project), so
+// applying this unconditionally means the app CANNOT be built by anyone who does
+// not have it: a fresh clone, CI, or — as happened in August 2026 — a machine
+// where the file was lost with the Google account behind it. The build failed on
+// a missing credential rather than on anything to do with the code.
+//
+// Present  -> Firebase is wired exactly as before.
+// Absent   -> the app builds and runs; push is inert. PushService.init() already
+//             try/catches its whole body, so there is nothing further to guard.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+} else {
+    logger.lifecycle(
+        "google-services.json not found — building WITHOUT Firebase. Push notifications will be inert."
+    )
 }
 
 android {

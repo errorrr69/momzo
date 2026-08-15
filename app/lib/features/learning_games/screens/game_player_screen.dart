@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -49,6 +50,13 @@ class _GamePlayerScreenState extends State<GamePlayerScreen> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(MomzoColors.cream)
+      // Without this a JS failure is completely invisible: the page "loads",
+      // every callback reports success, and the screen is simply blank. That is
+      // exactly how the ES-module-over-file:// problem presented, and it cost a
+      // build cycle to find. Surfaced under the 'games.webview' log name.
+      ..setOnConsoleMessage((msg) {
+        developer.log('[${msg.level.name}] ${msg.message}', name: 'games.webview');
+      })
       ..addJavaScriptChannel('MomzoBridge', onMessageReceived: _onBridgeMessage)
       ..setNavigationDelegate(
         NavigationDelegate(

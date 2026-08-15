@@ -1,707 +1,427 @@
 # Momzo — Product Requirements Document
 
-**Version:** v1.0
-**Date:** June 22, 2026
+**Version:** v2.0
+**Date:** 15 August 2026 (v1.0: 22 June 2026)
 **Owner:** Florie (Founder)
-**Build target:** Claude Code
-**Status:** Ready for build
+**Status:** Phase 1 and 2 shipped and running on device · Phase 3 partial · pre-launch
 
 ---
 
-## Table of Contents
+## 0. What changed since v1.0
 
-1. [Overview](#1-overview)
-2. [Goals & Success Metrics](#2-goals--success-metrics)
-3. [User Personas & Stories](#3-user-personas--stories)
-4. [Tech Stack & Architecture (summary)](#4-tech-stack--architecture-summary)
-5. [Features](#5-features)
-6. [AI & Knowledge Layer](#6-ai--knowledge-layer)
-7. [Notifications & Reminders](#7-notifications--reminders)
-8. [Data Models](#8-data-models)
-9. [Auth & Permissions](#9-auth--permissions)
-10. [Privacy & Child-Safety Compliance](#10-privacy--child-safety-compliance)
-11. [Non-Functional Requirements](#11-non-functional-requirements)
-12. [Monetization](#12-monetization)
-13. [Out of Scope (this version)](#13-out-of-scope-this-version)
-14. [Build Phasing](#14-build-phasing)
+v1.0 described a product that did not exist yet. This version describes one that
+largely does, and is honest about the difference.
+
+Every feature below carries a status:
+
+| Tag | Meaning |
+|---|---|
+| **Built** | Working in the app today |
+| **Partial** | Working with a stated gap |
+| **Planned** | Agreed and specified, not yet built |
+| **Cancelled** | Decided against, recorded so it is not revisited by accident |
+
+The substantive changes from v1.0:
+
+- **Age range widened to 4–10** (was 6–10). Content still targets 6–10; the
+  bonding games and learning games reach younger.
+- **Three feature areas were added** that v1.0 never contemplated: a 17-game
+  bonding suite, a 22-game learning-games area, and a hybrid on-device AI layer.
+- **The community was un-deferred.** v1.0 §13 explicitly cut it; it is now
+  planned as "the Circle" (§5.10).
+- **WhatsApp reminders were cancelled**, not postponed (§7).
+- **The AI layer grew a cost architecture** — semantic answer cache, prompt
+  caching, rate limits, budget breaker, per-family memory, answer feedback —
+  none of which v1.0 anticipated.
+- **The onboarding was rebuilt** around a structured personalisation model.
+- **The backend was rebuilt** into a new Supabase project in August 2026, after
+  the original became unadministrable. No feature change; worth knowing.
+
+Companion specs remain authoritative for their areas: `Momzo_BuildGuide.md`
+(§6 Hard Rules), `Momzo_Architecture_Plan.md`, `Momzo_Bonding_Games_Spec.md`,
+`Momzo_Onboarding_Personalization_Spec.md`, `Momzo_AI_Cost_Strategy.md`,
+`Momzo_OnDevice_AI_Strategy.md`, `Momzo_Expansion_Plan.md`.
 
 ---
 
 ## 1. Overview
 
-**App Name:** Momzo
-**Tagline:** A few minutes a day to understand your child better — and feel closer to them.
+**Tagline:** A few minutes a day to understand your child better — and feel
+closer to them.
 
 ### Problem
 
 Mothers who want to support their child's development have to dig through an
 overwhelming, low-trust ocean of social-media content to find anything useful,
 and they don't have the time. Generic parenting content isn't tailored to *their*
-child, and the guilt of "not doing enough" makes most parenting apps feel like one
-more thing to fail at. Busy working mothers in particular struggle to find small,
-reliable ways to learn about their child and stay connected when work and household
-demands eat the day.
+child, and the guilt of "not doing enough" makes most parenting apps feel like
+one more thing to fail at.
 
 ### Solution
 
-Momzo replaces the social-media scavenger hunt with a single, calm space: curated,
-bite-sized daily lessons on child development and psychology (2–3 minute reads /
-slide cards), an AI "child expert" grounded in vetted knowledge that answers
-in-the-moment questions, age-appropriate activities filtered by how much time a mom
-actually has, and gentle bonding mechanics (shared questions, paired quizzes, a kid
-wish-wall) that fit into moments that already exist — dinner, the car, bedtime.
-Everything is personalized to the specific child's age, temperament, and current
-struggles, so it never feels generic.
+One calm space: curated bite-sized daily reads, an AI child expert grounded in
+vetted knowledge, activities filtered by the time a mother actually has, games
+that turn learning and connection into play, and gentle bonding mechanics that
+fit into moments that already exist — dinner, the car, bedtime. Everything
+personalised to the specific child.
 
-### Target Users
+### Target users
 
-- **Primary — Busy mothers** of children aged 6–10 who want to support their
-  child's development and stay close, but are short on time and high on guilt.
-- **Secondary — The child** (6–10): a limited, safe in-app surface to add things
-  they'd like to do with their parent (the "wish wall"). Always under the parent's
-  account and consent.
-- **Tertiary — Co-parent / caregiver** (dad, grandparent): an optional invited
-  member who shares the same child profile, so connection isn't only the mother's job.
+- **Primary — mothers of 4–10 year-olds** who want to support their child and
+  stay close, short on time and high on guilt.
+- **Secondary — the child**, via a limited, safe in-app surface (wish wall, kid
+  mode, shared questions, both game suites).
+- **Tertiary — a co-parent or caregiver.** Planned.
 
-### Competitive Context
+### MVP hypothesis
 
-The space splits into three buckets, none of which does what Momzo does:
-
-- **Activity / learning-content apps** (e.g., Cooper / parenting-tip apps,
-  Khan Academy Kids, screen-time-replacement apps): either content *for the child*
-  to consume directly, or undifferentiated tip libraries with no personalization
-  and no in-the-moment help.
-- **Parenting-advice / coaching apps** (e.g., Parent Lab, Big Little Feelings
-  courses, AI parenting-coach chatbots): good on knowledge, but course-length and
-  effortful — the opposite of "a few minutes a day," and they don't connect parent
-  and child.
-- **Family-organizer / calendar apps** (e.g., Cozi, FamilyWall): logistics, not
-  learning or bonding.
-
-**Market gap Momzo leans into:** *personalized, ultra-low-effort daily learning
-fused with parent–child bonding mechanics.* The differentiator is not the content
-library (that's table stakes) — it's (a) tailoring everything to the specific child,
-(b) in-the-moment situational AI help, and (c) the two-sided bonding loop including
-the child's own voice via the wish wall. Keep these three sharp; everything else is
-support.
+If a mother gets one genuinely personalised, trustworthy, two-minute thing each
+day — and something to *do* with her child — she will come back, and she will
+feel closer to her child for it.
 
 ---
 
-## 2. Goals & Success Metrics
+## 2. Success metrics
 
-### MVP Hypothesis
+| Metric | Target | Why it validates the hypothesis |
+|---|---|---|
+| Onboarding completion | ≥ 70% | Everything downstream depends on the profile |
+| Day-2 activation (a read + one other action) | ≥ 40% | The core value lands fast |
+| Week-4 retention (≥ 3 days that week) | ≥ 25% | The habit is the whole bet |
+| AI sessions / active user / week | ≥ 2 | The expert is genuinely used |
+| Activities marked "did it" / user / week | ≥ 1 | Learning converts to action |
+| Bonding action / user / week | ≥ 1 | The emotional moat is real |
+| AI cost / active user / month | < $0.10 | Economics work at scale |
 
-> We believe **busy mothers of 6–10 year-olds will return to Momzo several times a
-> week** — and feel it's worth paying for — **because it turns "learn about and bond
-> with my child" from an overwhelming, guilt-laden project into a 3-minute daily
-> habit that fits their life.** We'll know this is true when a meaningful share of
-> activated users are still opening the app, doing activities, and using the AI in
-> week 4.
-
-### MVP Goals
-
-- Prove the **daily habit** forms: moms come back to read + do, not just install.
-- Prove the **AI expert is trusted and used** for real questions, not a gimmick.
-- Prove the **bonding loop creates emotional stickiness** (the thing that makes a
-  mom keep and pay for it).
-- Ship something **stable under real load** — no crashes or runaway costs as users
-  grow (see Build Guide).
-
-### MVP Success Metrics
-
-| Metric | Target | Timeframe | Why it validates the hypothesis |
-|--------|--------|-----------|----------------------------------|
-| Onboarding completion (child profile created) | ≥ 70% | First session | The personalization that powers everything depends on this |
-| Day-2 activation (read 1 daily card + 1 other action) | ≥ 40% | First 48h | Proves the core value lands fast |
-| Week-4 retention (opened app ≥ 3 days that week) | ≥ 25% | First month | The habit is the whole bet |
-| AI sessions per active user / week | ≥ 2 | First month | The expert is genuinely used |
-| Activities marked "did it" / activated user / week | ≥ 1 | First month | Learning converts to action |
-| Bonding action completed (shared Q, quiz, or wish scheduled) | ≥ 1 / user / week | First month | The emotional moat is real |
-| AI cost per active user / month | < $0.10 | Ongoing | Economics work at scale |
+**Measured so far:** AI cost is running at **~1–2¢ per user per month** against
+the $0.10 target. The rest need real users.
 
 ---
 
-## 3. User Personas & Stories
+## 3. Architecture in one paragraph
 
-### Persona: Priya — the primary mom
+Flutter app, Supabase backend. The app reads and writes its own family's data
+**directly** against Postgres, holding only the anon key, with Row-Level Security
+as the access control. Anything needing a secret, a paid third party, or a
+schedule goes through a **stateless Edge Function**. The app never holds a
+service-role, LLM, or FCM key. Full detail in `docs/architecture.md`.
 
-**Who:** 34, works full-time, mother of an 8-year-old. Phone-first, on WhatsApp
-constantly, almost never on a laptop for personal stuff. Feels she "should" be
-doing more for her child's development but has 5 spare minutes here and there.
-**Goal:** Understand her child better and have small, real moments of connection
-without adding a big task to her day.
-**Pain point:** Social media is a noisy, time-eating rabbit hole; generic advice
-doesn't fit her specific, slightly anxious kid; she feels guilty.
-
-**User stories**
-- As a mom, I want a single 3-minute thing to read each day so I learn something
-  useful without searching.
-- As a mom, I want what I see to be about *my* child's age and temperament so it
-  feels relevant, not generic.
-- As a mom, when my kid is melting down *right now*, I want a quick, calm script to
-  handle it, not an article to read later.
-- As a mom, I want activity ideas I can filter by "I only have 10 minutes" so I
-  actually do them.
-- As a mom, I want gentle nudges — never guilt-trips — to do a small thing with my kid.
-- As a mom, I want one easy way each week to feel closer to my child.
-
-### Persona: Aarav — the child (secondary)
-
-**Who:** 8, uses a shared/parent device with permission. Limited, playful surface.
-**Goal:** Tell mom what he'd like to do together this weekend; play the
-get-to-know quiz.
-**Pain point:** His ideas for time together get lost in the busyness.
-
-**User stories**
-- As a kid, I want to add something I'd love to do with mom so it doesn't get
-  forgotten.
-- As a kid, I want to answer fun questions and see how well mom and I match.
-
-### Persona: Sameer — the co-parent (tertiary, optional)
-
-**Who:** Invited by the mom; shares the child profile.
-**Goal:** Take part in activities and bonding so it's not all on mom.
-
-**User stories**
-- As a co-parent, I want to see the same child profile and take a turn doing an
-  activity or answering the daily question.
+**Scale today:** 98 Dart files (~14,300 lines), 45 screens, 27 tables, 6 Edge
+Functions, 973 embeddings.
 
 ---
 
-## 4. Tech Stack & Architecture (summary)
+## 4. Features
 
-> Full rationale, scaling rules, repo layout, and the "won't crash" checklist live
-> in **`Momzo_BuildGuide.md`**. This is the at-a-glance version so the PRD is
-> self-contained.
+### 4.1 Onboarding & child profile — **Built**
 
-| Layer | Technology | Notes |
-|-------|-----------|-------|
-| Mobile app | **Flutter (latest stable, 3.x)** | Single codebase, iOS + Android. Mobile-first; this is a phone product. |
-| Backend / DB | **Supabase (PostgreSQL 15+)** | Managed Postgres + Auth + Storage + Realtime + Edge Functions. |
-| Server logic / secrets | **Supabase Edge Functions (Deno/TypeScript)** | All third-party API keys (LLM, WhatsApp) live here — never in the app. |
-| AI chat | **Gemini 3.5 Flash (default)** + escalation tier (e.g. Sonnet/GPT-mid) | Routed; cheap default, stronger model for sensitive/nuanced queries. |
-| AI grounding | **pgvector (Supabase) RAG** | Answers grounded in a curated, vetted knowledge base — not free-form. |
-| Push notifications | **Firebase Cloud Messaging (FCM)** via Flutter | Primary, free reminder channel. |
-| WhatsApp reminders | **WhatsApp Cloud API** (utility templates) | Differentiator; opt-in; pre-approved utility templates only. |
-| Scheduling | **Supabase `pg_cron` → Edge Function** | Fires due reminders; sends push + (if opted in) WhatsApp. |
-| Hosting | Supabase (backend); App Store + Play Store (app) | Optional small web landing on Vercel. |
+Welcome → sign-in → COPPA consent gate → child basics (name, age 4–10) → six to
+eight one-per-screen questions → personalised home.
 
-### Architecture in one paragraph
+The questions: time with child · focus goals · what feels tricky · the child's
+interests · temperament (four sliders) · daily-moment time and quiet hours · what
+would feel like a win *for her*.
 
-The Flutter app talks to Supabase directly for ordinary reads/writes, fully
-protected by Row-Level Security so the client can never see another family's data.
-Anything that needs a secret key or heavier logic — AI calls, WhatsApp sends,
-scheduled reminders — goes through stateless Supabase Edge Functions that connect to
-Postgres via the transaction pooler. The AI expert is a retrieval-augmented system:
-the user's question plus the relevant child profile is used to fetch vetted content
-chunks from a pgvector store, which are passed to the LLM with a strict system
-prompt and safety guardrails, so the model answers *from approved knowledge* and
-escalates or refers out when appropriate.
+**Resumable** — dropping out mid-flow returns to the saved step. Multiple
+children supported; the profile is editable afterwards.
 
----
+*Gap:* the avatar picker is decorative — no image is ever saved.
 
-## 5. Features
+### 4.2 Daily learning — **Built**
 
-**Priority tiers**
+One age- and struggle-targeted card per child per day, as a two-to-three minute
+read, with the signature **"why this matters for [child]"** tie-in. Cards carry a
+hook, three quick points, and a "try this tonight". Marking as read is recorded.
 
-- **P0 — Core. Build first.** The app cannot validate its hypothesis without these.
-- **P1 — Supporting. Needed for a non-embarrassing, complete launch**, but the core
-  loop can be tested without them.
-- **P2 — Later.** Documented here because you asked for the full vision, but
-  deliberately scheduled after launch (see Build Phasing). Building these in Phase 1
-  is the main risk to stability and timeline.
+A topic library (six topics) and bookmarking sit alongside it.
 
-> **Founder note (Florie):** You asked to include *all* features, and they're all
-> here. The P-tiers are not me cutting your vision — they're the *build order* that
-> keeps the app stable and gets you to real users fastest. My honest recommendation
-> is to ship P0+P1 first, learn from real moms, then build P2. I've sequenced it that
-> way in §14, but the call is yours.
+*Content:* 124 cards — 67 parent-facing, 57 reference-only book notes that
+ground the AI without ever surfacing as a daily read.
 
-### 5.1 Onboarding & Child Profile (the personalization engine)
+### 4.3 AI child expert — **Built**
 
-| Feature | Priority | Type | Description |
-|---------|----------|------|-------------|
-| Mom sign-up / login | P0 | Table stakes | Email + social (Google/Apple) auth via Supabase Auth. |
-| Child profile creation | P0 | **Differentiator** | Name/nickname, age (6–10), and a short temperament + current-struggles intake (e.g. shy, anxious, won't share, hyperactive, screen-obsessed). Drives reads, activities, and AI context. |
-| Multiple children | P1 | — | Mom can add >1 child; content/activities switch per selected child. |
-| Edit / update profile | P1 | — | Update struggles as the child changes; this keeps relevance high over time. |
+The heart of the product.
 
-### 5.2 Daily Learning (the habit)
+- **Grounded Q&A.** The question is embedded, the top vetted chunks retrieved via
+  pgvector, and the answer written **only** from those excerpts — with the source
+  cards cited beneath it.
+- **"Right now" situational mode.** A short, calm, in-the-moment script.
+- **Refer-out safety.** Every turn is screened across three categories —
+  self-harm/abuse, medical, developmental concern. On a signal it warmly
+  redirects to a professional and does not advise. It never diagnoses.
+- **Memory.** The last three turns, the parent's own notes, and recent
+  engagement, so a follow-up question makes sense.
+- **Feedback.** Thumbs up/down on any answer; a thumbs-down retires the cached
+  answer behind it for everyone.
+- **Voice input** for asking by speech.
 
-| Feature | Priority | Type | Description |
-|---------|----------|------|-------------|
-| Daily card / micro-read | P0 | Table stakes | One 2–3 min read or swipeable slide set per day on child development/psychology, selected for the child's age + struggles. |
-| "Why this matters to *your* child" | P0 | **Differentiator** | Each card ties the lesson to a behavior the mom actually sees at home. This is what beats generic content. |
-| Save / bookmark | P1 | — | Keep favourites in a personal library. |
-| Topic library / browse | P1 | — | Browse past + categorized content on demand (not just today's card). |
-| Slide / card content format | P0 | — | Content supports text + image + simple slide decks (carousel). |
+*Gap:* answers say "your child" rather than the child's name. Keeping the name
+away from the model is deliberate and verified; putting it back client-side is
+specified but not built.
 
-### 5.3 AI Child Expert (the "ask anything")
+### 4.4 Activities — **Built**
 
-| Feature | Priority | Type | Description |
-|---------|----------|------|-------------|
-| AI Q&A chat | P0 | **Differentiator** | Grounded chat that answers child-development/psychology questions for *this* child, citing the knowledge it used. See §6. |
-| "Right now" situational mode | P0 | **Differentiator** | A mode for in-the-moment help ("he's melting down because I said no"), returning a short, calm, actionable script — not an essay. |
-| Voice input | P1 | — | Speech-to-text for hands-full moments. |
-| Safety escalation / refer-out | P0 | **Required** | Recognizes when something is beyond an app (possible developmental delay, safety/abuse signals, medical) and gently directs to a pediatrician/professional. Non-negotiable for trust + liability. See §6.3. |
-| Suggested follow-ups | P1 | — | After an answer, offer 2–3 tap-to-ask follow-ups. |
+62 activities filtered by the time a mother has (5 / 15 / 30 minutes), the
+child's age, and place. Step-by-step detail, and a "we did it" log with an
+optional private photo and note that feeds the Memory Timeline.
 
-### 5.4 Activities (learning → action)
+### 4.5 Bonding & together-games — **Built**
 
-| Feature | Priority | Type | Description |
-|---------|----------|------|-------------|
-| Activity suggestions by age + skill | P0 | Table stakes | Activities targeting a skill to build (focus, emotional regulation, confidence, motor skills) appropriate to the child's age. |
-| **Time filter** (5 / 15 / 30 min) | P0 | **Differentiator** | The filter busy moms will actually use. Also filter by location (indoor/car/kitchen) and materials needed. |
-| "How to do it" steps | P0 | — | Each activity has simple step-by-step guidance. |
-| Mark "did it" | P0 | — | One tap to log completion; feeds streak (gentle) + weekly recap. |
-| Post-activity photo + note | P1 | **Differentiator** | Optional photo/note after an activity → feeds the Memory Timeline (§5.6). |
+**17 games** on one engine, across conversational, paired, action and
+two-player-reveal types, age-banded A (4–5) / B (6–7) / C (8–10). ~40 cards per
+band, 1,795 in total, with a family-scoped anti-repeat dealer and an AI top-up
+that refills a bank before it runs dry.
 
-### 5.5 Bonding & Together-Games (the emotional moat)
+Same-phone two-player flows, free on-device speech-to-text for Two Truths & a
+Lie, and a "how to play" screen before every game. Scoring is framed as *matches
+and moments* — no leaderboards, no losing state.
 
-| Feature | Priority | Type | Description |
-|---------|----------|------|-------------|
-| Shared Question of the Day | P0 | **Differentiator** | One light question both mom and child answer; reveals each other's answers. Low effort, daily connection. |
-| "How well do you know each other?" quiz | P1 | **Differentiator** | Mom and child answer the same questions separately, then reveal matches. The flagship bonding game. |
-| Together mini-games / quizzes library | P1 | — | A small set of co-play games/quizzes (get-to-know, would-you-rather, etc.). |
-| Audio "letters" | P2 | — | Mom and kid record short voice messages for each other / "future you." |
+Alongside: a shared **Question of the Day** (30 prompts, both answer then reveal)
+and a **know-each-other quiz** with a live reveal.
 
-### 5.6 Kid Wish Wall & Playdate Scheduling (the child's voice)
+### 4.6 Learning games — **Built** (new in v2.0)
 
-| Feature | Priority | Type | Description |
-|---------|----------|------|-------------|
-| Kid wish wall | P1 | **Differentiator** | Safe, simple kid-facing surface to add things they'd like to do with a parent. Flips the dynamic so connection isn't only mom's labour. |
-| Schedule a wish → calendar | P1 | — | Mom turns a wish into a scheduled "together time" on the in-app calendar. |
-| Playdate / together-time reminder | P1 | **Differentiator** | Reminder fires (push + opt-in WhatsApp) ahead of the scheduled time, with a tip on how to make it special. See §7. |
-| In-app calendar view | P1 | — | See upcoming together-times and activities. |
+Florie's 22 foundational-learning games, playable by mother and child together on
+one phone, on four shelves:
 
-### 5.7 Reminders & Nudges
+| Shelf | Games | Covers |
+|---|---|---|
+| Maths | 5 | Subitising → ten-frames → number bonds → missing part → number line |
+| Reading | 11 | Phonemic awareness → letter formation → blending → segmenting → digraphs → split digraph → tricky words → fluency |
+| Feelings | 3 | Naming feelings, reading faces, spotting emotion in a scene |
+| Focus & mind | 3 | Self-regulation, breathing, inhibitory control |
 
-| Feature | Priority | Type | Description |
-|---------|----------|------|-------------|
-| Gentle daily nudge | P0 | — | A *kind*, non-shaming push to read today's card / do a small thing. Tone is critical (see below). |
-| Activity reminder | P1 | — | Nudge to do a chosen activity, with the "how." |
-| WhatsApp reminders (opt-in) | P1 | **Differentiator** | Playdate + activity reminders on WhatsApp for moms who live there. Utility templates only. See §7. |
-| Quiet hours / frequency control | P0 | **Required** | Mom controls timing + frequency. Prevents nag-fatigue and uninstalls. |
+The games are a web app **bundled inside Momzo** — offline, instant, no hosting.
+The mother drives: a control strip offers **Again · Easier · Harder · Next**, and
+nothing auto-advances. That is deliberate — the software never advances the
+child; the grown-up decides.
 
-> **Tone rule (applies to all nudges):** No streak-shaming, no guilt. Celebrate
-> small wins ("you connected 3 days this week 🌱"); never punish a miss. A parenting
-> app that makes a tired mom feel worse will be deleted.
+Ages 5–6 today; the section is hidden entirely for families with no child that
+age. Age and shelf are data, so widening either is a row, not a release.
 
-### 5.8 Progress & Continuity
+### 4.7 Kid wish wall & scheduling — **Partial**
 
-| Feature | Priority | Type | Description |
-|---------|----------|------|-------------|
-| Gentle streak / consistency | P1 | — | Soft, encouraging consistency indicator. Never harsh. |
-| Memory Timeline | P1 | **Differentiator** | Scrollable, private feed of photos/notes from activities + milestones. Emotional, sticky, treasured. |
-| Milestone log | P1 | — | Capture developmental wins; builds a keepsake record. |
-| Weekly recap | P1 | — | "Here's what you learned + did, here's one small thing to try next week." |
+The child adds wishes for time together; the parent turns one into a scheduled
+together-time, which creates a push reminder. An in-app calendar shows what's
+coming.
 
-### 5.9 Family Sharing
+*Gap:* Kid Mode has **no parent gate** — the lock badge is a back button. The
+spec calls for a parent unlock before handing the phone over.
 
-| Feature | Priority | Type | Description |
-|---------|----------|------|-------------|
-| Co-parent / caregiver invite | P2 | — | Invite dad/grandparent to share a child profile and take part. |
+### 4.8 Reminders & nudges — **Built**
 
-### 5.10 Community (explicitly deferred)
+A gentle daily nudge at the mother's chosen slot, honouring quiet hours,
+dispatched by a scheduled job every 15 minutes and idempotent by construction —
+it can never double-send. Activity and playdate reminders ride the same path.
 
-| Feature | Priority | Type | Description |
-|---------|----------|------|-------------|
-| Mom community / forum | P2 → **Out of Scope for now** | — | A forum risks recreating the social-media overwhelm Momzo exists to escape. If ever built: expert-moderated and small. See §13. |
+No guilt, no streak-shaming, ever.
 
----
+*Gap:* the app registers for push but has no handler, so tapping a notification
+opens the app without going anywhere specific.
 
-## 6. AI & Knowledge Layer
+### 4.9 Progress & continuity — **Partial**
 
-This is the heart of the product's trust, and the part most likely to cause harm if
-built naively. **The AI must not freelance parenting/medical advice from a raw model.**
+- **Memory Timeline** — activity photos and notes, and milestones, as a private
+  keepsake served through short-lived signed URLs. *Gap: nothing in the app ever
+  writes a milestone, so that half is always empty.*
+- **Weekly recap** — what the week held, days connected, a warm reflection, and
+  one small thing to try next. Rule-based, never an LLM.
+- **Gentle streak** — encouragement only. Never punishes a miss.
 
-### 6.1 Retrieval-Augmented (grounded) design
+### 4.10 The Circle (community) — **Planned**
 
-- Maintain a **curated knowledge base** of vetted child-development/psychology
-  content (the same source material that feeds the daily cards). Store as chunked
-  text with embeddings in **pgvector** inside Supabase.
-- On each question: embed the question, retrieve the top-K relevant vetted chunks,
-  and pass them to the LLM with the child's profile (age, temperament, struggles)
-  and a strict system prompt: *answer only from the provided material + general
-  well-established developmental knowledge; if the material doesn't cover it, say so;
-  keep it warm, concrete, and short.*
-- **Cite the source** of the answer in the UI ("based on Momzo's guide on big
-  emotions") to build trust and discourage hallucination.
+Un-deferred from v1.0. Threads and replies, no DMs, no images, no algorithmic
+feed. Categories along the lines of *Ask the Circle · Wins · Big feelings ·
+School & learning · Just chatting*.
 
-### 6.2 Model routing (cost + quality)
+Identity is a chosen display name and emoji avatar — never the account name.
+A report button on everything, auto-hide at a threshold pending review, a pinned
+resources post, and a "someone may need help" reason that reaches a moderator
+with priority. The app never auto-deletes a struggling mother's post.
 
-- **Default model: Gemini 3.5 Flash** (fast, cheap) for ordinary questions and
-  situational scripts.
-- **Escalate to a stronger model** (Claude Sonnet-class / GPT-mid) when the query is
-  flagged sensitive, emotionally heavy, or low-confidence from retrieval.
-- Use **prompt caching** for the large static system prompt to cut cost.
-- All calls go through an **Edge Function** — keys never touch the app.
+Sequenced last on purpose: it is the one feature with a standing operational
+cost, and it launches best into an audience that already exists.
 
-### 6.3 Safety guardrails (P0, non-negotiable)
+### 4.11 Content Hub — **Planned**
 
-- **Refer-out classifier:** detect signals of (a) possible developmental delay /
-  clinical concern, (b) child-safety / abuse / self-harm, (c) medical issues. On
-  detection, the AI does **not** attempt to advise — it responds with warmth and
-  directs to the appropriate professional (pediatrician, child psychologist, local
-  helpline). Log the event (without sensitive content) for review.
-- **No diagnosis.** The AI never diagnoses the child. It can describe and suggest
-  when to seek a professional opinion.
-- **Scope fence:** the AI stays on child-development/parenting topics; politely
-  declines off-topic or unsafe requests.
-- **Child-directed safety:** if any AI surface is ever exposed to the child, it is
-  separately locked to age-appropriate, safe behavior. (For MVP, AI is mom-facing only.)
+Every tip Florie publishes on Instagram or Facebook, also inside the app, as a
+browsable library alongside the personalised daily card. Read-only with a light
+reaction; discussion belongs in the Circle, so a post can link to its thread
+rather than growing a second comment system.
 
-### 6.4 Cost control
+### 4.12 Learning-games dashboard — **Planned**
 
-- Cap `max_output_tokens`; situational scripts are short by design.
-- Cache the system prompt; retrieve tightly (small K).
-- Rate-limit per user (e.g. soft cap with friendly messaging) to prevent abuse and
-  runaway cost.
-- Target **< $0.10 AI cost per active user per month** (see Build Guide cost model).
+For the mother, never the child. Which games were played, together-time by
+category, and progress expressed in the games' own vocabulary — *got it first
+time / wanted another look / still exploring* — always **compared only to the
+child's own earlier sessions**. A skill reads as secure only after showing up on
+two different days.
+
+Recommendations are rule-based, in priority order: profile match, then ladder
+order, then least-played category, then games started but not finished.
+
+Hard tone rules: never peers, never percentiles, never "behind". A dip is "still
+growing 🌱". The last thing on the screen is always something that went well.
+
+### 4.13 Family sharing — **Partial**
+
+Co-parent and caregiver access. Schema exists; the multi-member policy work sits
+on an unmerged branch.
+
+### 4.14 Cancelled
+
+- **WhatsApp reminders.** Push works, costs nothing, and needed no template
+  approval or per-message billing. Recorded in ADR 006.
+- **Task-and-reward / chore charts.** Raised, considered, and declined: a points
+  system cuts against the no-guilt principle. A warm version could be revisited,
+  but not as a compliance tracker.
 
 ---
 
-## 7. Notifications & Reminders
+## 5. AI & knowledge layer
 
-### 7.1 Channels
+**Models.** Embeddings on Google Gemini `gemini-embedding-001` (768-dim).
+Generation on Mistral — `mistral-small-latest` by default, escalating to
+`mistral-medium-latest` only when retrieval similarity is low or the question
+screens as sensitive.
 
-1. **Push (FCM) — primary, free.** All reminders/nudges default here.
-2. **WhatsApp (opt-in) — differentiator.** For the mom who lives on WhatsApp,
-   playdate + activity reminders can be delivered there.
+**Grounding.** Answers come from vetted content only, and cite it. The corpus is
+124 cards and 973 embeddings, including 72 original note sets distilled from 25
+reference books in Momzo's own voice.
 
-> **Build push first.** It fully validates the reminder loop at zero marginal cost.
-> WhatsApp is an enhancement (P1), not a dependency.
+**Safety ordering is a product decision, not an implementation detail.** The
+refer-out screen is cheap and runs *before* the rate limit and *before* the
+budget breaker. A mother in a hard moment can never hit a cost-shaped wall — and
+because the screen is rule-based, it works even if the model is completely down.
 
-### 7.2 WhatsApp specifics (built from current Meta rules)
+**Cost control.** Cheap-by-default routing, capped output, small-K retrieval, a
+per-user rate limit, prompt-prefix caching, a semantic answer cache shared across
+families in the same bucket, and a daily budget circuit breaker.
 
-- Requires your own **WhatsApp Business Account (WABA)** and the **WhatsApp Cloud
-  API** (the on-prem option is gone). You can integrate Cloud API directly or via a
-  BSP (e.g. Twilio) that adds tooling for a per-message markup.
-- **Reminders must be sent as pre-approved *utility* templates** (transactional),
-  **never marketing.** Utility is dramatically cheaper and, in India, a small
-  fraction of a cent per message. A template mis-categorized as marketing costs far
-  more and can be reclassified by Meta.
-- Each template must be **submitted and approved** in Meta Business Manager before
-  use. Build a small set: playdate reminder, activity reminder, weekly recap nudge.
-- **Opt-in is required.** Capture explicit consent to message on WhatsApp; store it;
-  honor opt-out.
-- Personalization (child name, time) goes in template variables.
+**Privacy.** The child's name is never fetched for the AI call, let alone sent.
+The cache refuses to store an answer containing it.
 
-### 7.3 Scheduling
-
-- A **`pg_cron`** job runs on a schedule and invokes a **"send-due-reminders" Edge
-  Function**, which queries reminders due in the window and dispatches push and/or
-  WhatsApp. Idempotent (mark sent; never double-send).
+**On-device AI — Partial.** A risk-aware router (green / amber / red) with a real
+Gemini Nano path on Android and silent cloud fallback everywhere else. Red is
+always cloud. Today the native bridge reports no confidence score, so only
+low-risk game content can run on-device; everything else falls back by
+construction. iOS is not built.
 
 ---
 
-## 8. Data Models
+## 6. Notifications
 
-Pseudo-schema; close enough to generate Postgres migrations. **Every table has RLS**
-(see §9 and Build Guide). `created_at`/`updated_at` timestamps assumed on all tables.
+**Push only.** One channel, free, idempotent, quiet-hours aware. A daily nudge at
+the chosen slot, plus reminders for scheduled together-times.
 
-### users (Supabase auth.users is source of truth; profile extends it)
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK = auth.users.id |
-| display_name | text | |
-| role | text | 'parent' default; reserved for future |
-| whatsapp_number | text | nullable; E.164 |
-| whatsapp_opt_in | bool | default false |
-| timezone | text | for scheduling |
-| quiet_hours | jsonb | { start, end } |
-
-### children
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK |
-| owner_id | uuid | FK users.id (the creating parent) |
-| name | text | |
-| age | int | 6–10 (validated) |
-| temperament | text[] | e.g. {shy, anxious} |
-| struggles | text[] | current focus areas |
-| avatar | text | optional |
-
-### family_members (co-parent sharing — P2)
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK |
-| child_id | uuid | FK children.id |
-| user_id | uuid | FK users.id |
-| relationship | text | 'parent','coparent','grandparent' |
-| invited_by | uuid | FK users.id |
-| status | text | 'invited','active' |
-
-### content_cards (daily reads / slides + knowledge source)
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK |
-| title | text | |
-| body | text | markdown |
-| slides | jsonb | optional carousel [{image,text}] |
-| age_min / age_max | int | targeting |
-| tags | text[] | topics / struggles it addresses |
-| why_it_matters | text | the "behavior at home" tie-in |
-| source | text | attribution for trust |
-| published | bool | |
-
-### content_embeddings (RAG)
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK |
-| card_id | uuid | FK content_cards.id |
-| chunk | text | |
-| embedding | vector | pgvector |
-
-### daily_assignments (which card a child sees each day)
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK |
-| child_id | uuid | FK children.id |
-| card_id | uuid | FK content_cards.id |
-| date | date | |
-| read_at | timestamp | nullable |
-| saved | bool | |
-
-### activities
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK |
-| title | text | |
-| steps | jsonb | ordered steps |
-| skill | text | focus/regulation/confidence/motor |
-| age_min / age_max | int | |
-| duration_min | int | 5/15/30 buckets |
-| location | text[] | indoor/outdoor/car/kitchen |
-| materials | text[] | |
-
-### activity_logs
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK |
-| child_id | uuid | FK children.id |
-| activity_id | uuid | FK activities.id |
-| user_id | uuid | who did it |
-| completed_at | timestamp | |
-| photo_url | text | nullable (Supabase Storage) |
-| note | text | nullable |
-
-### ai_conversations / ai_messages
-| Field | Type | Notes |
-|-------|------|-------|
-| conversation.id | uuid | PK |
-| conversation.user_id | uuid | FK |
-| conversation.child_id | uuid | FK (context) |
-| conversation.mode | text | 'qa' / 'situational' |
-| message.id | uuid | PK |
-| message.conversation_id | uuid | FK |
-| message.role | text | 'user'/'assistant' |
-| message.content | text | |
-| message.cited_card_ids | uuid[] | for source display |
-| message.flagged | text | nullable: 'refer_out' etc. |
-
-### questions (shared question of the day + quizzes)
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK |
-| type | text | 'daily'/'know_each_other'/'game' |
-| prompt | text | |
-| options | jsonb | nullable |
-| age_min/age_max | int | |
-
-### question_responses
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK |
-| question_id | uuid | FK |
-| child_id | uuid | FK |
-| respondent | text | 'parent'/'child' |
-| answer | text/jsonb | |
-| answered_at | timestamp | |
-
-### wishes (kid wish wall)
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK |
-| child_id | uuid | FK |
-| text | text | what they'd like to do |
-| created_by | text | 'child'/'parent' |
-| status | text | 'open'/'scheduled'/'done' |
-
-### scheduled_events (calendar)
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK |
-| child_id | uuid | FK |
-| wish_id | uuid | nullable FK |
-| activity_id | uuid | nullable FK |
-| title | text | |
-| starts_at | timestamp | |
-| tip | text | "how to make it special" |
-
-### reminders
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK |
-| user_id | uuid | FK |
-| event_id | uuid | nullable FK scheduled_events |
-| type | text | 'nudge'/'activity'/'playdate'/'recap' |
-| channel | text | 'push'/'whatsapp' |
-| send_at | timestamp | |
-| sent_at | timestamp | nullable (idempotency) |
-| template_name | text | for WhatsApp utility template |
-
-### milestones
-| Field | Type | Notes |
-|-------|------|-------|
-| id | uuid | PK |
-| child_id | uuid | FK |
-| title | text | |
-| note | text | |
-| photo_url | text | nullable |
-| date | date | |
-
-### Relationships (summary)
-- A `user` owns many `children`; a `child` can have many `family_members` (P2).
-- A `child` has many `daily_assignments`, `activity_logs`, `question_responses`,
-  `wishes`, `scheduled_events`, `milestones`.
-- A `content_card` has many `content_embeddings`.
-- A `reminder` optionally references a `scheduled_event`.
+Copy obeys the tone rule absolutely: celebrate small wins, never punish a miss,
+never imply falling behind.
 
 ---
 
-## 9. Auth & Permissions
+## 7. Data model
 
-### Roles
-| Role | Who | Permissions |
-|------|-----|-------------|
-| Parent (owner) | Mom who created the account | Full control of her account, her children, and all related rows. |
-| Co-parent (P2) | Invited caregiver | Access to the shared child profile and its activities/bonding rows; cannot delete the child or remove the owner. |
-| Child | Uses a parent's device | **No separate login in MVP.** Reaches the wish-wall/quiz via a parent-unlocked "kid mode" on the parent's session. No independent account, minimal data. |
+27 tables, RLS on every one, in three patterns:
 
-### Auth flow
-- Supabase Auth, email + Google/Apple social login. Short-lived JWT + refresh.
-- **RLS on every table**, scoped by ownership/membership (see Build Guide for the
-  exact, performance-safe policy patterns — this is where apps leak data or get slow).
-- Kid mode is a client-side gated view operating under the parent's session; it can
-  only write `wishes` and `question_responses` for that family.
+- **Family-isolated (19)** — one family's rows, owner-only: children, consents,
+  daily assignments, activity logs, AI conversations and messages, AI usage,
+  question responses, wishes, scheduled events, reminders, milestones, device
+  tokens, saved cards, onboarding state, and both games' play history.
+- **Shared reference (6)** — readable by any signed-in parent, writable by none:
+  content cards, activities, questions, and both game catalogues.
+- **Server-only (2)** — content embeddings and the answer cache, reachable only
+  by the service role inside an Edge Function.
 
----
-
-## 10. Privacy & Child-Safety Compliance
-
-Momzo handles data *about children*, which triggers special obligations. Bake these
-in from day one — retrofitting is painful.
-
-- **Parent-owned, consent-based child data.** The child has no independent account;
-  the parent creates and owns the child profile and consents to processing. This
-  aligns with India's **DPDP Act** (verifiable parental consent for processing
-  children's data; no behavioral monitoring or targeted advertising directed at
-  children) and **COPPA**-style rules if you launch in the US.
-- **Data minimization.** Collect only what features need. No precise location. No
-  third-party ad SDKs targeting children — Momzo shows no ads to children, ever.
-- **No selling data.** State this plainly in the privacy policy.
-- **Photos/notes are private** to the family by default (Storage private buckets +
-  signed URLs).
-- **AI logs** store metadata and flags but minimize storage of sensitive free text;
-  define a retention policy.
-- **Right to delete.** A parent can delete the child profile and all associated data.
-- **Decide launch geography early** — it determines which regime is primary. (Open
-  question for Florie: India-first, or India + others?)
+Any table holding child data joins the delete-child cascade in the same change
+that creates it.
 
 ---
 
-## 11. Non-Functional Requirements
+## 8. Auth & permissions
 
-| Requirement | Specification |
-|-------------|--------------|
-| Performance | App cold-start to usable < 3s on mid-range Android over 4G. Typical DB query p95 < 50ms (enforced via indexes + lean RLS). AI first-token < 2s. |
-| Scalability | Designed for 100k+ MAU without architectural change: stateless Edge Functions, transaction-pooled DB connections, RLS-protected client reads. See Build Guide. |
-| Reliability | Reminders are idempotent (never double-send). Scheduled jobs retried on failure. |
-| Security | RLS on all tables; service-role key server-side only; secrets in Edge Function env, never in app; all template/LLM/WhatsApp calls server-side. |
-| Cost safety | Per-user AI rate limits; utility-only WhatsApp templates; push-first reminders. Cost model in Build Guide. |
-| Offline | Read-only cache of today's card + saved content; graceful offline messaging. (Full offline sync is out of scope.) |
-| Observability | Slow-query monitoring (`pg_stat_statements`), error tracking, AI cost + refer-out dashboards. |
-| Accessibility | Large tap targets, readable type, voice input (P1); usable one-handed. |
+Email sign-up and sign-in, with Google and Apple coded and awaiting credentials.
+The child has **no independent account** — all data is parent-owned and
+consent-gated, enforced by a database trigger that blocks child creation until a
+consent record exists.
 
 ---
 
-## 12. Monetization
+## 9. Privacy & child safety
 
-> **Open question for Florie — flagged, not assumed.** I've specced a **freemium**
-> model as the most natural fit, but you haven't decided, so treat this as a
-> proposal. It mainly affects feature-gating and whether to add billing in Phase 1
-> (recommendation: **don't** — validate retention first, add billing in a later phase).
+Non-negotiable, and mostly enforced by the database rather than by app code:
 
-### Proposed tiers
-| Tier | Price | Includes |
-|------|-------|----------|
-| Free | ₹0 | Daily card, limited AI questions/day, basic activities, shared question of the day. Enough to form the habit. |
-| Momzo+ | small monthly | Unlimited AI, full activity + game library, memory timeline, weekly recap, WhatsApp reminders, multiple children, co-parent sharing. |
-
-### Payment stack (when added)
-- In-app purchase via Apple/Google (required for digital subscriptions on mobile).
-- Gate features by tier in app + enforce server-side in Edge Functions / RLS.
+- Child data is parent-owned, consent-first
+- No ads, no third-party tracking aimed at children, no precise location
+- Photos in a private bucket, served via short-lived signed URLs
+- **Delete-my-child-and-all-data** — a transactional cascade with verified zero
+  residual rows
+- No child identifier reaches any model
+- Cross-family isolation proven by a test suite that fails the build if a new
+  table ships untested
 
 ---
 
-## 13. Out of Scope (this version)
+## 10. Monetisation — **Planned**
 
-Conscious cuts to protect stability, timeline, and focus. Deferred to v2+:
+| Tier | Includes |
+|---|---|
+| Free | Daily card, limited AI, basic activities, question of the day |
+| Momzo+ | Unlimited AI, full activity and game libraries, memory timeline, weekly recap, multiple children, co-parent sharing |
 
-### Deferred features
-- **Mom community / forum** — risks recreating the social-media overwhelm Momzo
-  exists to escape. Revisit only as small + expert-moderated.
-- **Audio "letters"** between mom and child (P2).
-- **Co-parent / caregiver sharing** (P2) — adds invite flows + multi-user RLS
-  complexity; not needed to prove the core mom loop.
-- **Voice input for AI** (P1, but after text works well).
-- **Web app** — this is a phone product; a marketing landing page is enough.
-- **Therapist/expert marketplace, video courses, professional booking.**
-- **Wearables, smart-home, or device-level screen-time control** (that's a different
-  product).
-
-### Deferred polish
-- Dark mode, elaborate animations, custom illustration sets, gamified avatars/mascot.
-
-### Deferred scale/ops
-- Full offline sync, localization/multi-language, multi-region DB, advanced caching
-  layers, in-house content CMS (seed content via migrations/admin scripts at first).
-
-### Deferred monetization
-- Subscriptions/billing — add after retention is proven.
+In-app purchase via Apple and Google. Gated in the app **and** enforced
+server-side. Deferred until retention is proven.
 
 ---
 
-## 14. Build Phasing
+## 11. Roadmap
 
-This sequencing is how "all the features" gets built **without** producing an
-unstable 20-feature blob. Each phase is shippable and testable.
-
-**Phase 0 — Foundation (no user-visible features yet)**
-Auth, child profile schema, RLS on every table (correct + indexed), Edge Function
-scaffold, secrets, push (FCM) wiring, observability. *Get the skeleton right; this is
-what prevents crashes later.*
-
-**Phase 1 — Core loop (P0) → first real users**
-Onboarding + child profile · daily card with "why it matters" · grounded AI Q&A +
-situational mode + safety escalation · activities with time filter + "did it" ·
-shared question of the day · gentle daily nudge (push) + quiet hours.
-*This validates the hypothesis. Ship to a small group of real moms here.*
-
-**Phase 2 — Completeness (P1)**
-Know-each-other quiz + games library · kid wish wall + scheduling + calendar ·
-WhatsApp reminders (utility templates) · memory timeline · milestones · weekly recap
-· save/library · multiple children · gentle streak.
-
-**Phase 3 — Expansion (P2)**
-Co-parent sharing · audio letters · voice input · (and only if validated) a small,
-moderated community.
-
-**Cross-cutting, every phase:** keep RLS correct + indexed, keep AI grounded +
-guard-railed, keep reminders idempotent, watch AI cost and DB connections.
+| Phase | Contents | Status |
+|---|---|---|
+| 0 | Foundation, auth, RLS, consent, push, erasure | ✅ Done |
+| 1 | Onboarding, daily card, AI expert, activities, question of the day, nudges | ✅ Done |
+| 2 | Multi-child, library, bonding games, wish wall, calendar, timeline, recap, streak | ✅ Done |
+| B | Learning games | ✅ Done |
+| C | Content Hub | Planned |
+| D | Learning-games dashboard | Planned |
+| E | The Circle | Planned |
+| 3 | Co-parent sharing · audio letters · billing | Partial / planned |
 
 ---
 
-*End of PRD. Pair this with `Momzo_BuildGuide.md` for the stack rationale, the
-exact scaling rules, the repo layout, the cost model, and the pre-launch checklist.*
+## 12. Pre-launch blockers
+
+None of these are feature work, and all of them gate a real launch:
+
+1. **COPPA verifiable parental consent.** The app records a checkbox. The gate
+   and audit trail exist; the *method* is not sufficient for a US launch.
+2. **Privacy policy** is a draft and needs a lawyer, then publishing.
+3. **Email auth runs with auto-confirm on** — re-enable confirmation, or make
+   Google sign-in primary.
+4. **Confirm the Mistral account is on the paid tier.** The free tier trains on
+   prompts by default.
+5. **Firebase** was recreated in August 2026; push works, but the original
+   project is unrecoverable.
+6. **Rotate credentials** exposed during the August rebuild.
+
+## 13. Known gaps
+
+Worth fixing before real users, none of them blocking:
+
+- Kid Mode has no parent gate
+- Nothing writes milestones
+- Push has no tap handler
+- The child's name is never re-inserted into AI answers
+- Widespread silent error handling shows sample data on failure
+- Thin app-level test coverage — the AI router is well tested, the 22 services
+  are not
+
+---
+
+## 14. Out of scope
+
+Web app · therapist marketplace · video courses · professional booking ·
+open-ended child-to-child interaction of any kind.
+
+---
+
+*End of PRD v2.0. The Hard Rules in the Build Guide §6 outrank anything here.*

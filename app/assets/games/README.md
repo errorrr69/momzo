@@ -37,10 +37,21 @@ Both are invisible until they break, and both fail as a blank screen:
 
 - **`base: './'`** in `vite.config.ts` — relative asset paths. The Vite default
   emits `/assets/...`, which under `file://` resolves to the filesystem root.
+- **A classic script, not an ES module.** The bundle builds as an IIFE and a
+  small `transformIndexHtml` plugin rewrites the entry tag to `<script defer>`.
+  Module scripts are subject to CORS and a `file://` document has an opaque
+  origin, so Chromium — including Android's WebView — refuses to execute them.
+  Vite stamps `type="module"` on regardless of rollup's output format, so
+  changing the format alone is not enough. The CSS folds into the bundle as a
+  result, which is one fewer file for a serverless page to fetch.
 - **Router chosen by protocol** in `main.tsx` — `HashRouter` under `file://`,
   `BrowserRouter` over http(s). `file://` has no History API, so BrowserRouter
   cannot route. Doing it by protocol keeps one build serving both, and leaves
   the live teaching URLs (`/teacher`, `/join/ABCD`) unchanged.
+
+All three fail the same way — a page that loads and renders nothing — so if the
+games ever go blank again, check these first. The player logs WebView console
+output under `games.webview`, which is the fastest way to tell them apart.
 
 ## Provenance
 
@@ -48,7 +59,7 @@ Both are invisible until they break, and both fail as a blank screen:
 |---|---|
 | Source | `errorrr69/games-for-5-6yr-olds` |
 | Branch | `feat/together-mode` |
-| Commit | `72c77f8` |
+| Commit | `251d482` |
 | Built | 2026-08-15 |
 
 Update this table whenever the bundle is regenerated — it is the only record of

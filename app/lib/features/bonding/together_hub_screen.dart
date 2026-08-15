@@ -3,10 +3,12 @@ import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../services/child_service.dart';
+import '../../services/learning_game_service.dart';
 import '../../services/question_service.dart';
 import 'daily_question_screen.dart';
 import 'games/mini_games_gallery_screen.dart';
 import 'quiz_flow_screen.dart';
+import '../learning_games/screens/learning_games_screen.dart';
 import '../wishes/wish_wall_screen.dart';
 import '../wishes/calendar_screen.dart';
 
@@ -22,12 +24,28 @@ class _TogetherHubScreenState extends State<TogetherHubScreen> {
   String _prompt = 'If our family was an animal, which one would we be?';
   String _status = 'Tap to answer together';
 
+  /// Whether any child in this family is an age the learning games suit.
+  /// Asked of the catalog rather than hardcoded, so a new age band is data.
+  bool _hasLearningGames = false;
+
   String get _childName => ChildService.current?.name ?? 'Aarav';
 
   @override
   void initState() {
     super.initState();
-    if (AppEnv.hasSupabase && ChildService.current != null) _load();
+    if (AppEnv.hasSupabase && ChildService.current != null) {
+      _load();
+      _checkLearningGames();
+    }
+  }
+
+  Future<void> _checkLearningGames() async {
+    try {
+      final available = await LearningGameService.availableForAnyChild();
+      if (mounted && available) setState(() => _hasLearningGames = true);
+    } catch (_) {
+      // Stays hidden. A missing shelf is a better failure than a broken one.
+    }
   }
 
   Future<void> _load() async {
@@ -158,6 +176,23 @@ class _TogetherHubScreenState extends State<TogetherHubScreen> {
                   MaterialPageRoute(builder: (_) => const MiniGamesGalleryScreen()),
                 ),
               ),
+              // Only shown when the family has a child the games actually suit.
+              // No teaser and no "coming soon" for an older sibling: the section
+              // simply isn't there (Expansion Plan §3.2).
+              if (_hasLearningGames) ...[
+                const SizedBox(height: 12),
+                _row(
+                  context,
+                  emoji: '🧠',
+                  colors: const [MomzoColors.honey, Color(0xFFF6C86B)],
+                  title: 'Learning games',
+                  sub: 'Maths, reading, feelings & focus',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LearningGamesScreen()),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               _row(
                 context,

@@ -25,6 +25,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     [Color(0xFF9CCAD6), MomzoColors.sky],
     [Color(0xFFC9B6EC), MomzoColors.lavender],
     [Color(0xFFF6C9A0), MomzoColors.honey],
+    [Color(0xFFE3BFD2), MomzoColors.coral],
   ];
 
   List<ContentCard> _saved = [];
@@ -186,7 +187,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Widget _topicGrid() {
-    final groups = LibraryService.topicGroups;
+    const groups = LibraryService.topicGroups;
     final rows = <Widget>[];
     for (var i = 0; i < groups.length; i += 2) {
       rows.add(Row(
@@ -212,7 +213,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => CardListScreen(
-              topicLabel: g.label, tags: g.tags, emoji: g.emoji, intro: g.intro),
+              topicLabel: g.label, category: g.category, emoji: g.emoji, intro: g.intro),
         ),
       ),
       child: Container(

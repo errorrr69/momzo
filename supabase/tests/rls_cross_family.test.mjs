@@ -65,7 +65,7 @@ const FAMILY_TABLES = [
 //   patch — an UPDATE an authenticated user must NOT be able to apply
 const SHARED_TABLES = [
   { table: 'content_cards', key: 'id',   read: () => g.cardId,
-    write: () => ({ id: randomUUID(), title: 'Nope', body: 'x', published: true }),
+    write: () => ({ id: randomUUID(), title: 'Nope', main_read: 'x', published: true }),
     patch: { title: 'HACKED' } },
   { table: 'activities',    key: 'id',   read: () => g.activityId,
     write: () => ({ id: randomUUID(), title: 'Nope' }),
@@ -170,7 +170,7 @@ test.before(async () => {
   await deleteTestUsers();
   await deleteGlobals();
 
-  await ins('content_cards', { id: g.cardId, title: 'Card', body: 'b', published: true });
+  await ins('content_cards', { id: g.cardId, title: 'Card', main_read: 'b', published: true });
   await ins('activities', { id: g.activityId, title: 'Activity' });
   await ins('questions', { id: g.questionId, type: 'daily', prompt: 'Q?' });
   await ins('games', { slug: g.gameSlug, title: 'Test Game', type: 'question' });

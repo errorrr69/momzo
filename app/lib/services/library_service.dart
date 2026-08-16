@@ -14,16 +14,27 @@ class LibraryService {
   /// (the Learn tab is kept alive in the shell, so it won't rebuild on its own).
   static final ValueNotifier<int> savedRevision = ValueNotifier<int>(0);
 
-  /// Curated topic groups (display label -> the card tags they cover, + an emoji
-  /// and a short intro phrase for the category page).
-  static const List<({String label, List<String> tags, String emoji, String intro})>
+  /// The columns the app may read. Spelled out because `concept_basis` is internal
+  /// (00_CARD_SPEC §6) and revoked from `authenticated` — `*` now fails rather than
+  /// leaking it.
+  static const _cardColumns =
+      'id, title, summary, why_it_matters, main_read, activity, '
+      'category, subtopic, tags, source';
+
+  /// The seven shelves (00_CARD_SPEC §3) — one browse group per category.
+  ///
+  /// These used to be hand-curated tag bundles over the old corpus, which meant the
+  /// browse structure and the content structure could drift apart silently. Now a
+  /// group IS a category, so the library cannot show a shelf the cards don't have.
+  static const List<({String label, String category, String emoji, String intro})>
       topicGroups = [
-    (label: 'Big emotions', tags: ['emotional', 'feelings'], emoji: '😣', intro: 'riding big feelings'),
-    (label: 'Behaviour', tags: ['behavior', 'self-control', 'discipline'], emoji: '🧩', intro: 'gentle limits & cooperation'),
-    (label: 'Milestones', tags: ['milestones', 'development'], emoji: '🌱', intro: 'how they grow'),
-    (label: 'Screen time', tags: ['screen-time', 'digital'], emoji: '📱', intro: 'healthy screen habits'),
-    (label: 'Reading', tags: ['reading', 'literacy'], emoji: '📚', intro: 'a love of reading'),
-    (label: 'Temperament', tags: ['temperament'], emoji: '🌈', intro: 'their unique nature'),
+    (label: 'Big feelings', category: 'big-feelings', emoji: '😣', intro: 'riding the big ones'),
+    (label: 'Focus & attention', category: 'focus-attention', emoji: '🎯', intro: 'listening and settling'),
+    (label: 'Confidence', category: 'confidence-independence', emoji: '🌱', intro: 'trying hard things'),
+    (label: 'Connection', category: 'connection-bonding', emoji: '💛', intro: 'closeness and repair'),
+    (label: 'Learning', category: 'learning-curiosity', emoji: '📚', intro: 'curiosity and early skills'),
+    (label: 'Getting along', category: 'getting-along', emoji: '🤝', intro: 'sharing and friendships'),
+    (label: 'Everyday routines', category: 'everyday-routines', emoji: '🌙', intro: 'sleep, mornings, meals'),
   ];
 
   /// The set of card ids the parent has saved (for bookmark state).
@@ -57,7 +68,7 @@ class LibraryService {
     if (AuthService.currentUser == null) return [];
     final rows = await supabase
         .from('saved_cards')
-        .select('content_cards(id,title,body,tags,why_it_matters,source,hook,quick_points,try_this)')
+        .select('content_cards($_cardColumns)')
         .order('created_at', ascending: false);
     return [
       for (final r in rows as List)
@@ -66,27 +77,27 @@ class LibraryService {
     ];
   }
 
-  /// Card counts per topic group (one query, counted client-side).
+  /// Card counts per shelf (one query, counted client-side).
   static Future<Map<String, int>> topicCounts() async {
     final rows =
-        await supabase.from('content_cards').select('tags').eq('published', true);
-    final all = [
-      for (final r in rows as List) List<String>.from(r['tags'] ?? const <String>[])
-    ];
-    final counts = <String, int>{};
-    for (final g in topicGroups) {
-      counts[g.label] = all.where((ct) => ct.any(g.tags.contains)).length;
+        await supabase.from('content_cards').select('category').eq('published', true);
+    final counts = <String, int>{for (final g in topicGroups) g.label: 0};
+    for (final r in rows as List) {
+      final cat = r['category'] as String?;
+      for (final g in topicGroups) {
+        if (g.category == cat) counts[g.label] = (counts[g.label] ?? 0) + 1;
+      }
     }
     return counts;
   }
 
-  /// Published cards in a topic (by overlapping tags), alphabetical.
-  static Future<List<ContentCard>> cardsByTags(List<String> tags) async {
+  /// Published cards on one shelf, alphabetical.
+  static Future<List<ContentCard>> cardsByCategory(String category) async {
     final rows = await supabase
         .from('content_cards')
-        .select('id,title,body,tags,why_it_matters,source,hook,quick_points,try_this')
+        .select(_cardColumns)
         .eq('published', true)
-        .overlaps('tags', tags)
+        .eq('category', category)
         .order('title');
     return [for (final r in rows as List) ContentCard.fromMap(r as Map<String, dynamic>)];
   }

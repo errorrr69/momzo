@@ -3,13 +3,19 @@ import 'package:flutter/material.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_buttons.dart';
+import '../../core/widgets/try_this_tonight.dart';
+import '../../core/widgets/why_it_matters.dart';
 import '../../models/content_card.dart';
+import '../../services/child_service.dart';
 import '../../services/library_service.dart';
 
-/// Topic reader (Learn redesign) — leads with scannable pieces so a busy mom gets
-/// the gist fast: a hook, a 3-point "quick version", and a "try this tonight". The
-/// full article sits below for anyone who wants the depth. Falls back to the body
-/// when the quick-read fields aren't generated yet. Bookmark via saved_cards.
+/// Topic reader — renders a saved or browsed card in the same fixed structure as
+/// the daily card (00_CARD_SPEC §7): title → summary → why this matters →
+/// main_read → try this tonight. Bookmark via saved_cards.
+///
+/// It used to reconstruct a readable shape from scraped article text (a generated
+/// hook, three generated bullets, a "full read" fallback). The cards now arrive in
+/// that shape, so there is nothing to reconstruct.
 class CardReaderScreen extends StatefulWidget {
   final ContentCard card;
   final bool initiallySaved;
@@ -20,6 +26,9 @@ class CardReaderScreen extends StatefulWidget {
 }
 
 class _CardReaderScreenState extends State<CardReaderScreen> {
+  /// The callout is addressed to the child by name, exactly as on the daily card.
+  String get _childName => ChildService.current?.name ?? 'your child';
+
   late bool _saved = widget.initiallySaved;
   bool _busy = false;
   final _scroll = ScrollController();
@@ -105,51 +114,36 @@ class _CardReaderScreenState extends State<CardReaderScreen> {
                           color: MomzoColors.ink,
                           weight: FontWeight.w900, height: 1.18, spacing: -.5)),
                   const SizedBox(height: 14),
-                  if (c.hook?.isNotEmpty ?? false) ...[
-                    _tintBox(
-                      MomzoColors.coralTint,
-                      Text(c.hook!,
-                          style: MomzoText.serif(16,
-                              color: MomzoColors.coralText,
-                              italic: true, weight: FontWeight.w500, height: 1.45)),
-                    ),
-                    const SizedBox(height: 18),
-                  ] else if (c.whyItMatters?.isNotEmpty ?? false) ...[
-                    _tintBox(
-                      MomzoColors.coralTint,
-                      Text(c.whyItMatters!,
-                          style: MomzoText.serif(16,
-                              color: MomzoColors.coralText,
-                              italic: true, weight: FontWeight.w500, height: 1.45)),
-                    ),
+                  // The fixed structure (00_CARD_SPEC §7) — identical to the daily
+                  // card, because a card should read the same wherever she opens it.
+
+                  // summary
+                  if (c.summary.isNotEmpty) ...[
+                    Text(c.summary,
+                        style: MomzoText.serif(16.5,
+                            color: const Color(0xFF5A4F49), height: 1.6)),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // why this matters
+                  if (c.whyItMatters?.isNotEmpty ?? false) ...[
+                    WhyItMatters(childName: _childName, body: c.whyItMatters!),
                     const SizedBox(height: 18),
                   ],
-                  if (c.quickPoints.length >= 3) ...[
-                    _quickVersion(c.quickPoints),
-                    const SizedBox(height: 18),
+
+                  // main_read
+                  for (final p in _paragraphs(c.mainRead)) ...[
+                    Text(p,
+                        style: MomzoText.serif(15.5, color: MomzoColors.body, height: 1.6)),
+                    const SizedBox(height: 12),
                   ],
-                  if (c.tryThis?.isNotEmpty ?? false) ...[
-                    _tryThis(c.tryThis!),
-                    const SizedBox(height: 20),
+
+                  // activity
+                  if (c.activity?.isNotEmpty ?? false) ...[
+                    const SizedBox(height: 6),
+                    TryThisTonight(c.activity!),
                   ],
-                  if (c.body.trim().isNotEmpty) ...[
-                    Row(children: [
-                      Text(c.hasQuickRead ? 'THE FULL READ' : 'THE READ',
-                          style: MomzoText.eyebrow()),
-                    ]),
-                    const SizedBox(height: 10),
-                    for (final p in _paragraphs(c.body)) ...[
-                      Text(p,
-                          style: MomzoText.serif(15.5, color: MomzoColors.body, height: 1.6)),
-                      const SizedBox(height: 12),
-                    ],
-                  ],
-                  if (c.source?.isNotEmpty ?? false) ...[
-                    const SizedBox(height: 4),
-                    Text('Source: ${c.source}',
-                        style: MomzoText.sans(12,
-                            color: MomzoColors.muted, weight: FontWeight.w600)),
-                  ],
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
@@ -194,80 +188,6 @@ class _CardReaderScreenState extends State<CardReaderScreen> {
     );
   }
 
-  Widget _tintBox(Color color, Widget child) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(16)),
-        child: child,
-      );
-
-  Widget _quickVersion(List<String> points) {
-    Widget pt(Color dot, String text) => Padding(
-          padding: const EdgeInsets.only(bottom: 9),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 7, height: 7,
-                margin: const EdgeInsets.only(top: 6),
-                decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Text(text,
-                    style: MomzoText.sans(13.5,
-                        color: MomzoColors.ink, weight: FontWeight.w600, height: 1.4)),
-              ),
-            ],
-          ),
-        );
-    const dots = [MomzoColors.honey, MomzoColors.sage, MomzoColors.sky];
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 15, 16, 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: MomzoColors.hairline, width: 1),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0F342F30), blurRadius: 16, offset: Offset(0, 6)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            const Icon(Icons.bolt_rounded, size: 16, color: MomzoColors.coral),
-            const SizedBox(width: 6),
-            Text('THE QUICK VERSION',
-                style: MomzoText.eyebrow(color: MomzoColors.coralDeep)
-                    .copyWith(letterSpacing: .5, fontSize: 11)),
-          ]),
-          const SizedBox(height: 11),
-          for (var i = 0; i < points.length && i < 3; i++) pt(dots[i % 3], points[i]),
-        ],
-      ),
-    );
-  }
-
-  Widget _tryThis(String body) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-      decoration: BoxDecoration(color: MomzoColors.sageTint, borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('TRY THIS TONIGHT',
-              style: MomzoText.eyebrow(color: MomzoColors.sageText).copyWith(letterSpacing: .4)),
-          const SizedBox(height: 9),
-          Text(body,
-              style: MomzoText.sans(14,
-                  color: MomzoColors.sageText, weight: FontWeight.w600, height: 1.5)),
-        ],
-      ),
-    );
-  }
-
   Widget _footer() {
     return Container(
       decoration: const BoxDecoration(
@@ -297,28 +217,14 @@ class _CardReaderScreenState extends State<CardReaderScreen> {
     );
   }
 
-  // First several readable paragraphs of the body, stripped of markdown + obvious
-  // byline noise — keeps "the full read" clean without fabricating sections.
-  List<String> _paragraphs(String body) {
-    final out = <String>[];
-    for (var p in body.split(RegExp(r'\n\s*\n'))) {
-      p = p
-          .replaceAll(RegExp(r'^[#>\-\*\s]+'), '')
-          .replaceAll(RegExp(r'[*_`]'), '')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim();
-      // Drop source/CMS noise (bylines, SharePoint placeholders, links).
-      p = p
-          .replaceAll(RegExp(r'click here to insert a picture[^.]*\.?', caseSensitive: false), '')
-          .replaceAll(RegExp(r'\bBy:?\s+[A-Z][^.]{0,80}(MD|FAAP|PhD|author)[^.]*\.?'), '')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim();
-      if (p.length < 24) continue;
-      if (RegExp(r'^(by[: ]|http|sharepoint)', caseSensitive: false).hasMatch(p)) continue;
-      if (RegExp(r'sharepoint|insert a picture', caseSensitive: false).hasMatch(p)) continue;
-      out.add(p);
-      if (out.length >= 12) break;
-    }
-    return out;
-  }
+  // Paragraph split, nothing more.
+  //
+  // This used to strip markdown, bylines and SharePoint placeholders, because the
+  // text came from scraped articles. The cards are written for this screen, so the
+  // only structure in main_read is the blank line between paragraphs.
+  List<String> _paragraphs(String text) => text
+      .split(RegExp(r'\n\s*\n'))
+      .map((p) => p.trim())
+      .where((p) => p.isNotEmpty)
+      .toList();
 }

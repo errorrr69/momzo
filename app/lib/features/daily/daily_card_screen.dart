@@ -3,6 +3,7 @@ import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_buttons.dart';
+import '../../core/widgets/try_this_tonight.dart';
 import '../../core/widgets/why_it_matters.dart';
 import '../../models/daily_card.dart';
 import '../../services/child_service.dart';
@@ -97,18 +98,31 @@ class _DailyCardScreenState extends State<DailyCardScreen> {
   }
 
   // ---- display values (real card, else the designed sample) ----
+  //
+  // Every field maps straight to a column now. The old screen had to derive its
+  // lede by hunting for the first readable paragraph of a scraped article; the
+  // cards are written to the structure, so `summary` IS the lede.
   String get _childName => ChildService.current?.name ?? 'Aarav';
   String get _title => _card?.title ?? 'When "no" turns into a meltdown';
-  String get _lede => _card != null
-      ? _ledeFrom(_card!.body)
+  String get _summary => _card != null
+      ? _card!.summary
       : "A meltdown isn't your child being \"difficult\" — it's a brain that's flooded "
-          "and can't access calm yet. At 8, that part is still very much under construction.";
+          "and can't access calm yet. At 5, that part is still very much under construction.";
   String? get _why => _card != null
       ? _card!.whyItMatters // may be null (renders only when present)
       : "When you said no to more screen time and he crumbled — that was a flood, not "
           "defiance. Naming it out loud helps him learn to ride it.";
-  String get _source => _card?.source ?? "Based on Momzo's guide on big emotions";
-  String get _chip => _card != null ? _chipLabel(_card!) : '😣 BIG EMOTIONS · 3 MIN';
+  String get _mainRead => _card != null
+      ? _card!.mainRead
+      : "Feelings arrive faster than words at this age. When something goes wrong, the "
+          "feeling fills the whole room and there's no way to describe it.\n\nWhen you "
+          "say the feeling out loud, something shifts. Naming it gives the thinking part "
+          "of the brain something to hold onto.";
+  String? get _activity => _card != null
+      ? _card!.activity
+      : 'Next time the storm comes, say one sentence and then stop talking: "You really '
+          'wanted that." Count to five in your head before adding anything.';
+  String get _chip => _card != null ? _chipLabel(_card!) : '😣 BIG FEELINGS · 2 MIN';
 
   @override
   Widget build(BuildContext context) {
@@ -166,18 +180,39 @@ class _DailyCardScreenState extends State<DailyCardScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
+
+                  // The fixed structure (00_CARD_SPEC §7). Same shape on every
+                  // card, every day, so her eye learns where things are:
+                  //   title → summary → why this matters → the read → try tonight
                   Text(_title,
                       style: MomzoText.sans(25,
                           color: MomzoColors.ink, weight: FontWeight.w900, spacing: -.5, height: 1.2)),
                   const SizedBox(height: 14),
-                  Text(_lede,
+
+                  // summary — the at-a-glance, largest body text on the screen
+                  Text(_summary,
                       style: MomzoText.serif(16.5, color: const Color(0xFF5A4F49), height: 1.6)),
-                  const SizedBox(height: 14),
-                  if (_why != null && _why!.isNotEmpty)
-                    WhyItMatters(childName: _childName, body: _why!),
                   const SizedBox(height: 16),
-                  Text(_source,
-                      style: MomzoText.sans(13, color: MomzoColors.muted, weight: FontWeight.w700)),
+
+                  // why this matters — coral callout, addressed to her child by name
+                  if (_why != null && _why!.isNotEmpty) ...[
+                    WhyItMatters(childName: _childName, body: _why!),
+                    const SizedBox(height: 18),
+                  ],
+
+                  // main_read — the teaching, one idea
+                  for (final p in _paragraphs(_mainRead)) ...[
+                    Text(p,
+                        style: MomzoText.serif(15.5, color: MomzoColors.body, height: 1.6)),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // activity — sage card, one thing to try inside tonight's routine
+                  if (_activity != null && _activity!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    TryThisTonight(_activity!),
+                  ],
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
@@ -215,27 +250,21 @@ class _DailyCardScreenState extends State<DailyCardScreen> {
     }
   }
 
-  // First readable paragraph, stripped of markdown — keeps this a micro-read.
-  static String _ledeFrom(String body) {
-    final paras = body.split(RegExp(r'\n\s*\n'));
-    for (var p in paras) {
-      p = p.trim();
-      if (p.isEmpty) continue;
-      if (p.startsWith('#')) continue; // skip headings (incl. the title)
-      final clean = p
-          .replaceAll(RegExp(r'^[#>\-\*\s]+', multiLine: true), '')
-          .replaceAll(RegExp(r'[*_`]'), '')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim();
-      if (clean.length > 24) return clean.length > 320 ? '${clean.substring(0, 317)}…' : clean;
-    }
-    return body.replaceAll(RegExp(r'[#>*_`]'), '').trim();
-  }
+  // Paragraph split, nothing more.
+  //
+  // This used to strip markdown headings, bylines and SharePoint placeholders,
+  // because the text came from scraped articles and arrived full of CMS debris.
+  // The cards are written for this screen, so the only structure in main_read is
+  // the blank line between paragraphs.
+  static List<String> _paragraphs(String text) => text
+      .split(RegExp(r'\n\s*\n'))
+      .map((p) => p.trim())
+      .where((p) => p.isNotEmpty)
+      .toList();
 
   static String _chipLabel(DailyCard c) {
     final tag = (c.tags.isNotEmpty ? c.tags.first : 'read').toUpperCase().replaceAll('-', ' ');
-    final mins = (c.body.split(RegExp(r'\s+')).length / 200).ceil().clamp(1, 9);
-    return '📖 $tag · $mins MIN';
+    return '📖 $tag · ${c.readMinutes} MIN';
   }
 
   Widget _circleBtn(IconData icon, {VoidCallback? onTap}) {

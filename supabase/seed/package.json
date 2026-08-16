@@ -5,9 +5,12 @@
   "type": "module",
   "description": "Idempotent content-corpus ingest: parse -> why_it_matters (Gemini) -> chunk -> embed (Gemini) -> seed content_cards + content_embeddings.",
   "scripts": {
-    "seed": "node build_corpus.mjs"
+    "seed": "node build_corpus.mjs",
+    "migrate": "node apply_migrations.mjs",
+    "cards": "node build_daily_cards.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.0"
+    "@supabase/supabase-js": "^2.45.0",
+    "pg": "^8.12.0"
   }
 }

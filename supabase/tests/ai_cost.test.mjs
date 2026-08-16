@@ -88,7 +88,7 @@ async function cleanup() {
 test.before(async () => {
   await cleanup();
   const { error: cardErr } = await admin.from('content_cards')
-    .insert({ id: CARD_ID, title: 'Tantrums', body: 'body', published: true });
+    .insert({ id: CARD_ID, title: 'Tantrums', main_read: 'body', published: true });
   assert.ifError(cardErr);
 
   const { data, error } = await admin.auth.admin.createUser({
@@ -148,7 +148,7 @@ test('editing a cited content card purges the answers grounded in it', async () 
   await clearCache();
   const id = await seedCached({ cited: [CARD_ID] });
   const { error } = await admin.from('content_cards')
-    .update({ body: 'revised guidance' }).eq('id', CARD_ID);
+    .update({ main_read: 'revised guidance' }).eq('id', CARD_ID);
   assert.ifError(error);
   const { data } = await admin.from('cached_answers').select('id').eq('id', id);
   assert.equal((data ?? []).length, 0, 'a cached answer survived a change to the card it cites');

@@ -12,13 +12,13 @@ import 'card_reader_screen.dart';
 /// with a why-now line) on top, then a light "More in <category>" list below.
 class CardListScreen extends StatefulWidget {
   final String topicLabel;
-  final List<String> tags;
+  final String category;
   final String emoji;
   final String intro;
   const CardListScreen({
     super.key,
     required this.topicLabel,
-    required this.tags,
+    required this.category,
     this.emoji = '',
     this.intro = '',
   });
@@ -42,7 +42,7 @@ class _CardListScreenState extends State<CardListScreen> {
 
   Future<void> _load() async {
     try {
-      final cards = await LibraryService.cardsByTags(widget.tags);
+      final cards = await LibraryService.cardsByCategory(widget.category);
       final saved = await LibraryService.savedCardIds();
       if (!mounted) return;
       setState(() {
@@ -169,7 +169,9 @@ class _CardListScreenState extends State<CardListScreen> {
   }
 
   Widget _featuredPick(ContentCard c) {
-    final why = (c.whyItMatters?.isNotEmpty ?? false) ? c.whyItMatters! : c.hook;
+    // why_it_matters is the pitch when there is one; summary is the at-a-glance
+    // and always present, so it is the fallback rather than a nullable extra.
+    final why = (c.whyItMatters?.isNotEmpty ?? false) ? c.whyItMatters! : c.summary;
     return GestureDetector(
       onTap: () => _open(c),
       behavior: HitTestBehavior.opaque,
@@ -189,7 +191,7 @@ class _CardListScreenState extends State<CardListScreen> {
             Text(c.title,
                 style: MomzoText.sans(18,
                     color: MomzoColors.ink, weight: FontWeight.w900, height: 1.25, spacing: -.3)),
-            if (why?.isNotEmpty ?? false) ...[
+            if (why.isNotEmpty) ...[
               const SizedBox(height: 9),
               Container(
                 width: double.infinity,

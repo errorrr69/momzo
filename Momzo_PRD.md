@@ -129,14 +129,29 @@ children supported; the profile is editable afterwards.
 
 ### 4.2 Daily learning — **Built**
 
-One age- and struggle-targeted card per child per day, as a two-to-three minute
-read, with the signature **"why this matters for [child]"** tie-in. Cards carry a
-hook, three quick points, and a "try this tonight". Marking as read is recorded.
+One age- and tag-targeted card per child per day, as a two-minute read. Every card
+renders the same five-part shape, so her eye learns where things are: title →
+summary → the signature **"why this matters for [child]"** coral callout → the
+read → **"try this tonight"** in sage. Marking as read is recorded.
 
-A topic library (six topics) and bookmarking sit alongside it.
+Selection is rule-based and stays that way — age window, then how many of her
+answers a card's tags match, then least-recently-shown. No model is in this path;
+a daily card has to be explainable and instant.
 
-*Content:* 124 cards — 67 parent-facing, 57 reference-only book notes that
-ground the AI without ever surfacing as a daily read.
+A topic library (the seven shelves) and bookmarking sit alongside it.
+
+*Content:* 147 cards — **90 purpose-written parent-facing cards for ages 5–6**
+(`00_CARD_SPEC.md`), plus 57 reference-only notes that ground the AI without ever
+surfacing as a daily read.
+
+*Gap:* **the library covers ages 5–6 only.** 90 cards is about three months before
+a repeat, for that band. Bands 7–8 and 9–10 are unwritten, so an older child's
+parent has no daily card. This is the single largest content gap in the product.
+
+*History:* the previous 67 parent-facing cards were ingested verbatim from
+third-party articles and were removed in August 2026 — a copyright exposure in a
+paid app, and content targeted 3–10 that included infant sleep training. See
+[ADR 012](docs/adr/012-purpose-written-card-library.md).
 
 ### 4.3 AI child expert — **Built**
 
@@ -286,8 +301,11 @@ Generation on Mistral — `mistral-small-latest` by default, escalating to
 screens as sensitive.
 
 **Grounding.** Answers come from vetted content only, and cite it. The corpus is
-124 cards and 973 embeddings, including 72 original note sets distilled from 25
-reference books in Momzo's own voice.
+147 cards and 282 embeddings: the 90 purpose-written daily cards, plus 57
+reference-only notes distilled from 25 reference books in Momzo's own voice. Every
+card is Momzo's own text — nothing in the corpus is reproduced from a book or an
+article. Verified end-to-end: the top retrieval hit is a new card on every question
+tried, and a live answer cited three of them.
 
 **Safety ordering is a product decision, not an implementation detail.** The
 refer-out screen is cheap and runs *before* the rate limit and *before* the

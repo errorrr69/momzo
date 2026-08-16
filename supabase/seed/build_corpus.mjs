@@ -1,5 +1,6 @@
-// Momzo content-corpus ingest (Task 11) — idempotent and re-runnable as the
-// expert corpus grows. For each source article it:
+// Momzo RAG-notes ingest (Task 11) — idempotent and re-runnable as the expert
+// corpus grows. Feeds the AI's grounding corpus only; the parent-facing daily
+// library is seeded by build_daily_cards.mjs from 00_CARD_SPEC.md. For each note it:
 //   1. derives a stable slug (from the file path) so re-runs UPSERT, never dupe
 //   2. generates a "why it matters at home" tie-in (Gemini Flash)
 //   3. chunks the body and embeds each chunk (Gemini embedding, 768-dim)
@@ -17,9 +18,17 @@ import { createClient } from '@supabase/supabase-js';
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..', '..');
 
-// All source content lives under knowledge base/ (sub-folders walked automatically;
-// activities/ and questions/ are skipped — they have their own seeders).
-const ROOTS = ['knowledge base'];
+// Scope: `knowledge base/books/` ONLY — the original expert notes that ground the
+// AI (reference_only), never shown to a parent.
+//
+// This used to walk all of `knowledge base/`, which also ingested the scraped
+// article folders. Those 67 cards were deleted in
+// 20260816093000_remove_scraped_corpus.sql because they reproduced third-party
+// text verbatim, and the daily library is now the purpose-written set seeded by
+// build_daily_cards.mjs. Narrowing the root is what stops a well-meaning re-run of
+// this script from resurrecting the copyright problem — the source files are still
+// on disk, so leaving the wider root here would be a loaded gun.
+const ROOTS = ['knowledge base/books'];
 
 // Category (matched against any path segment) -> tags + age targeting. The app's
 // daily-card targeting (6-10) surfaces the overlapping ones; RAG uses all.
@@ -218,8 +227,8 @@ console.log(`Ingesting ${files.length} file(s)…\n`);
 // Self-heal index: body -> card. A moved file computes a new slug; rather than
 // inserting a duplicate, we re-key the existing card (same body) to the new slug.
 // Keyed on body in memory (PostgREST can't filter on very large bodies).
-const { data: allCards } = await admin.from('content_cards').select('id,slug,body');
-const cardByBody = new Map((allCards || []).map((c) => [c.body, c]));
+const { data: allCards } = await admin.from('content_cards').select('id,slug,main_read');
+const cardByBody = new Map((allCards || []).map((c) => [c.main_read, c]));
 
 // Guard against duplicate source files (byte-identical content under two names):
 // process each unique body once so we never create or flip-flop a duplicate card.
@@ -240,7 +249,7 @@ for (const abs of files) {
   seenBodies.add(body);
 
   let { data: existing } = await admin
-    .from('content_cards').select('id,title,body,why_it_matters').eq('slug', slug).maybeSingle();
+    .from('content_cards').select('id,title,main_read,why_it_matters').eq('slug', slug).maybeSingle();
 
   // Self-heal: no card at this slug, but a card with identical content exists (a
   // moved file). Re-key it to the new slug — UUID + embeddings untouched, so
@@ -250,7 +259,7 @@ for (const abs of files) {
     if (moved) {
       await admin.from('content_cards').update({ slug }).eq('id', moved.id);
       const { data: re } = await admin.from('content_cards')
-        .select('id,title,body,why_it_matters').eq('id', moved.id).single();
+        .select('id,title,main_read,why_it_matters').eq('id', moved.id).single();
       existing = re;
       rekeyed++;
       console.log('~ re-keyed:', slug);
@@ -264,7 +273,7 @@ for (const abs of files) {
       .select('id', { count: 'exact', head: true }).eq('card_id', existing.id);
     embCount = count ?? 0;
   }
-  const bodySame = existing && existing.body === body;
+  const bodySame = existing && existing.main_read === body;
   const titleSame = existing && existing.title === title;
 
   // Truly unchanged: body + title same, tie-in present (reference notes need none),
@@ -295,7 +304,7 @@ for (const abs of files) {
   await sleep(isRef ? 0 : 500);
 
   const up = await admin.from('content_cards').upsert({
-    slug, title, body, why_it_matters: why,
+    slug, title, main_read: body, why_it_matters: why,
     tags: cat.tags, age_min: cat.age[0], age_max: cat.age[1],
     source: isRef ? 'Momzo expert notes' : 'curated',
     reference_only: isRef, published: true,

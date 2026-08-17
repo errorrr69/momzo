@@ -40,6 +40,7 @@ const g = {
   gameItemId: '00000000-0000-4000-8000-000000000004',
   gameSlug:   'rls-test-game',
   learningGameSlug: 'rls-test-learning-game',
+  postId:     '00000000-0000-4000-8000-000000000005',
 };
 
 // ─── Bucket 1: family-isolated ────────────────────────────────────────────────
@@ -54,6 +55,9 @@ const FAMILY_TABLES = [
   'ai_conversations', 'ai_messages', 'ai_usage', 'question_responses', 'wishes',
   'scheduled_events', 'reminders', 'milestones', 'family_members', 'device_tokens',
   'saved_cards', 'game_play_history', 'onboarding_state', 'game_play_sessions',
+  // Not family data in the child-data sense, but isolated the same way: a mother's
+  // 💛 on a post is hers, and no other account may read it, add it or remove it.
+  'post_reactions',
 ];
 
 // ─── Bucket 2: shared-content ─────────────────────────────────────────────────
@@ -81,6 +85,11 @@ const SHARED_TABLES = [
     patch: { payload: { hacked: true } } },
   { table: 'learning_games', key: 'slug', read: () => g.learningGameSlug,
     write: () => ({ slug: `rls-nope-${randomUUID().slice(0, 8)}`, title: 'Nope', category: 'maths', entry_path: '/play/nope' }),
+    patch: { title: 'HACKED' } },
+  // Content Hub (Expansion Plan §1). Florie's posts: every parent reads them, no
+  // parent can publish, edit or unpublish one.
+  { table: 'social_posts', key: 'id', read: () => g.postId,
+    write: () => ({ id: randomUUID(), slug: `rls-nope-${randomUUID().slice(0, 8)}`, title: 'Nope', body: 'x' }),
     patch: { title: 'HACKED' } },
 ];
 
@@ -123,6 +132,7 @@ async function seedFamily(key) {
     game_play_history: randomUUID(),
     game_play_sessions: randomUUID(),
     onboarding_state: randomUUID(),
+    post_reactions: randomUUID(),
   };
   const now = new Date().toISOString();
   await ins('users', { id: owner, display_name: `Parent ${key}` });
@@ -145,6 +155,7 @@ async function seedFamily(key) {
   await ins('game_play_history', { id: f.rows.game_play_history, owner_id: owner, child_id: childId, game_slug: g.gameSlug, item_id: g.gameItemId });
   await ins('game_play_sessions', { id: f.rows.game_play_sessions, owner_id: owner, child_id: childId, game_slug: g.learningGameSlug });
   await ins('onboarding_state', { id: f.rows.onboarding_state, user_id: owner, child_id: childId, step: 0 });
+  await ins('post_reactions', { id: f.rows.post_reactions, user_id: owner, post_id: g.postId });
 }
 
 async function deleteTestUsers() {
@@ -163,6 +174,8 @@ async function deleteGlobals() {
   await admin.from('games').delete().eq('slug', g.gameSlug); // cascades to game_items
   // Cascades to game_play_sessions.
   await admin.from('learning_games').delete().eq('slug', g.learningGameSlug);
+  // Cascades to post_reactions.
+  await admin.from('social_posts').delete().eq('id', g.postId);
 }
 
 test.before(async () => {
@@ -178,6 +191,9 @@ test.before(async () => {
   await ins('learning_games', {
     slug: g.learningGameSlug, title: 'Test Learning Game',
     category: 'maths', entry_path: `/play/${g.learningGameSlug}`,
+  });
+  await ins('social_posts', {
+    id: g.postId, slug: 'rls-test-post', title: 'Test Post', body: 'b', published: true,
   });
 
   for (const key of Object.keys(families)) {

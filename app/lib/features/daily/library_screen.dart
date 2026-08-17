@@ -5,6 +5,7 @@ import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../models/content_card.dart';
 import '../../services/library_service.dart';
+import '../hub/content_hub_section.dart';
 import 'card_list_screen.dart';
 import 'card_reader_screen.dart';
 
@@ -105,6 +106,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
             Text('BROWSE ALL', style: MomzoText.eyebrow()),
             const SizedBox(height: 11),
             _topicGrid(),
+            // Florie's posts (Expansion Plan §1.1). Below the shelves on purpose:
+            // the library is what she came here for, this is what she stays for.
+            // Renders nothing at all until there are posts to show.
+            const SizedBox(height: 22),
+            const ContentHubSection(),
           ],
         ),
       ),

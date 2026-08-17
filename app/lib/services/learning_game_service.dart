@@ -1,6 +1,10 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import '../core/supabase/supabase_init.dart';
+import '../models/child.dart';
+import '../models/game_insights.dart';
 import '../models/learning_game.dart';
 import 'auth_service.dart';
 import 'child_service.dart';
@@ -17,6 +21,66 @@ import 'child_service.dart';
 /// in-game choices ("Chose belly breathing").
 class LearningGameService {
   const LearningGameService._();
+
+  // ---- targeting ----
+  //
+  // Onboarding stores human sentences; games carry `skill_tags` — a 41-term
+  // vocabulary that is NOT the card tag vocabulary and must not be confused with
+  // it. This map is the join, and it is the single place the two meet.
+  //
+  // It fails silently when it drifts: an unmapped answer simply contributes no
+  // tags, recommendation rule 1 finds nothing, and the dashboard quietly falls
+  // through to rules 2–4. Nobody sees an error; the suggestions just stop being
+  // about this child. `game_recommendation_test.dart` pins every value here to a
+  // tag some game actually carries.
+
+  /// Q4 — "anything tricky at the moment" (child.challenges).
+  static const Map<String, List<String>> _challengeSkills = {
+    'Big emotions / meltdowns': ['self-regulation', 'emotion-vocabulary', 'calming', 'intensity'],
+    'Takes a while to warm up / shy': ['emotion-recognition', 'perspective-taking', 'self-awareness'],
+    'Lots of energy, hard to settle': ['self-regulation', 'inhibitory-control', 'gross-motor'],
+    'Gets frustrated easily': ['self-regulation', 'calming', 'breathing'],
+    'Sharing & taking turns': ['perspective-taking', 'emotion-recognition'],
+    'Listening & following directions': ['listening', 'working-memory', 'inhibitory-control'],
+    'Worries or nervousness': ['calming', 'breathing', 'emotion-vocabulary'],
+    'Changes & transitions are hard': ['self-regulation', 'executive-function', 'inhibitory-control'],
+    'Sibling moments': ['perspective-taking', 'emotion-recognition'],
+    // "Nothing major" is not a topic. Mapping it would fake a preference.
+    'Honestly, nothing major right now': [],
+  };
+
+  /// Q3 — "what would you love help with" (child.focus_goals).
+  static const Map<String, List<String>> _focusGoalSkills = {
+    'Handling big feelings': ['emotion-vocabulary', 'emotion-recognition', 'self-regulation'],
+    'Confidence & self-belief': ['self-awareness'],
+    'Focus & attention': ['working-memory', 'inhibitory-control', 'executive-function', 'listening'],
+    'Kindness & sharing': ['perspective-taking', 'emotion-recognition'],
+    'Independence & responsibility': ['executive-function', 'self-regulation'],
+    'Love of learning & curiosity': ['number-sense', 'decoding', 'comprehension'],
+    'Friendships & social skills': ['perspective-taking', 'emotion-recognition', 'emotion-vocabulary'],
+    'Calmer routines (sleep / meals / mornings)': ['self-regulation', 'calming', 'breathing'],
+    // Nothing in these games speaks to screen time, and inventing a link would
+    // make the recommendation a lie rather than a stretch.
+    'Screen-time balance': [],
+    'Creativity & imagination': ['comprehension'],
+  };
+
+  /// The skills to weight a recommendation towards, from what she told us.
+  static List<String> skillTagsFor(Child child) {
+    final out = <String>{};
+    for (final s in child.focusGoals) {
+      out.addAll(_focusGoalSkills[s] ?? const []);
+    }
+    for (final s in child.challenges) {
+      out.addAll(_challengeSkills[s] ?? const []);
+    }
+    return out.toList();
+  }
+
+  @visibleForTesting
+  static Map<String, List<String>> get challengeSkills => _challengeSkills;
+  @visibleForTesting
+  static Map<String, List<String>> get focusGoalSkills => _focusGoalSkills;
 
   /// The catalog, filtered to games that suit [age] and ordered for display.
   static Future<List<LearningGame>> catalogue({int? age}) async {
@@ -90,5 +154,37 @@ class LearningGameService {
       // Same rule as above: never surface a telemetry failure to a mother who
       // has just finished playing with her child.
     }
+  }
+
+  /// "How it's going" for the selected child (Expansion Plan §3.6).
+  ///
+  /// Everything here is rule-based SQL and arithmetic — no model is in this path,
+  /// per the cost strategy, and the CI guard on LLM call sites stays intact.
+  ///
+  /// Sessions are read for the selected child only. RLS already scopes them to
+  /// the family; the child filter is what makes the numbers about this child
+  /// rather than about the household.
+  static Future<GameInsights> insights({DateTime? now}) async {
+    final child = ChildService.current;
+    if (child == null) return const GameInsights();
+
+    final rows = List<Map<String, dynamic>>.from(
+      await supabase
+          .from('game_play_sessions')
+          .select('game_slug, started_at, duration_sec, completed, progress')
+          .eq('child_id', child.id)
+          .order('started_at', ascending: false)
+          .limit(200) as List,
+    );
+
+    final sessions = rows.map(PlayedSession.fromRow).nonNulls.toList();
+    final catalogue = await LearningGameService.catalogue(age: child.age);
+
+    return GameInsights.build(
+      sessions: sessions,
+      catalogue: catalogue,
+      profileSkillTags: skillTagsFor(child),
+      now: now ?? DateTime.now(),
+    );
   }
 }

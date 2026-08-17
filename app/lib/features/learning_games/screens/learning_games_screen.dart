@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/momzo_colors.dart';
 import '../../../core/theme/momzo_text.dart';
+import '../../../models/game_insights.dart';
 import '../../../models/learning_game.dart';
 import '../../../services/child_service.dart';
 import '../../../services/learning_game_service.dart';
+import '../widgets/how_its_going.dart';
 import '../widgets/shelf_style.dart';
 import 'game_player_screen.dart';
 
@@ -25,6 +27,7 @@ class LearningGamesScreen extends StatefulWidget {
 
 class _LearningGamesScreenState extends State<LearningGamesScreen> {
   List<LearningGame> _games = const [];
+  GameInsights _insights = const GameInsights();
   bool _loading = true;
 
   String get _childName => ChildService.current?.name ?? 'your child';
@@ -39,7 +42,15 @@ class _LearningGamesScreenState extends State<LearningGamesScreen> {
     try {
       final age = ChildService.current?.age;
       final games = await LearningGameService.catalogue(age: age);
-      if (mounted) setState(() { _games = games; _loading = false; });
+      // The dashboard is a second read and must never hold up the shelves: if it
+      // fails, she still gets her games and simply no notes.
+      GameInsights insights = const GameInsights();
+      try {
+        insights = await LearningGameService.insights();
+      } catch (_) {/* shelves are the point; notes are the bonus */}
+      if (mounted) {
+        setState(() { _games = games; _insights = insights; _loading = false; });
+      }
     } catch (_) {
       // An empty shelf reads as "nothing here yet", which is the honest result
       // of a failed fetch too. No error card for a mother who just wants to play.
@@ -54,7 +65,7 @@ class _LearningGamesScreenState extends State<LearningGamesScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => GamePlayerScreen(game: game)),
-    ).then((_) => setState(() {})); // returning from a game may change nothing yet
+    ).then((_) => _load()); // a finished session changes what the dashboard says
   }
 
   @override
@@ -90,7 +101,19 @@ class _LearningGamesScreenState extends State<LearningGamesScreen> {
                       ? _empty()
                       : ListView(
                           padding: const EdgeInsets.fromLTRB(0, 10, 0, 28),
-                          children: [for (final s in shelves) _shelfBlock(s)],
+                          children: [
+                            // For the mother, above the shelves (Expansion Plan
+                            // §3.6). The child never sees it.
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(22, 4, 22, 4),
+                              child: HowItsGoing(
+                                insights: _insights,
+                                childName: _childName,
+                                onOpen: _play,
+                              ),
+                            ),
+                            for (final s in shelves) _shelfBlock(s),
+                          ],
                         ),
             ),
           ],

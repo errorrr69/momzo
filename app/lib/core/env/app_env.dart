@@ -4,16 +4,18 @@
 /// key — never the `service_role` key, an LLM key, a WhatsApp token, or the FCM
 /// server key. Those live in Edge Function env only.
 ///
-/// Values are injected at build time via `--dart-define` (or a
-/// `--dart-define-from-file=env.json`) so no key is committed to the repo:
+/// Values are injected at build time so no key is committed to the repo. Use
+/// the git-ignored `app/env.json` (see `env.example.json`) rather than spelling
+/// the values out — a build that forgets them does not fail, it silently runs in
+/// UI-only mock mode with no backend:
 ///
-///   flutter run \
-///     --dart-define=SUPABASE_URL=https://nngjqhrxbhugnafyviqj.supabase.co \
-///     --dart-define=SUPABASE_ANON_KEY=eyJ...
+///   flutter run   --dart-define-from-file=env.json
+///   flutter build apk --release --dart-define-from-file=env.json
 class AppEnv {
   const AppEnv._();
 
-  /// Supabase project URL. Project id: nngjqhrxbhugnafyviqj.
+  /// Supabase project URL. Comes from `env.json`; not hardcoded here, so there
+  /// is one place to change when the project changes.
   static const String supabaseUrl =
       String.fromEnvironment('SUPABASE_URL', defaultValue: '');
 

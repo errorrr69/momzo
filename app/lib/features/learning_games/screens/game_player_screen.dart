@@ -115,7 +115,22 @@ class _GamePlayerScreenState extends State<GamePlayerScreen> {
     try {
       final decoded = jsonDecode(message.message);
       if (decoded is! Map<String, dynamic>) return;
+
+      // The game re-sends its rollup after every answer, so that closing the
+      // WebView — which kills the page without unmounting it — can never lose
+      // the session. Only the newest one is worth keeping; the earlier ones are
+      // strictly prefixes of it.
+      if (decoded['event'] == 'session_summary') {
+        _events.removeWhere((e) => e['event'] == 'session_summary');
+      }
       _events.add(decoded);
+      // Logged under the same name as the WebView console, because a bridge that
+      // delivers nothing looks exactly like a game nobody played. It shipped
+      // broken once for that reason: the SPA detached postMessage from its
+      // channel, Android rejected every unbound call, and the games app's own
+      // catch swallowed it. Sessions recorded, `events` stayed empty, and no
+      // log anywhere said otherwise.
+      developer.log('bridge: ${decoded['event']}', name: 'games.webview');
       if (decoded['event'] == 'session_summary') _sawSummary = true;
     } catch (_) {
       // Malformed telemetry is discarded silently. The game keeps playing.

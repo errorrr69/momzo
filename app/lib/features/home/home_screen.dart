@@ -3,22 +3,33 @@ import '../../core/env/app_env.dart';
 import '../../core/supabase/supabase_init.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
+import '../../core/widgets/momzo_bottom_nav.dart';
 import '../../models/child.dart';
 import '../../models/daily_card.dart';
 import '../../services/auth_service.dart';
 import '../../services/child_service.dart';
 import '../../services/daily_service.dart';
 import '../../services/recap_service.dart';
-import '../activities/activities_list_screen.dart';
-import '../ai/ai_home_screen.dart';
 import '../daily/daily_card_screen.dart';
 import '../onboarding/child_basics_screen.dart';
 import '../onboarding/edit_child_screen.dart';
+import '../me/me_sheet.dart';
 
-/// 06 · Home · Today — greeting, today's read, two quick actions.
-/// One hero, never cluttered.
+/// 06 · Home · Today (UX plan §3.1).
+///
+/// The screen that has already decided. One decision above the fold — read the
+/// card or don't — and everything under it is a shortcut, never a question.
+///
+/// The doors row duplicates the bottom tabs deliberately. At 8:40pm she looks at
+/// the middle of the screen, not the chrome at the edge, and the three things we
+/// most want her to find are worth saying twice.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  /// Switches the shell's tab. Home's doors must land on the real TAB, not push
+  /// a second copy of a screen that already has one — a stacked route has a back
+  /// button and no bottom nav, which is a different place that looks the same.
+  final void Function(MomzoTab)? onOpenTab;
+
+  const HomeScreen({super.key, this.onOpenTab});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -38,6 +49,10 @@ class _HomeScreenState extends State<HomeScreen> {
   // Preview mode shows the sample tie-in; a real card shows it only when the
   // why_it_matters line exists (it's null until backfilled — Gemini key issue).
   bool get _showWhy => !_haveCard || (_card?.whyItMatters?.isNotEmpty ?? false);
+
+  /// The card's `activity` — the one thing she could do tonight, surfaced so it
+  /// does not require opening the card to find.
+  String get _tonight => _card?.activity ?? '';
 
   /// Whether today's card has been read (drives the hero CTA's done state).
   bool get _isRead => _card?.isRead ?? false;
@@ -125,6 +140,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   _childSwitcher(),
+                  const SizedBox(width: 8),
+                  // The Me door. Settings are a weekly errand and used to hold a
+                  // permanent bottom tab — the most expensive space in the app.
+                  // Two taps here is what bought the fifth door for the Circle.
+                  _meButton(),
                 ],
               ),
             ),
@@ -158,32 +178,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   Text("TODAY'S 3-MINUTE READ", style: MomzoText.eyebrow()),
                   const SizedBox(height: 10),
                   _todaysRead(context),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _quickAction(
-                          bg: MomzoColors.skyTint,
-                          fg: const Color(0xFF2E6675),
-                          icon: Icons.chat_bubble_outline_rounded,
-                          label: 'Need help\nright now?',
-                          onTap: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const AiHomeScreen())),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _quickAction(
-                          bg: MomzoColors.sageTint,
-                          fg: const Color(0xFF3F6B52),
-                          icon: Icons.timer_outlined,
-                          label: "I've got\n10 minutes",
-                          onTap: () => Navigator.push(context,
-                              MaterialPageRoute(builder: (_) => const ActivitiesListScreen())),
-                        ),
-                      ),
-                    ],
-                  ),
+                  // Doors before Tonight (UX plan §3.1 item 3 then 4). Built the
+                  // other way round first, and on a real phone the hero card is
+                  // tall enough that the doors fell off the bottom of the screen
+                  // — the exact failure the doors exist to fix.
+                  const SizedBox(height: 18),
+                  Text('WHERE TO NEXT', style: MomzoText.eyebrow()),
+                  const SizedBox(height: 11),
+                  _doors(),
+                  // Tonight: the ONE pre-chosen thing. The card's own activity
+                  // line, lifted out so she can act on it without opening
+                  // anything. Absent when there is nothing to say.
+                  if (_tonight.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    _tonightCard(),
+                  ],
                 ],
               ),
             ),
@@ -192,6 +201,92 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  /// The avatar that replaced the Me tab.
+  Widget _meButton() => GestureDetector(
+        onTap: () => showMeSheet(context),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: MomzoColors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: MomzoColors.cardBorder, width: 1.4),
+          ),
+          child: const Icon(Icons.person_outline_rounded,
+              size: 21, color: MomzoColors.body),
+        ),
+      );
+
+  /// Tonight — one suggestion, already chosen. Not a list, not a picker.
+  Widget _tonightCard() => Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: MomzoColors.sunshine,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('TRY TONIGHT',
+                style: MomzoText.eyebrow(color: MomzoColors.sunshineText)),
+            const SizedBox(height: 6),
+            // Capped at three lines. The full activity lives in the card, and
+            // an un-capped one ran to five lines on a real phone and pushed the
+            // doors off the bottom of the screen — which is the opposite of the
+            // point. This is a nudge, not the content.
+            Text(_tonight,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: MomzoText.serif(16, color: MomzoColors.ink, height: 1.45)),
+          ],
+        ),
+      );
+
+  /// The three doors (UX plan §3.1 item 3).
+  ///
+  /// Same words and same colours as the tabs they lead to — "Play" here and
+  /// "Play" down there, lilac in both places. A synonym would make her read
+  /// rather than recognise, and reading is the expensive part at 8:40pm.
+  Widget _doors() => Row(
+        children: [
+          _door(MomzoTab.ask, 'Ask\nMomzo', Icons.chat_bubble_outline_rounded),
+          const SizedBox(width: 10),
+          _door(MomzoTab.play, 'Play\ntogether', Icons.extension_outlined),
+          const SizedBox(width: 10),
+          _door(MomzoTab.circle, 'The\nCircle', Icons.favorite_border_rounded),
+        ],
+      );
+
+  Widget _door(MomzoTab tab, String label, IconData icon) => Expanded(
+        child: GestureDetector(
+          onTap: () => widget.onOpenTab?.call(tab),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            height: 104,
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: tab.accent,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: tab.accentText.withValues(alpha: .18), width: 1.4),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Ink on the bright fill, never white — the contrast guard in
+                // theme_contrast_test.dart is what says which way round this goes.
+                Icon(icon, size: 21, color: MomzoColors.ink),
+                Text(label,
+                    style: MomzoText.sans(13.5,
+                        color: MomzoColors.ink, weight: FontWeight.w800, height: 1.2)),
+              ],
+            ),
+          ),
+        ),
+      );
 
   Widget _childSwitcher() {
     return GestureDetector(

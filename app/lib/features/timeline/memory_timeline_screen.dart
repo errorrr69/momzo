@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../core/env/app_env.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
-import '../../core/widgets/momzo_bottom_nav.dart';
 import '../../services/child_service.dart';
 import '../../services/memory_service.dart';
 import 'weekly_recap_screen.dart';
@@ -52,7 +51,6 @@ class _MemoryTimelineScreenState extends State<MemoryTimelineScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MomzoColors.cream,
-      bottomNavigationBar: const MomzoBottomNav(MomzoTab.me),
       body: SafeArea(
         bottom: false,
         child: _loading

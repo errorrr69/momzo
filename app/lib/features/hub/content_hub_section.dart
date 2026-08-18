@@ -12,7 +12,11 @@ import 'post_reader_screen.dart';
 /// hero and this is the browsable library beside it. Adding a sixth tab for it
 /// would say the opposite.
 class ContentHubSection extends StatefulWidget {
-  const ContentHubSection({super.key});
+  /// False inside the Circle tab, which already says what this is above it.
+  /// A heading that repeats the screen title is a line she has to read twice.
+  final bool showHeading;
+
+  const ContentHubSection({super.key, this.showHeading = true});
 
   @override
   State<ContentHubSection> createState() => _ContentHubSectionState();
@@ -73,17 +77,20 @@ class _ContentHubSectionState extends State<ContentHubSection> {
 
   @override
   Widget build(BuildContext context) {
-    // Nothing to show and nothing to explain: before Florie seeds her first batch
-    // this section simply is not there, rather than being an empty promise.
+    // As a SECTION of another screen, an empty hub renders nothing rather than
+    // an empty promise. As the Circle's default view it is the whole screen, so
+    // there it says something warm instead of leaving her on a blank tab.
     if (_failed || (!_loading && _posts.isEmpty && _tag == null)) {
-      return const SizedBox.shrink();
+      return widget.showHeading ? const SizedBox.shrink() : _nothingYet();
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('FROM MOMZO', style: MomzoText.eyebrow()),
-        const SizedBox(height: 11),
+        if (widget.showHeading) ...[
+          Text('FROM MOMZO', style: MomzoText.eyebrow()),
+          const SizedBox(height: 11),
+        ],
         if (_tags.isNotEmpty) _chips(),
         if (_loading)
           const Padding(
@@ -104,6 +111,20 @@ class _ContentHubSectionState extends State<ContentHubSection> {
       ],
     );
   }
+
+  Widget _nothingYet() => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: MomzoColors.sageTint,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          'Florie’s posts will land here. In the meantime, the mothers are '
+          'through the other chip 💛',
+          style: MomzoText.sans(13.5,
+              color: MomzoColors.sageText, weight: FontWeight.w600, height: 1.45),
+        ),
+      );
 
   Widget _chips() => SizedBox(
         height: 38,
@@ -134,8 +155,10 @@ class _ContentHubSectionState extends State<ContentHubSection> {
             ),
             child: Text(
               label,
+              // Ink, not white: white on the bright coral is ~2.6:1 and
+              // theme_contrast_test asserts the brights do not carry white text.
               style: MomzoText.sans(12.5,
-                  color: active ? Colors.white : MomzoColors.body,
+                  color: active ? MomzoColors.ink : MomzoColors.body,
                   weight: FontWeight.w800),
             ),
           ),

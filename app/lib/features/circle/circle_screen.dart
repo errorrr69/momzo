@@ -4,13 +4,22 @@ import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../models/forum.dart';
 import '../../services/forum_service.dart';
+import '../hub/content_hub_section.dart';
 import 'moderation_queue_screen.dart';
 import 'thread_list_screen.dart';
 
-/// The Circle — the forum's front door (Expansion Plan §2).
+/// The Circle — Florie's voice and the mothers' voices, one door (UX plan §3.2).
 ///
-/// Categories, plus whatever has been talked about most recently, so a mother
-/// who opens it for the first time sees people rather than empty folders.
+/// Two chips, one screen:
+///
+///   **From Momzo**   Florie's social posts, mirrored in-app. The DEFAULT.
+///   **The mothers**  the community — threads, categories, moderation.
+///
+/// From Momzo leads on purpose, and it is the cold-start move. A forum tab that
+/// opens onto three quiet categories reads as a dead app; Florie posts to social
+/// several times a week, so her feed guarantees this tab is alive from day one
+/// while the community grows underneath an already-warm room. When threads
+/// outnumber posts, flip [_CircleView.initial] — it is one constant.
 class CircleScreen extends StatefulWidget {
   const CircleScreen({super.key});
 
@@ -18,7 +27,17 @@ class CircleScreen extends StatefulWidget {
   State<CircleScreen> createState() => _CircleScreenState();
 }
 
+/// Which half of the Circle she is looking at.
+enum _CircleView {
+  fromMomzo,
+  mothers;
+
+  /// The chip the tab opens on. See the class doc before changing it.
+  static const initial = _CircleView.fromMomzo;
+}
+
 class _CircleScreenState extends State<CircleScreen> {
+  _CircleView _view = _CircleView.initial;
   List<ForumCategory> _categories = const [];
   List<ForumThread> _recent = const [];
   bool _moderator = false;
@@ -85,7 +104,7 @@ class _CircleScreenState extends State<CircleScreen> {
                                 style: MomzoText.sans(26,
                                     color: MomzoColors.ink, weight: FontWeight.w900)),
                             const SizedBox(height: 3),
-                            Text('Mothers, talking to each other',
+                            Text('Momzo, and the other mothers',
                                 style: MomzoText.sans(13,
                                     color: MomzoColors.muted, weight: FontWeight.w700)),
                           ],
@@ -102,26 +121,76 @@ class _CircleScreenState extends State<CircleScreen> {
                         ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+                  _viewSwitch(),
                   const SizedBox(height: 18),
-                  if (_recent.isNotEmpty) ...[
-                    Text('BEING TALKED ABOUT', style: MomzoText.eyebrow()),
+                  if (_view == _CircleView.fromMomzo)
+                    // Already built, already device-verified — this is the same
+                    // widget that used to sit at the bottom of Learn, given the
+                    // address it deserved.
+                    const ContentHubSection(showHeading: false)
+                  else ...[
+                    if (_recent.isNotEmpty) ...[
+                      Text('BEING TALKED ABOUT', style: MomzoText.eyebrow()),
+                      const SizedBox(height: 11),
+                      for (final t in _recent) ...[
+                        _recentRow(t),
+                        const SizedBox(height: 9),
+                      ],
+                      const SizedBox(height: 18),
+                    ],
+                    Text('WHERE TO POST', style: MomzoText.eyebrow()),
                     const SizedBox(height: 11),
-                    for (final t in _recent) ...[
-                      _recentRow(t),
+                    for (final c in _categories) ...[
+                      _categoryRow(c),
                       const SizedBox(height: 9),
                     ],
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 8),
+                    _promise(),
                   ],
-                  Text('WHERE TO POST', style: MomzoText.eyebrow()),
-                  const SizedBox(height: 11),
-                  for (final c in _categories) ...[
-                    _categoryRow(c),
-                    const SizedBox(height: 9),
-                  ],
-                  const SizedBox(height: 8),
-                  _promise(),
                 ],
               ),
+      ),
+    );
+  }
+
+  /// Two chips, thumb-sized. Not a TabBar: a tab bar implies more tabs behind
+  /// the edge, and there are exactly two things here forever.
+  Widget _viewSwitch() => Row(
+        children: [
+          _chip(_CircleView.fromMomzo, 'From Momzo'),
+          const SizedBox(width: 9),
+          _chip(_CircleView.mothers, 'The mothers'),
+        ],
+      );
+
+  Widget _chip(_CircleView view, String label) {
+    final active = _view == view;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _view = view),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: active ? MomzoColors.sage : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: active ? MomzoColors.sage : MomzoColors.cardBorder,
+              width: 1.5,
+            ),
+          ),
+          child: Text(
+            label,
+            style: MomzoText.sans(13.5,
+                // Ink on the mint fill: white would not clear AA on it, and the
+                // contrast guard would say so.
+                color: active ? MomzoColors.ink : MomzoColors.muted,
+                weight: FontWeight.w800),
+          ),
+        ),
       ),
     );
   }

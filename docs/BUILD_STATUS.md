@@ -187,8 +187,11 @@ Still open, **must be addressed before real users**:
 - **The Circle has no moderator by default.** `build_forum.mjs --moderator <email>`
   grants one. Without it, auto-hide still fires but nothing is ever reviewed, so
   hidden content stays hidden. The seeder warns loudly when the table is empty.
-- **The Circle is untested with real traffic** and carries a standing operational
-  cost — replies, moderation, tending. It is built, not launched.
+- **The Circle is switched OFF** (`FeatureFlags.circle = false`) — built, tested,
+  device-verified, and deliberately not shown. It carries a standing operational
+  cost (replies, moderation, tending) and is untested with real traffic. Its tab
+  currently shows Florie's posts alone, named "From Momzo". Flip the flag and
+  grant a moderator to launch it.
 
 ## What's next
 

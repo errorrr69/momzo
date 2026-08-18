@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:momzo/core/env/feature_flags.dart';
 import 'package:momzo/core/theme/momzo_colors.dart';
 import 'package:momzo/core/widgets/momzo_bottom_nav.dart';
 
@@ -51,6 +52,22 @@ void main() {
       }
     });
 
+    test('the fifth door is named for what is actually behind it', () {
+      // The Circle is built but switched off (FeatureFlags.circle). While it is,
+      // that tab holds Florie's posts alone, so it must not promise a community
+      // that is not there. This test tracks the flag rather than pinning one
+      // answer, so flipping the flag does not turn into a failing test to
+      // "fix" by hardcoding a label.
+      expect(MomzoTab.circle.label, FeatureFlags.circle ? 'Circle' : 'Momzo');
+    });
+
+    test('hiding the forum never hides the posts', () {
+      // The whole point of the redesign was getting Florie's posts to one tap.
+      // Whatever the flag says, the fifth door exists and leads to them.
+      expect(MomzoTab.values, contains(MomzoTab.circle));
+      expect(MomzoTab.values.length, 5);
+    });
+
     test('Me is not a door', () {
       // It was one, and giving it up is what bought Play and Circle their slots.
       expect(MomzoTab.values.map((t) => t.name), isNot(contains('me')));
@@ -93,10 +110,13 @@ void main() {
       await tester.pumpWidget(host(MomzoTab.home, onTap: (t) => tapped = t));
       await tester.pump();
 
-      await tester.tap(find.text('Circle'));
+      // Addressed by label rather than by a hardcoded string: the fifth door's
+      // name follows FeatureFlags.circle, and a test that pins one spelling
+      // breaks the moment the flag flips.
+      await tester.tap(find.text(MomzoTab.circle.label));
       expect(tapped, MomzoTab.circle);
 
-      await tester.tap(find.text('Play'));
+      await tester.tap(find.text(MomzoTab.play.label));
       expect(tapped, MomzoTab.play);
     });
 

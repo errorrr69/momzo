@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/env/app_env.dart';
 import '../../core/supabase/supabase_init.dart';
+import '../../core/env/feature_flags.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_bottom_nav.dart';

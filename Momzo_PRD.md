@@ -243,7 +243,7 @@ opens the app without going anywhere specific.
   one small thing to try next. Rule-based, never an LLM.
 - **Gentle streak** — encouragement only. Never punishes a miss.
 
-### 4.10 The Circle (community) — **Built, not launched**
+### 4.10 The Circle (community) — **Built, switched off**
 
 Un-deferred from v1.0. Threads and replies, no DMs, no images, no algorithmic
 feed. Categories along the lines of *Ask the Circle · Wins · Big feelings ·
@@ -255,10 +255,18 @@ resources post, and a "someone may need help" reason that reaches a moderator
 with priority. The app never auto-deletes a struggling mother's post.
 
 Sequenced last on purpose: it is the one feature with a standing operational
-cost, and it launches best into an audience that already exists. *Built and
-tested, but not launched: it needs a moderator granted
-(`build_forum.mjs --moderator`) and somebody to tend it. Auto-hide fires without
-one; nothing is ever reviewed.*
+cost, and it launches best into an audience that already exists. *Built and tested,
+and currently HIDDEN behind `FeatureFlags.circle = false`. Not because anything
+is wrong with it — 20 database tests and 10 widget tests pass and the whole loop
+was verified on a device — but because a forum is the one feature with a standing
+operational cost, and it launches best into an audience the rest of the app has
+already warmed up. Turning it on is one line plus a moderator
+(`build_forum.mjs --moderator`); the tables, policies, auto-hide and moderator
+queue are already live.*
+
+While it is off, its tab shows Florie's posts alone and is named "From Momzo".
+Hiding the community must never bury the posts — they are the freshest content
+in the app.
 
 ### 4.11 Content Hub — **Built**
 

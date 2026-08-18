@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/env/feature_flags.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../models/forum.dart';
@@ -49,7 +50,8 @@ class _PostReaderScreenState extends State<PostReaderScreen> {
           children: [
             _header(),
             Expanded(child: _post.isCarousel ? _deck() : _prose()),
-            _talkAboutIt(),
+            // Nowhere to send her while the forum is hidden.
+            if (FeatureFlags.circle) _talkAboutIt(),
             _footer(),
           ],
         ),

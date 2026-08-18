@@ -332,3 +332,27 @@ up from 94.
 "Play" as the fourth tab name, From Momzo as the Circle's default chip, the
 current colour intensity, and the question of the day living in Play. Worth a
 look on your own phone at low brightness before any of them is settled.
+
+---
+
+## 9. The Circle, switched off (18 Aug 2026)
+
+The forum is hidden behind `FeatureFlags.circle = false`. The code ships in the
+binary; it is simply not shown.
+
+**What this does not do is hide Florie's posts.** They share that tab, and
+burying them again would undo the redesign's main win — they went from "1 tap
+plus a long scroll past seven shelves" to "1 tap" precisely because they moved
+there. With the flag off:
+
+- the fifth door stays, renamed **"From Momzo"**, showing her posts alone
+- the two chips disappear (a toggle with one option costs a glance and gives
+  nothing back), along with the moderator flag and the three forum queries the
+  screen would otherwise run for rows nobody draws
+- Home's third door and the Me sheet's "Your Circle name" row follow the same
+  flag, because §4.6 says a thing must not have two names
+- "Talk about this in the Circle" comes off the post reader — there is nowhere
+  to send her
+
+`navigation_test.dart` tracks the flag rather than pinning one label, so turning
+the forum on does not produce a failing test to "fix" by hardcoding a name.

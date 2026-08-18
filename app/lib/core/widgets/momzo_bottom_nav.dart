@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../env/feature_flags.dart';
 import '../theme/momzo_colors.dart';
 import '../theme/momzo_text.dart';
 
@@ -15,7 +16,9 @@ extension MomzoTabX on MomzoTab {
         MomzoTab.learn => 'Learn',
         MomzoTab.ask => 'Ask',
         MomzoTab.play => 'Play',
-        MomzoTab.circle => 'Circle',
+        // With the forum off this tab is Florie's posts alone, so it is named
+        // for her rather than for a community that is not there yet.
+        MomzoTab.circle => FeatureFlags.circle ? 'Circle' : 'Momzo',
       };
 
   /// One accent per tab — the wayfinding contract (UX plan §4.5). This is the
@@ -50,7 +53,8 @@ extension MomzoTabX on MomzoTab {
         MomzoTab.learn => Icons.menu_book_rounded,
         MomzoTab.ask => Icons.chat_bubble_rounded,
         MomzoTab.play => Icons.extension_rounded,
-        MomzoTab.circle => Icons.favorite_rounded,
+        MomzoTab.circle =>
+          FeatureFlags.circle ? Icons.favorite_rounded : Icons.auto_stories_rounded,
       };
 
   IconData get outlineIcon => switch (this) {
@@ -58,7 +62,8 @@ extension MomzoTabX on MomzoTab {
         MomzoTab.learn => Icons.menu_book_outlined,
         MomzoTab.ask => Icons.chat_bubble_outline_rounded,
         MomzoTab.play => Icons.extension_outlined,
-        MomzoTab.circle => Icons.favorite_border_rounded,
+        MomzoTab.circle =>
+          FeatureFlags.circle ? Icons.favorite_border_rounded : Icons.auto_stories_outlined,
       };
 }
 

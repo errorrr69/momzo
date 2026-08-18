@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/env/feature_flags.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../models/forum.dart';
@@ -62,9 +63,13 @@ class _CircleScreenState extends State<CircleScreen> {
 
   Future<void> _load() async {
     try {
-      final categories = await ForumService.categories();
-      final recent = await ForumService.threads(limit: 5);
-      final moderator = await ForumService.amModerator();
+      // Skip the forum reads entirely when it is hidden: three round trips for
+      // rows nothing is going to draw.
+      final categories =
+          FeatureFlags.circle ? await ForumService.categories() : <ForumCategory>[];
+      final recent =
+          FeatureFlags.circle ? await ForumService.threads(limit: 5) : <ForumThread>[];
+      final moderator = FeatureFlags.circle && await ForumService.amModerator();
       if (!mounted) return;
       setState(() {
         _categories = categories;
@@ -100,17 +105,20 @@ class _CircleScreenState extends State<CircleScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('The Circle',
+                            Text(FeatureFlags.circle ? 'The Circle' : 'From Momzo',
                                 style: MomzoText.sans(26,
                                     color: MomzoColors.ink, weight: FontWeight.w900)),
                             const SizedBox(height: 3),
-                            Text('Momzo, and the other mothers',
+                            Text(
+                                FeatureFlags.circle
+                                    ? 'Momzo, and the other mothers'
+                                    : 'Florie’s notes, as she writes them',
                                 style: MomzoText.sans(13,
                                     color: MomzoColors.muted, weight: FontWeight.w700)),
                           ],
                         ),
                       ),
-                      if (_moderator)
+                      if (FeatureFlags.circle && _moderator)
                         IconButton(
                           tooltip: 'Reports',
                           icon: const Icon(Icons.flag_outlined, color: MomzoColors.coralText),
@@ -122,14 +130,19 @@ class _CircleScreenState extends State<CircleScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  _viewSwitch(),
-                  const SizedBox(height: 18),
-                  if (_view == _CircleView.fromMomzo)
+                  // With the forum off there is nothing to switch BETWEEN, so the
+                  // chips go too — a toggle with one option is a control that
+                  // costs a glance and gives nothing back.
+                  if (FeatureFlags.circle) ...[
+                    _viewSwitch(),
+                    const SizedBox(height: 18),
+                  ],
+                  if (!FeatureFlags.circle || _view == _CircleView.fromMomzo)
                     // Already built, already device-verified — this is the same
                     // widget that used to sit at the bottom of Learn, given the
                     // address it deserved.
                     const ContentHubSection(showHeading: false)
-                  else ...[
+                  else if (FeatureFlags.circle) ...[
                     if (_recent.isNotEmpty) ...[
                       Text('BEING TALKED ABOUT', style: MomzoText.eyebrow()),
                       const SizedBox(height: 11),

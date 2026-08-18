@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/env/feature_flags.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../services/auth_service.dart';
@@ -109,17 +110,21 @@ class _MeSheet extends StatelessWidget {
                 onTap: () => _push(context, const MemoryTimelineScreen()),
               ),
               const SizedBox(height: 8),
-              _row(
-                context,
-                emoji: '💛',
-                title: 'Your Circle name',
-                sub: 'What the other mothers see',
-                onTap: () async {
-                  Navigator.pop(context);
-                  await showCircleIdentitySheet(context);
-                },
-              ),
-              const SizedBox(height: 8),
+              // Only meaningful while the forum exists — it is the name the
+              // other mothers see, and there are no other mothers yet.
+              if (FeatureFlags.circle) ...[
+                _row(
+                  context,
+                  emoji: '💛',
+                  title: 'Your Circle name',
+                  sub: 'What the other mothers see',
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await showCircleIdentitySheet(context);
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
               _row(
                 context,
                 emoji: '🔒',

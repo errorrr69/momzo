@@ -8,14 +8,20 @@ import '../../services/forum_service.dart';
 /// Writing a new thread.
 class NewThreadScreen extends StatefulWidget {
   final ForumCategory category;
-  const NewThreadScreen({super.key, required this.category});
+
+  /// Seeded when she arrives from "Talk about this in the Circle". A starting
+  /// point she is free to delete — the BODY is deliberately left empty, because
+  /// prefilling that would be putting words in her mouth.
+  final String? initialTitle;
+
+  const NewThreadScreen({super.key, required this.category, this.initialTitle});
 
   @override
   State<NewThreadScreen> createState() => _NewThreadScreenState();
 }
 
 class _NewThreadScreenState extends State<NewThreadScreen> {
-  final _title = TextEditingController();
+  late final _title = TextEditingController(text: widget.initialTitle ?? '');
   final _body = TextEditingController();
   bool _saving = false;
   String? _error;

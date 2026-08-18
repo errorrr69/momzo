@@ -1,6 +1,7 @@
 # Momzo — UX Redesign Plan: five doors, one tired mother
 
-**Version:** v1.0 · August 2026 · **Status: PLAN — nothing here is built yet**
+**Version:** v1.1 · August 2026 · **Status: BUILT** (18 Aug 2026) and verified on device.
+Deviations from the plan as written are recorded in §8.
 **Resolves:** Expansion Plan §2.5/§6.1 (the Option A/B nav decision) — this plan **is Option A**, adapted.
 **Companions:** `Momzo_PRD.md`, `Momzo_Expansion_Plan.md`, Hard Rule #18 (warm, zero shame)
 
@@ -291,3 +292,43 @@ hook.
 *The test for every future feature request stays the same: which door does it
 live behind, what does it displace, and can she find it at 8:40pm with half a
 brain? If there's no good answer, it doesn't ship.*
+
+---
+
+## 8. What changed during the build
+
+Three things came out different, all found by using it on a real phone.
+
+1. **Doors moved above TRY TONIGHT.** §3.1 listed doors third and Tonight
+   fourth; I built it the other way round, and the hero card is tall enough that
+   the doors fell off the bottom of the screen — the exact failure they exist to
+   fix. The plan's order was right. Tonight is also capped at three lines now: it
+   is a nudge, not the content.
+
+2. **Two proposed colours were wrong, and one guardrail was measuring the wrong
+   thing.** `theme_contrast_test.dart` rejected lavender `#A98BF5` (ink-on-fill
+   4.49, a hair under AA for a labelled door) and coralDeep `#E85D3D` (white text
+   3.46). Both were corrected rather than the bars lowered. The third failure was
+   my own invented "fill vs cream ≥ 2.0", which honey and sky could only pass by
+   becoming muddy — replaced with the requirement that actually binds, ink-on-fill
+   ≥ 4.5, plus a modest floor. The final palette is in `momzo_colors.dart`.
+
+   That guard also caught a **pre-existing** fault: white-on-coralDeep had been at
+   3.83:1 since launch and never cleared AA on any primary button.
+
+3. **Two pushed screens were rendering a bottom tab bar** (Memory Timeline,
+   Calendar). A tab bar on a stacked route claims to be a tab while having a back
+   button — two navigations arguing. Removed.
+
+**Also shipped, unplanned but adjacent:** the Me sheet gave `DeleteChildScreen`
+an entry point. It had existed for months with no way to reach it from inside the
+app, which BUILD_STATUS listed as a known gap.
+
+**Tests added:** `navigation_test.dart` (the five doors, their order, one colour
+each, no badges) and `theme_contrast_test.dart` (§5.2, 33 assertions). 136 total,
+up from 94.
+
+**Still open — §7's four choices are unchanged and all defaults are in place:**
+"Play" as the fourth tab name, From Momzo as the Circle's default chip, the
+current colour intensity, and the question of the day living in Play. Worth a
+look on your own phone at low brightness before any of them is settled.

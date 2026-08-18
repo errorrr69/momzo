@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
+import '../../models/forum.dart';
 import '../../models/social_post.dart';
 import '../../services/content_hub_service.dart';
+import '../../services/forum_service.dart';
+import '../circle/new_thread_screen.dart';
 
 /// One of Florie's posts, read in full.
 ///
@@ -46,6 +49,7 @@ class _PostReaderScreenState extends State<PostReaderScreen> {
           children: [
             _header(),
             Expanded(child: _post.isCarousel ? _deck() : _prose()),
+            _talkAboutIt(),
             _footer(),
           ],
         ),
@@ -107,6 +111,66 @@ class _PostReaderScreenState extends State<PostReaderScreen> {
           ],
         ],
       );
+
+  /// "Talk about this in the Circle" (Expansion Plan §1.4).
+  ///
+  /// The reason a post has no comments of its own: discussion belongs in one
+  /// place, not two. Now that Florie's posts and the mothers live behind the
+  /// same tab, this is a chip-hop rather than a cross-app jump.
+  ///
+  /// It seeds a NEW thread rather than attaching a comment thread to the post,
+  /// which keeps every conversation in the Circle where it can be moderated,
+  /// reported and found by someone who never read the post.
+  Widget _talkAboutIt() => Padding(
+        padding: const EdgeInsets.fromLTRB(22, 0, 22, 10),
+        child: SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _openCircleThread,
+            icon: const Icon(Icons.forum_outlined, size: 18, color: MomzoColors.sageText),
+            label: Text('Talk about this in the Circle',
+                style: MomzoText.sans(13.5,
+                    color: MomzoColors.sageText, weight: FontWeight.w800)),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: MomzoColors.sage, width: 1.5),
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            ),
+          ),
+        ),
+      );
+
+  Future<void> _openCircleThread() async {
+    // Prefer the category the post's own tags point at, so she lands somewhere
+    // that already reads as the right room. Falls back to Ask the Circle.
+    final categories = await ForumService.categories();
+    if (!mounted || categories.isEmpty) return;
+
+    ForumCategory pick() {
+      for (final tag in _post.tags) {
+        for (final c in categories) {
+          if (c.slug == tag) return c;
+        }
+      }
+      return categories.firstWhere(
+        (c) => c.slug == 'ask-the-circle',
+        orElse: () => categories.first,
+      );
+    }
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NewThreadScreen(
+          category: pick(),
+          // Her words, not ours — the post title is only a starting point she is
+          // free to delete. Prefilling the BODY would be putting words in her
+          // mouth, so that stays empty.
+          initialTitle: _post.title,
+        ),
+      ),
+    );
+  }
 
   Widget _footer() => Container(
         padding: const EdgeInsets.fromLTRB(22, 10, 22, 14),

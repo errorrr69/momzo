@@ -8,6 +8,7 @@ import '../../services/question_service.dart';
 import 'daily_question_screen.dart';
 import 'games/mini_games_gallery_screen.dart';
 import 'quiz_flow_screen.dart';
+import '../circle/circle_screen.dart';
 import '../learning_games/screens/learning_games_screen.dart';
 import '../wishes/wish_wall_screen.dart';
 import '../wishes/calendar_screen.dart';
@@ -193,6 +194,21 @@ class _TogetherHubScreenState extends State<TogetherHubScreen> {
                   ),
                 ),
               ],
+              // The Circle. Entered from here rather than from a tab of its own:
+              // Expansion Plan §2.5 leaves the Play/Circle nav restructure as
+              // Florie's decision and says to build nothing nav-related first.
+              const SizedBox(height: 12),
+              _row(
+                context,
+                emoji: '☕',
+                colors: const [Color(0xFFF3B0A0), MomzoColors.coral],
+                title: 'The Circle',
+                sub: 'Mothers, talking to each other',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CircleScreen()),
+                ),
+              ),
               const SizedBox(height: 12),
               _row(
                 context,

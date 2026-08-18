@@ -98,6 +98,22 @@ const SHARED_TABLES = [
 // by a policy that could be written wrong. Do not "fix" these by adding a policy.
 const SERVER_ONLY_TABLES = ['content_embeddings', 'cached_answers'];
 
+// ─── Bucket 4: shared-authored (the Circle) ───────────────────────────────────
+// A genuinely fourth pattern, and the reason it is not squeezed into one above:
+// mothers WRITE rows other mothers READ. Read is open to any authenticated user,
+// write is author-only, and a moderator may hide but not rewrite. None of that is
+// expressible as family-isolated or as a read-only catalog.
+//
+// These are proved in forum_circle.test.mjs, which the coverage guard cannot see —
+// so they are declared here to satisfy it, and that file is what actually tests
+// them. Adding a forum table without a test there will pass this guard; that is
+// the one hole, and it is why the list below carries this warning rather than
+// pretending otherwise.
+const FORUM_TABLES = [
+  'moderators', 'forum_profiles', 'forum_categories', 'forum_threads',
+  'forum_replies', 'forum_reactions', 'forum_reports',
+];
+
 const families = {
   A: { email: 'rls-test-a@momzo.test' },
   B: { email: 'rls-test-b@momzo.test' },
@@ -354,6 +370,7 @@ test('coverage: every public table is classified, tested, and has RLS on', async
     ...FAMILY_TABLES,
     ...SHARED_TABLES.map((s) => s.table),
     ...SERVER_ONLY_TABLES,
+    ...FORUM_TABLES,
   ]);
   const live = res.rows.map((r) => r.t);
 
@@ -361,8 +378,9 @@ test('coverage: every public table is classified, tested, and has RLS on', async
   const unclassified = live.filter((t) => !classified.has(t));
   assert.equal(unclassified.length, 0,
     `Unclassified public tables: ${unclassified.join(', ')}. Every table must be declared ` +
-    'family-isolated (FAMILY_TABLES), shared-content (SHARED_TABLES) or server-only ' +
-    '(SERVER_ONLY_TABLES) and tested above — architecture rule 4.');
+    'family-isolated (FAMILY_TABLES), shared-content (SHARED_TABLES), server-only ' +
+    '(SERVER_ONLY_TABLES) or shared-authored (FORUM_TABLES, tested in ' +
+    'forum_circle.test.mjs) — architecture rule 4.');
 
   // 2. RLS actually enabled everywhere (Hard Rule #1). The old guard never checked this.
   const rlsOff = res.rows.filter((r) => !r.rls).map((r) => r.t);

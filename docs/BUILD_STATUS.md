@@ -1,6 +1,6 @@
 # Momzo — Build Status
 
-_Last updated: 2026-06-30_
+_Last updated: 2026-08-18_
 
 A warm Flutter + Supabase app that gives busy mothers of 4–10-year-olds a few cozy
 minutes a day to understand their child better. This doc summarizes everything
@@ -23,7 +23,10 @@ Taskmaster (`.taskmaster/`).
   - **Onboarding rebuild + personalization engine + user-state isolation.**
 - The product runs **on a real Android device** (verified end-to-end, incl. push,
   the new onboarding flow, and the games).
-- **RLS cross-family isolation suite: 20/20** in CI. Everything committed; secrets git-ignored.
+- **Expansion (Content Hub · Learning Games · the Circle): all five phases built.**
+  See `Momzo_Expansion_Plan.md`; status per phase under "The expansion" below.
+- **RLS suite: 82/82** in CI, across four declared patterns. Everything committed;
+  secrets git-ignored.
 
 ## Tech stack
 
@@ -99,9 +102,25 @@ _(On-Device AI Strategy spec — built behind a clean abstraction so it degrades
 - **Private media + Memory Timeline (#28 photo + #30)** — a private `family-media` Storage bucket (per-user RLS, 10 MB cap, image-only) holds post-activity photos; the **Memory Timeline** aggregates activity photos/notes + milestones, served via short-lived **signed URLs** (never public).
 
 ### Knowledge base / content
-- **67 content cards / 786 embeddings** seeded from expert articles (`knowledge base/`), feeding both daily cards and RAG.
-- **62 activities** and **30 questions** seeded.
+- **147 content cards / 282 embeddings**, feeding both the daily card and RAG.
+  - **90 purpose-written cards (ages 5–6)** to `00_CARD_SPEC.md`'s fixed five-part
+    structure — Momzo's own words, replacing the scraped article corpus (ADR 012).
+  - **57 `reference_only` notes** (ages 7–10), AI-visible, never shown to a parent.
+- **12 Content Hub posts**, written to Florie's typographic post guide.
+- **62 activities**, **30 questions**, **22 learning games**, **5 forum categories**.
 - All seeders are idempotent (slug-based) and re-runnable as content grows.
+
+### The expansion (Content Hub · Learning Games · the Circle)
+- **Phase A — verify & sketch.** Findings in `docs/phase-a-games-findings.md`.
+- **Phase B — Learning Games.** 22 games shelved into four display categories,
+  played in a WebView over a bundled 493 KB SPA build, with a one-way JS bridge
+  (`MomzoBridge`) writing outcome buckets to `game_play_sessions`.
+- **Phase C — Content Hub.** `social_posts` + `post_reactions`, an idempotent
+  seeder, and a feed in the Learn tab with tag chips and a private 💛.
+- **Phase D — games dashboard.** "How it's going": rule-based insights, Florie's
+  two-day rule for "Got this", and four ordered recommendation rules. No LLM.
+- **Phase E — the Circle.** Threads, replies, reactions, reports, auto-hide at
+  three, and a moderator queue. The app's first shared-authored RLS pattern.
 
 ### Edge Functions deployed
 `hello-world` (template) · `ai-chat` (RAG Q&A + situational + refer-out + routing + name-free personalization) ·
@@ -112,7 +131,11 @@ _(On-Device AI Strategy spec — built behind a clean abstraction so it degrades
 
 ## Verified
 
-- RLS isolation suite: **20/20**, in CI (now incl. `scheduled_events`, `reminders`, `milestones`, `onboarding_state`, …).
+- RLS suite: **82/82**, in CI. Every public table is classified into one of four
+  patterns and the coverage guard fails on any table that is not: family-isolated,
+  shared-content (read-only catalog), server-only (RLS on, zero policies), and
+  shared-authored (the Circle — mothers write rows other mothers read).
+- **Flutter tests: 94**, `flutter analyze`: **0 errors**.
 - Per-feature backend smoke tests (run as the real signed-in user, RLS enforced): auth, consent gate, child creation (age 4–10), daily-card targeting + read, AI (grounded + citations + refer-out battery + cost routing), **personalization ownership/isolation (own child answered, other user's child → 403)**, **full onboarding write-path** (all fields + profile + resumable state), activities query + log, **photo upload + signed-URL read + cross-user denial**, **wish→event→reminder→status flip**, question reveal, push delivery, reminder dispatch (idempotency + quiet hours), **game deal + bank coverage guard (17/17)**.
 - **On-device (real Android phones):** boots to Home with real data; daily card; AI grounded answer + citations; FCM notification; **new 8-question onboarding renders & saves**; **Together → 17 mini-games, per-game rules screen → Start, games show cards**.
 - AI layer: **22 unit tests** (routing table, guards, fallback, telemetry, real-engine channel contract). `flutter analyze`: 0 errors.
@@ -154,13 +177,33 @@ Still open, **must be addressed before real users**:
 - **On-device Gemini Nano** generation is wired + compiles against the real AICore SDK
   but **live inference is unverified** — it needs an allowlisted device (Pixel 8+/Galaxy
   S24-class); every other phone falls back to cloud (the verified path).
+- **The card library covers ages 5–6 only.** 90 cards is roughly three months before
+  a repeat, for that band alone. A 7-year-old's parent currently gets no daily card;
+  bands 7–8 and 9–10 have to be written before those ages can be sold to. This is
+  the largest content gap in the product.
+- **A release build without `--dart-define-from-file=env.json` does not fail** — it
+  boots, looks normal, and runs in UI-only mock mode with no backend. It shipped
+  that way once. Always build with the flag.
+- **The Circle has no moderator by default.** `build_forum.mjs --moderator <email>`
+  grants one. Without it, auto-hide still fires but nothing is ever reviewed, so
+  hidden content stays hidden. The seeder warns loudly when the table is empty.
+- **The Circle is untested with real traffic** and carries a standing operational
+  cost — replies, moderation, tending. It is built, not launched.
 
 ## What's next
 
 - **#22 Ship-readiness gate** — final pre-launch checklist (last Phase-1 task), incl.
   resolving the COPPA caveat (pseudonymize server-side or move `ai-chat` to paid tier).
 - **Phase 2 remainder:** weekly recap (#31), gentle streak (#32).
-- **Phase 3** (#33–37): co-parent sharing, audio letters, voice input, community, billing.
+- **Phase 3** (#33–37): co-parent sharing, audio letters, voice input, billing.
+  (Community is now built — see the Circle.)
+- **Nav decision, open for Florie** (Expansion Plan §2.5 / §6.1): Option A moves to
+  Home · Learn · Ask · Play · Circle with Me in the header; Option B keeps five tabs
+  and enters games and the Circle from Together. **Option B is what is built**,
+  because §2.5 says to build nothing nav-related before she decides. It gets harder
+  to change the longer both features live inside Together.
+- **Content Hub v2** (§6.5): publishing to Instagram via the Graph API could write
+  `social_posts` in the same step. The table is designed for it; nothing is built.
 - **On-device AI Phase 2b/3:** light up on-device for situational/expert once games are
   proven on capable hardware; iOS Foundation Models path.
 - Pending UX tweaks: onboarding question copy (per user feedback); sign-out + a

@@ -243,7 +243,7 @@ opens the app without going anywhere specific.
   one small thing to try next. Rule-based, never an LLM.
 - **Gentle streak** — encouragement only. Never punishes a miss.
 
-### 4.10 The Circle (community) — **Planned**
+### 4.10 The Circle (community) — **Built, not launched**
 
 Un-deferred from v1.0. Threads and replies, no DMs, no images, no algorithmic
 feed. Categories along the lines of *Ask the Circle · Wins · Big feelings ·
@@ -255,16 +255,19 @@ resources post, and a "someone may need help" reason that reaches a moderator
 with priority. The app never auto-deletes a struggling mother's post.
 
 Sequenced last on purpose: it is the one feature with a standing operational
-cost, and it launches best into an audience that already exists.
+cost, and it launches best into an audience that already exists. *Built and
+tested, but not launched: it needs a moderator granted
+(`build_forum.mjs --moderator`) and somebody to tend it. Auto-hide fires without
+one; nothing is ever reviewed.*
 
-### 4.11 Content Hub — **Planned**
+### 4.11 Content Hub — **Built**
 
 Every tip Florie publishes on Instagram or Facebook, also inside the app, as a
 browsable library alongside the personalised daily card. Read-only with a light
 reaction; discussion belongs in the Circle, so a post can link to its thread
 rather than growing a second comment system.
 
-### 4.12 Learning-games dashboard — **Planned**
+### 4.12 Learning-games dashboard — **Built**
 
 For the mother, never the child. Which games were played, together-time by
 category, and progress expressed in the games' own vocabulary — *got it first
@@ -277,6 +280,8 @@ order, then least-played category, then games started but not finished.
 
 Hard tone rules: never peers, never percentiles, never "behind". A dip is "still
 growing 🌱". The last thing on the screen is always something that went well.
+*All of which are asserted in tests rather than left to review, because tone is
+what decays quietly.*
 
 ### 4.13 Family sharing — **Partial**
 

@@ -98,7 +98,7 @@ class LibraryService {
         .select(_cardColumns)
         .eq('published', true)
         .eq('category', category)
-        .order('title');
+        .order('title', ascending: true);
     return [for (final r in rows as List) ContentCard.fromMap(r as Map<String, dynamic>)];
   }
 }

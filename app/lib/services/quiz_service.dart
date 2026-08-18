@@ -34,7 +34,7 @@ class QuizService {
         .from('questions')
         .select('id,prompt')
         .eq('type', 'know_each_other')
-        .order('id')
+        .order('id', ascending: true)
         .limit(count) as List;
     return [
       for (final r in rows)
@@ -69,7 +69,13 @@ class QuizService {
         .select('question_id,respondent,answer,answered_at')
         .eq('child_id', child.id)
         .inFilter('question_id', ids)
-        .order('answered_at') as List; // oldest -> newest, so later overwrites
+        // Oldest -> newest, so a changed answer overwrites the first one.
+        //
+        // `ascending` is REQUIRED here, not decoration: postgrest-dart defaults
+        // it to FALSE, unlike the JS client. Without it this arrived newest-first
+        // and the loop below left the OLDEST answer standing — so a mother who
+        // changed her mind saw her original answer at the reveal.
+        .order('answered_at', ascending: true) as List;
     final parent = <String, String>{};
     final kid = <String, String>{};
     for (final r in rows) {

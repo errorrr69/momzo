@@ -22,7 +22,7 @@ class QuestionService {
         .from('questions')
         .select('id,prompt,type')
         .eq('type', 'daily')
-        .order('created_at') as List;
+        .order('created_at', ascending: true) as List;
     if (rows.isEmpty) return null;
     final epochDay = DateTime.now().toUtc().difference(DateTime.utc(2020)).inDays;
     final q = rows[epochDay % rows.length] as Map<String, dynamic>;

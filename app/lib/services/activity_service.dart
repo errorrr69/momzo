@@ -18,7 +18,7 @@ class ActivityService {
     var q = supabase.from('activities').select('*').lte('duration_min', maxMinutes);
     if (age != null) q = q.lte('age_min', age).gte('age_max', age);
     if (place != null && place != 'indoor') q = q.overlaps('location', [place]);
-    final rows = await q.order('title').limit(50) as List;
+    final rows = await q.order('title', ascending: true).limit(50) as List;
     return rows.map((r) => Activity.fromMap(r as Map<String, dynamic>)).toList();
   }
 

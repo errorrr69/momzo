@@ -65,7 +65,13 @@ class _ReportSheetState extends State<_ReportSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      // viewInsets is the KEYBOARD; viewPadding.bottom is the system nav bar.
+      // Only padding for the first leaves the primary button sitting under the
+      // nav bar on a gesture-nav phone — which is exactly where it landed.
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.of(context).viewPadding.bottom,
+      ),
       child: Container(
         decoration: const BoxDecoration(
           color: MomzoColors.cream,

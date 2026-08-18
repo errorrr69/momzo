@@ -101,7 +101,7 @@ class ForumService {
         .from('forum_categories')
         .select('id, slug, title, blurb, sort')
         .eq('active', true)
-        .order('sort') as List;
+        .order('sort', ascending: true) as List;
     return rows.map((r) => ForumCategory.fromRow(r as Map<String, dynamic>)).toList();
   }
 
@@ -137,7 +137,8 @@ class ForumService {
           .from('forum_replies')
           .select(_replyColumns)
           .eq('thread_id', threadId)
-          .order('created_at') as List,
+          // A conversation reads downwards.
+          .order('created_at', ascending: true) as List,
     );
     final hearts = await _heartedIds('reply');
     return rows

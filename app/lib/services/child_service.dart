@@ -117,7 +117,8 @@ class ChildService {
         .from('children')
         .select()
         .eq('owner_id', user.id)
-        .order('created_at');
+        // Oldest first, so the list keeps the order she added them in.
+        .order('created_at', ascending: true);
     _children
       ..clear()
       ..addAll((rows as List).map((r) => Child.fromMap(r as Map<String, dynamic>)));

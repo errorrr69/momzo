@@ -86,7 +86,7 @@ class LearningGameService {
   static Future<List<LearningGame>> catalogue({int? age}) async {
     var q = supabase.from('learning_games').select('*').eq('active', true);
     if (age != null) q = q.lte('age_min', age).gte('age_max', age);
-    final rows = await q.order('category').order('sort') as List;
+    final rows = await q.order('category', ascending: true).order('sort', ascending: true) as List;
     return rows.map((r) => LearningGame.fromMap(r as Map<String, dynamic>)).toList();
   }
 

@@ -59,8 +59,8 @@ output under `games.webview`, which is the fastest way to tell them apart.
 |---|---|
 | Source | `errorrr69/games-for-5-6yr-olds` |
 | Branch | `feat/together-mode` |
-| Commit | `251d482` |
-| Built | 2026-08-15 |
+| Commit | `dad52da` |
+| Built | 2026-08-19 |
 
 Update this table whenever the bundle is regenerated — it is the only record of
 which game code actually shipped in a given app release.

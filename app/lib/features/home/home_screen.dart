@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/env/app_env.dart';
 import '../../core/supabase/supabase_init.dart';
-import '../../core/env/feature_flags.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../core/widgets/momzo_bottom_nav.dart';
@@ -144,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 8),
                   // The Me door. Settings are a weekly errand and used to hold a
                   // permanent bottom tab — the most expensive space in the app.
-                  // Two taps here is what bought the fifth door for the Circle.
+                  // Two taps here is what bought the fifth door its slot.
                   _meButton(),
                 ],
               ),
@@ -257,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 10),
           _door(MomzoTab.play, 'Play\ntogether', Icons.extension_outlined),
           const SizedBox(width: 10),
-          _door(MomzoTab.circle, 'The\nCircle', Icons.favorite_border_rounded),
+          _door(MomzoTab.posts, 'From\nMomzo', Icons.auto_stories_outlined),
         ],
       );
 

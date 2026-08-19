@@ -1,5 +1,16 @@
 // The Circle — the shared-AUTHORED RLS pattern (Expansion Plan §2.3).
 //
+// KEPT ON PURPOSE after the Circle was removed from the app (ADR 014). The
+// feature is gone; the seven forum_* tables are NOT — they are still in the
+// database with their policies, their guard trigger and their auto-hide, and
+// rls_cross_family.test.mjs still classifies them as shared-authored. A live
+// table whose policies nothing exercises is exactly the kind of thing that
+// leaks later, and "no app code reads it" is not the same as "no client can".
+// Delete this the day the tables are dropped, and not before.
+//
+// It is self-contained: it creates its own accounts and its own category and
+// removes both in after(), so it needs neither of the deleted seeders.
+//
 // This is the app's first surface where one user writes a row another user reads,
 // and §2.3 asks for it to be tested as carefully as the family-isolation suite.
 // The negative tests are the point:

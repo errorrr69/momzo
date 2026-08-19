@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../core/env/feature_flags.dart';
 import '../../core/theme/momzo_colors.dart';
 import '../../core/theme/momzo_text.dart';
 import '../../services/auth_service.dart';
 import '../../services/child_service.dart';
-import '../circle/circle_identity_sheet.dart';
 import '../onboarding/child_basics_screen.dart';
 import '../onboarding/delete_child_screen.dart';
 import '../onboarding/edit_child_screen.dart';
@@ -18,8 +16,8 @@ import '../timeline/memory_timeline_screen.dart';
 ///
 /// A sheet, not a tab, because depth should be bought with frequency: she opens
 /// reminders and settings weekly at best, and a permanent bottom-nav slot is the
-/// most expensive space in the app. Giving it up is what let games and the
-/// Circle move from two taps to one.
+/// most expensive space in the app. Giving it up is what let games and
+/// Florie's posts move from two taps to one.
 ///
 /// It also fixes a standing gap: `DeleteChildScreen` has existed for months with
 /// no way to reach it from inside the app.
@@ -110,21 +108,6 @@ class _MeSheet extends StatelessWidget {
                 onTap: () => _push(context, const MemoryTimelineScreen()),
               ),
               const SizedBox(height: 8),
-              // Only meaningful while the forum exists — it is the name the
-              // other mothers see, and there are no other mothers yet.
-              if (FeatureFlags.circle) ...[
-                _row(
-                  context,
-                  emoji: '💛',
-                  title: 'Your Circle name',
-                  sub: 'What the other mothers see',
-                  onTap: () async {
-                    Navigator.pop(context);
-                    await showCircleIdentitySheet(context);
-                  },
-                ),
-                const SizedBox(height: 8),
-              ],
               _row(
                 context,
                 emoji: '🔒',

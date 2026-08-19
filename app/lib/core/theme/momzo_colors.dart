@@ -13,7 +13,7 @@ import 'package:flutter/material.dart';
 ///     WCAG AA at body sizes, so anything text-bearing uses the `*Deep` variant,
 ///     and everything else is ink-on-tint. `theme_contrast_test.dart` pins this.
 ///  3. **Colour is wayfinding.** One accent per tab — Home coral, Learn honey,
-///     Ask sky, Play lavender, Circle mint — used on that tab's door, its active
+///     Ask sky, Play lavender, Momzo mint — used on that tab's door, its active
 ///     state and its headers, and nowhere else. She learns the map without being
 ///     told, which costs her nothing.
 class MomzoColors {
@@ -44,9 +44,10 @@ class MomzoColors {
   static const honeyTint = Color(0xFFFFF0CE);
   static const honeyText = Color(0xFF8A5B00);
 
-  // Circle · confirmations ---------------------------------------------------
-  // Was "sage", and greener now: the Circle is people, alive, growing. It keeps
-  // the old name so nothing downstream has to be renamed in the same pass.
+  // Momzo · confirmations ----------------------------------------------------
+  // The fifth tab's colour, and the app's yes-that-worked green. Held the
+  // Circle before the forum was removed; it keeps the "sage" name because
+  // renaming a colour used in forty places buys nothing.
   static const sage = Color(0xFF4FC69A); // "Fresh mint"
   static const sageTint = Color(0xFFDCF6EB);
   static const sageText = Color(0xFF1F6E52);

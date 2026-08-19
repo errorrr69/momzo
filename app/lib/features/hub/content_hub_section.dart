@@ -12,7 +12,7 @@ import 'post_reader_screen.dart';
 /// hero and this is the browsable library beside it. Adding a sixth tab for it
 /// would say the opposite.
 class ContentHubSection extends StatefulWidget {
-  /// False inside the Circle tab, which already says what this is above it.
+  /// False on the Momzo tab, which already says what this is above it.
   /// A heading that repeats the screen title is a line she has to read twice.
   final bool showHeading;
 
@@ -78,8 +78,8 @@ class _ContentHubSectionState extends State<ContentHubSection> {
   @override
   Widget build(BuildContext context) {
     // As a SECTION of another screen, an empty hub renders nothing rather than
-    // an empty promise. As the Circle's default view it is the whole screen, so
-    // there it says something warm instead of leaving her on a blank tab.
+    // an empty promise. On the Momzo tab it IS the screen, so there it says
+    // something warm instead of leaving her on a blank tab.
     if (_failed || (!_loading && _posts.isEmpty && _tag == null)) {
       return widget.showHeading ? const SizedBox.shrink() : _nothingYet();
     }

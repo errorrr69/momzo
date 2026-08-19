@@ -27,8 +27,9 @@ The substantive changes from v1.0:
   bonding games and learning games reach younger.
 - **Three feature areas were added** that v1.0 never contemplated: a 17-game
   bonding suite, a 22-game learning-games area, and a hybrid on-device AI layer.
-- **The community was un-deferred.** v1.0 §13 explicitly cut it; it is now
-  planned as "the Circle" (§5.10).
+- **The community was un-deferred, built, and then removed.** v1.0 §13 cut it;
+  it was built as "the Circle", shipped switched off, and taken out of the app
+  entirely (§4.10). v1.0's original judgement stands.
 - **WhatsApp reminders were cancelled**, not postponed (§7).
 - **The AI layer grew a cost architecture** — semantic answer cache, prompt
   caching, rate limits, budget breaker, per-family memory, answer feedback —
@@ -243,37 +244,41 @@ opens the app without going anywhere specific.
   one small thing to try next. Rule-based, never an LLM.
 - **Gentle streak** — encouragement only. Never punishes a miss.
 
-### 4.10 The Circle (community) — **Built, switched off**
+### 4.10 The Circle (community) — **Removed**
 
-Un-deferred from v1.0. Threads and replies, no DMs, no images, no algorithmic
-feed. Categories along the lines of *Ask the Circle · Wins · Big feelings ·
-School & learning · Just chatting*.
+Un-deferred from v1.0, built in full, shipped switched off, and then removed
+from the app. Threads, replies, reactions, reports, auto-hide at three reports,
+a moderator queue, and a forum identity that was never the account name.
 
-Identity is a chosen display name and emoji avatar — never the account name.
-A report button on everything, auto-hide at a threshold pending review, a pinned
-resources post, and a "someone may need help" reason that reaches a moderator
-with priority. The app never auto-deletes a struggling mother's post.
+Nothing was wrong with it: 20 database tests and 10 widget tests passed and the
+whole loop was verified on a device. It was removed because a forum is the one
+feature carrying a standing operational cost — somebody has to read the reports,
+every day, forever — and that cost starts on the day it opens, not on the day it
+is worth having. v1.0 §13 reached the same conclusion before it was built.
 
-Sequenced last on purpose: it is the one feature with a standing operational
-cost, and it launches best into an audience that already exists. *Built and tested,
-and currently HIDDEN behind `FeatureFlags.circle = false`. Not because anything
-is wrong with it — 20 database tests and 10 widget tests pass and the whole loop
-was verified on a device — but because a forum is the one feature with a standing
-operational cost, and it launches best into an audience the rest of the app has
-already warmed up. Turning it on is one line plus a moderator
-(`build_forum.mjs --moderator`); the tables, policies, auto-hide and moderator
-queue are already live.*
+**What went, and what stayed.** The forum went: `features/circle/`, the model,
+the service, the seed and demo scripts. Its 20 database tests stayed, because
+the tables did. Florie's posts
+stayed exactly where they were, in the fifth tab, now named "Momzo" — they are
+the freshest content in the app and getting them to one tap was the point of the
+redesign. Removing the community was never allowed to bury them (§4.11).
 
-While it is off, its tab shows Florie's posts alone and is named "From Momzo".
-Hiding the community must never bury the posts — they are the freshest content
-in the app.
+**Still in the database.** The seven `forum_*` tables, their policies, the
+auto-hide trigger and the `is_moderator()` function are untouched, along with
+three applied migrations that cannot be un-applied by deleting files. They hold
+demo content and nothing reads them. Dropping them is a deliberate, separate,
+destructive act — see BUILD_STATUS.
 
 ### 4.11 Content Hub — **Built**
 
 Every tip Florie publishes on Instagram or Facebook, also inside the app, as a
 browsable library alongside the personalised daily card. Read-only with a light
-reaction; discussion belongs in the Circle, so a post can link to its thread
-rather than growing a second comment system.
+reaction and no comments — which was originally because discussion belonged in
+the Circle, and is now simply because a comment system is a moderation duty by
+another name (§4.10).
+
+Since the Circle was removed this is the whole of the fifth tab, titled
+"From Momzo".
 
 ### 4.12 Learning-games dashboard — **Built**
 
@@ -414,7 +419,7 @@ server-side. Deferred until retention is proven.
 | B | Learning games | ✅ Done |
 | C | Content Hub | Planned |
 | D | Learning-games dashboard | Planned |
-| E | The Circle | Planned |
+| E | The Circle | Built, then removed (§4.10) |
 | 3 | Co-parent sharing · audio letters · billing | Partial / planned |
 
 ---

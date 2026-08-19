@@ -1,6 +1,8 @@
 # ADR 010 — The forum introduces shared-content tables
 
-**Status:** Accepted · **not yet implemented** (Expansion Plan Phase E)
+**Status:** Built, then **reversed by ADR 014** (19 Aug 2026) — the forum is no
+longer in the app. The tables and the RLS pattern it introduced remain; the
+record below stands as written.
 **Decided:** August 2026 (`Momzo_Expansion_Plan.md` §2, §4.1)
 
 ## Context

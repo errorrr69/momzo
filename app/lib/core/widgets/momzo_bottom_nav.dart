@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import '../env/feature_flags.dart';
 import '../theme/momzo_colors.dart';
 import '../theme/momzo_text.dart';
 
 /// The five doors (UX plan §2). Order is fixed and must not be reshuffled:
 /// muscle memory is the whole point, and a tab that moves costs her the one
 /// thing this navigation is for.
-enum MomzoTab { home, learn, ask, play, circle }
+enum MomzoTab { home, learn, ask, play, posts }
 
 extension MomzoTabX on MomzoTab {
   /// Her word for it, used on the tab AND on the Home door. The same thing must
@@ -16,9 +15,10 @@ extension MomzoTabX on MomzoTab {
         MomzoTab.learn => 'Learn',
         MomzoTab.ask => 'Ask',
         MomzoTab.play => 'Play',
-        // With the forum off this tab is Florie's posts alone, so it is named
-        // for her rather than for a community that is not there yet.
-        MomzoTab.circle => FeatureFlags.circle ? 'Circle' : 'Momzo',
+        // Florie's posts. Named for the voice they are in, not for the format:
+        // "Notes" or "Posts" would describe the container, and she comes here
+        // for the person.
+        MomzoTab.posts => 'Momzo',
       };
 
   /// One accent per tab — the wayfinding contract (UX plan §4.5). This is the
@@ -28,7 +28,7 @@ extension MomzoTabX on MomzoTab {
         MomzoTab.learn => MomzoColors.honey,
         MomzoTab.ask => MomzoColors.sky,
         MomzoTab.play => MomzoColors.lavender,
-        MomzoTab.circle => MomzoColors.sage,
+        MomzoTab.posts => MomzoColors.sage,
       };
 
   /// The readable variant of [accent], for the label under an active icon.
@@ -37,7 +37,7 @@ extension MomzoTabX on MomzoTab {
         MomzoTab.learn => MomzoColors.honeyText,
         MomzoTab.ask => MomzoColors.skyText,
         MomzoTab.play => MomzoColors.lavenderText,
-        MomzoTab.circle => MomzoColors.sageText,
+        MomzoTab.posts => MomzoColors.sageText,
       };
 
   Color get tint => switch (this) {
@@ -45,7 +45,7 @@ extension MomzoTabX on MomzoTab {
         MomzoTab.learn => MomzoColors.honeyTint,
         MomzoTab.ask => MomzoColors.skyTint,
         MomzoTab.play => MomzoColors.lavenderTint,
-        MomzoTab.circle => MomzoColors.sageTint,
+        MomzoTab.posts => MomzoColors.sageTint,
       };
 
   IconData get filledIcon => switch (this) {
@@ -53,8 +53,7 @@ extension MomzoTabX on MomzoTab {
         MomzoTab.learn => Icons.menu_book_rounded,
         MomzoTab.ask => Icons.chat_bubble_rounded,
         MomzoTab.play => Icons.extension_rounded,
-        MomzoTab.circle =>
-          FeatureFlags.circle ? Icons.favorite_rounded : Icons.auto_stories_rounded,
+        MomzoTab.posts => Icons.auto_stories_rounded,
       };
 
   IconData get outlineIcon => switch (this) {
@@ -62,8 +61,7 @@ extension MomzoTabX on MomzoTab {
         MomzoTab.learn => Icons.menu_book_outlined,
         MomzoTab.ask => Icons.chat_bubble_outline_rounded,
         MomzoTab.play => Icons.extension_outlined,
-        MomzoTab.circle =>
-          FeatureFlags.circle ? Icons.favorite_border_rounded : Icons.auto_stories_outlined,
+        MomzoTab.posts => Icons.auto_stories_outlined,
       };
 }
 

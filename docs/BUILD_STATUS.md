@@ -23,7 +23,8 @@ Taskmaster (`.taskmaster/`).
   - **Onboarding rebuild + personalization engine + user-state isolation.**
 - The product runs **on a real Android device** (verified end-to-end, incl. push,
   the new onboarding flow, and the games).
-- **Expansion (Content Hub · Learning Games · the Circle): all five phases built.**
+- **Expansion (Content Hub · Learning Games · the Circle): all five phases built;
+  the Circle has since been removed from the app.**
   See `Momzo_Expansion_Plan.md`; status per phase under "The expansion" below.
 - **RLS suite: 82/82** in CI, across four declared patterns. Everything committed;
   secrets git-ignored.
@@ -107,7 +108,8 @@ _(On-Device AI Strategy spec — built behind a clean abstraction so it degrades
     structure — Momzo's own words, replacing the scraped article corpus (ADR 012).
   - **57 `reference_only` notes** (ages 7–10), AI-visible, never shown to a parent.
 - **12 Content Hub posts**, written to Florie's typographic post guide.
-- **62 activities**, **30 questions**, **22 learning games**, **5 forum categories**.
+- **62 activities**, **30 questions**, **22 learning games**. (5 forum categories
+  were seeded; the Circle has been removed and its seeder deleted.)
 - All seeders are idempotent (slug-based) and re-runnable as content grows.
 
 ### The expansion (Content Hub · Learning Games · the Circle)
@@ -119,8 +121,11 @@ _(On-Device AI Strategy spec — built behind a clean abstraction so it degrades
   seeder, and a feed in the Learn tab with tag chips and a private 💛.
 - **Phase D — games dashboard.** "How it's going": rule-based insights, Florie's
   two-day rule for "Got this", and four ordered recommendation rules. No LLM.
-- **Phase E — the Circle.** Threads, replies, reactions, reports, auto-hide at
-  three, and a moderator queue. The app's first shared-authored RLS pattern.
+- **Phase E — the Circle. Built, then removed.** Threads, replies, reactions,
+  reports, auto-hide at three, and a moderator queue — the app's first
+  shared-authored RLS pattern. Removed from the app because the moderation duty
+  it creates starts the day it opens, not the day it is worth having. The Dart
+  code and the seeders are deleted; the tables and their 20 RLS tests remain.
 
 ### Edge Functions deployed
 `hello-world` (template) · `ai-chat` (RAG Q&A + situational + refer-out + routing + name-free personalization) ·
@@ -134,7 +139,9 @@ _(On-Device AI Strategy spec — built behind a clean abstraction so it degrades
 - RLS suite: **82/82**, in CI. Every public table is classified into one of four
   patterns and the coverage guard fails on any table that is not: family-isolated,
   shared-content (read-only catalog), server-only (RLS on, zero policies), and
-  shared-authored (the Circle — mothers write rows other mothers read).
+  shared-authored (the forum tables — rows one user writes and others read).
+  The fourth pattern now has no reader in the app; its tables and their tests
+  are the only things left using it.
 - **Flutter tests: 94**, `flutter analyze`: **0 errors**.
 - Per-feature backend smoke tests (run as the real signed-in user, RLS enforced): auth, consent gate, child creation (age 4–10), daily-card targeting + read, AI (grounded + citations + refer-out battery + cost routing), **personalization ownership/isolation (own child answered, other user's child → 403)**, **full onboarding write-path** (all fields + profile + resumable state), activities query + log, **photo upload + signed-URL read + cross-user denial**, **wish→event→reminder→status flip**, question reveal, push delivery, reminder dispatch (idempotency + quiet hours), **game deal + bank coverage guard (17/17)**.
 - **On-device (real Android phones):** boots to Home with real data; daily card; AI grounded answer + citations; FCM notification; **new 8-question onboarding renders & saves**; **Together → 17 mini-games, per-game rules screen → Start, games show cards**.
@@ -184,14 +191,15 @@ Still open, **must be addressed before real users**:
 - **A release build without `--dart-define-from-file=env.json` does not fail** — it
   boots, looks normal, and runs in UI-only mock mode with no backend. It shipped
   that way once. Always build with the flag.
-- **The Circle has no moderator by default.** `build_forum.mjs --moderator <email>`
-  grants one. Without it, auto-hide still fires but nothing is ever reviewed, so
-  hidden content stays hidden. The seeder warns loudly when the table is empty.
-- **The Circle is switched OFF** (`FeatureFlags.circle = false`) — built, tested,
-  device-verified, and deliberately not shown. It carries a standing operational
-  cost (replies, moderation, tending) and is untested with real traffic. Its tab
-  currently shows Florie's posts alone, named "From Momzo". Flip the flag and
-  grant a moderator to launch it.
+- **The Circle is REMOVED, but still in the database.** The app has no forum
+  code left. The seven `forum_*` tables, their policies, the auto-hide trigger
+  and `is_moderator()` are all still there, holding the demo threads, and three
+  applied migrations reference them — deleting a migration file does not
+  un-apply it. Nothing reads any of this. Dropping it needs a new migration and
+  is destructive, so it has deliberately not been done.
+- **Two accounts still hold `is_moderator`** (`florrie.thp@gmail.com`,
+  `saanvi.thp03@gmail.com`), granted while the Circle was being tested. Harmless
+  with no forum in the app, and worth clearing if the tables are ever dropped.
 
 ## What's next
 
@@ -199,12 +207,10 @@ Still open, **must be addressed before real users**:
   resolving the COPPA caveat (pseudonymize server-side or move `ai-chat` to paid tier).
 - **Phase 2 remainder:** weekly recap (#31), gentle streak (#32).
 - **Phase 3** (#33–37): co-parent sharing, audio letters, voice input, billing.
-  (Community is now built — see the Circle.)
-- **Nav decision, open for Florie** (Expansion Plan §2.5 / §6.1): Option A moves to
-  Home · Learn · Ask · Play · Circle with Me in the header; Option B keeps five tabs
-  and enters games and the Circle from Together. **Option B is what is built**,
-  because §2.5 says to build nothing nav-related before she decides. It gets harder
-  to change the longer both features live inside Together.
+  (Community was built and then removed — see §4.10 of the PRD.)
+- **Nav decision: settled.** The UX redesign moved to
+  Home · Learn · Ask · Play · Momzo with Me in the header — the old Option A
+  shape, with the fifth tab holding Florie's posts rather than a forum.
 - **Content Hub v2** (§6.5): publishing to Instagram via the Graph API could write
   `social_posts` in the same step. The table is designed for it; nothing is built.
 - **On-device AI Phase 2b/3:** light up on-device for situational/expert once games are

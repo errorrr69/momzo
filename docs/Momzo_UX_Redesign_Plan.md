@@ -60,8 +60,8 @@ Other findings from using it on the device this week:
 
 ## 2. The new shape: five doors
 
-**Home · Learn · Ask · Play · Circle** — Me moves to the avatar in the Home
-header.
+**Home · Learn · Ask · Play · Momzo** — Me moves to the avatar in the Home
+header. (The fifth door was the Circle when this plan was written; see §9.)
 
 Each tab is one *promise*, nameable in her words:
 
@@ -71,11 +71,11 @@ Each tab is one *promise*, nameable in her words:
 | **Learn** | "The library" | honey |
 | **Ask** | "Help, right now" | sky |
 | **Play** | "Things to do with her" | lavender |
-| **Circle** | "The other mothers (and Florie)" | mint |
+| **Momzo** | "What Florie has been saying" | mint |
 
 This is the Expansion Plan's own Option A recommendation, finally taken. The
-change is almost entirely *promotion*: games and the Circle stop being rows
-inside Together and become doors. Nothing is removed.
+change is almost entirely *promotion*: games and Florie's posts stop being rows
+inside Together and Learn, and become doors.
 
 ### 2.1 Tap-depth after
 
@@ -84,8 +84,7 @@ inside Together and become doors. Nothing is removed.
 | Daily read | Home hero | 0 |
 | AI chat | Ask tab, **plus a Home shortcut** | 1 / 1 |
 | Learning games | Play tab, first thing | **1** |
-| The Circle | Circle tab | **1** |
-| Florie's posts | Circle tab, default feed | **1** |
+| Florie's posts | Momzo tab | **1** |
 | Quiz / wish wall / mini-games | Play tab, below games | 2 |
 | Calendar | Play tab row + Home "coming up" card when non-empty | 2 |
 | Reminders, profile, children, sign out | Avatar → Me sheet | 2 |
@@ -118,7 +117,7 @@ What Home never gets: a feed, a carousel of features, badges, or anything that
 scrolls horizontally. Horizontal scroll is hidden content, and hidden content
 is homework.
 
-### 3.2 Circle — Florie's voice and the mothers' voices, one place
+### 3.2 Momzo — Florie's voice, one tap away
 
 **Answering the direct question: yes, the social-media posts can appear here,
 and the plumbing already exists.** The Content Hub (`social_posts`, seeder,
@@ -127,23 +126,16 @@ bottom of Learn. This plan *moves* it, no new backend needed. The v2 auto-sync
 (publish to Instagram → appears in-app via the Graph API) is already designed
 for in the schema and stays a fast-follow.
 
-The tab is one screen with a two-chip switch at the top:
+As built, this tab was one screen with a two-chip switch: **From Momzo** (the
+feed, default) and **The mothers** (the forum). The forum has since been removed
+(§9), so the feed is the whole tab: the typographic posts, newest first, tag
+chips, the 💛.
 
-- **From Momzo** *(default at launch)* — the typographic-post feed, newest
-  first, tag chips, the 💛. Exactly the built Content Hub, relocated.
-- **The mothers** — the community: Being-talked-about, categories, post button,
-  moderation flag for moderators.
-
-**Why "From Momzo" is the default — the cold-start move.** A forum tab that
-opens onto three quiet categories reads as a dead app. Florie posts to social
-several times a week, so *her* feed guarantees the Circle tab is alive from day
-one. The community grows underneath an already-warm room, which is exactly the
-Expansion Plan's "launch into a warmed-up audience" thesis (§5). When threads
-outnumber posts, flip the default — it's one constant.
-
-Each post keeps its planned "Talk about this in the Circle" hook (§1.4) — now a
-one-chip hop instead of a cross-tab jump. This is the piece PRD §4.11 lists as
-"the one part not yet built"; co-locating them makes it nearly free.
+**The cold-start reasoning survived its own conclusion.** The argument for
+leading with Florie's feed was that a forum tab opening onto three quiet
+categories reads as a dead app, while she posts several times a week. That was
+right, and it turned out to be the whole answer rather than half of it — the
+half that guaranteed the tab was alive was the only half doing work.
 
 Learn loses the feed and becomes purely the library — cleaner promise, shorter
 scroll, no loss (the feed is one tab away with a better address).
@@ -335,24 +327,30 @@ look on your own phone at low brightness before any of them is settled.
 
 ---
 
-## 9. The Circle, switched off (18 Aug 2026)
+## 9. The Circle: switched off, then removed (19 Aug 2026)
 
-The forum is hidden behind `FeatureFlags.circle = false`. The code ships in the
-binary; it is simply not shown.
+On 18 Aug the forum went behind `FeatureFlags.circle = false` — built, tested,
+device-verified, simply not shown. On 19 Aug it was removed from the app
+outright: `features/circle/`, the model, the service, the seeders and the flag
+itself are all gone. The database tests stayed, because the tables did.
 
-**What this does not do is hide Florie's posts.** They share that tab, and
-burying them again would undo the redesign's main win — they went from "1 tap
-plus a long scroll past seven shelves" to "1 tap" precisely because they moved
-there. With the flag off:
+**What did not go is Florie's posts.** They share that tab, and burying them
+again would undo this plan's main win — they went from "1 tap plus a long scroll
+past seven shelves" to "1 tap" precisely because they moved there. So the fifth
+door stayed and became what it now only ever was:
 
-- the fifth door stays, renamed **"From Momzo"**, showing her posts alone
-- the two chips disappear (a toggle with one option costs a glance and gives
-  nothing back), along with the moderator flag and the three forum queries the
-  screen would otherwise run for rows nobody draws
-- Home's third door and the Me sheet's "Your Circle name" row follow the same
-  flag, because §4.6 says a thing must not have two names
-- "Talk about this in the Circle" comes off the post reader — there is nowhere
-  to send her
+- the tab is **"Momzo"**, opening on `PostsScreen` — the header plus the feed
+- Home's third door reads **"From Momzo"** and leads to the same place, because
+  §4.6 says a thing must not have two names
+- the two chips, the moderator flag, the three forum queries, the Me sheet's
+  "Your Circle name" row and "Talk about this in the Circle" all went with the
+  forum; each of them existed only to point at it
+- mint stays the fifth door's accent, and the `sage` token keeps its name
 
-`navigation_test.dart` tracks the flag rather than pinning one label, so turning
-the forum on does not produce a failing test to "fix" by hardcoding a name.
+`navigation_test.dart` no longer tracks a flag; it asserts the fifth door is
+named "Momzo" and, separately, that removing the forum did not remove the posts.
+
+**Not removed: the database.** Seven `forum_*` tables, their policies, the
+auto-hide trigger and `is_moderator()` are still there holding demo threads, and
+three applied migrations reference them. Nothing in the app reads any of it.
+Dropping them is destructive and deliberately left as a separate decision.

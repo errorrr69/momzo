@@ -1,6 +1,8 @@
 # ADR 013 — Shared-authored content: the Circle, and the Content Hub beside it
 
-**Status:** Accepted · 18 Aug 2026
+**Status:** Accepted · 18 Aug 2026 · **narrowed by ADR 014** — the Circle was
+removed from the app, so the shared-authored pattern currently has no reader.
+The pattern, its tables and its coverage guard all stay.
 **Extends:** ADR 002 (RLS everywhere, two patterns) — there are now four
 
 ## Context

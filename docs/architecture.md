@@ -333,7 +333,8 @@ Binding, additive to Build Guide §6.
    > have RLS enabled — so a forum table keyed on `author_id` cannot ship untested, and
    > `moderators` cannot be forced through the wrong test. The five shared reference
    > tables now carry real write-denial tests, which they previously lacked entirely.
-   > Forum tables join `SHARED_TABLES` when Phase E adds them.
+   > Forum tables joined `SHARED_TABLES` in Phase E and are still classified and
+   > tested there, though the app no longer reads them (ADR 014).
 6. Any table holding child data joins the delete-child cascade in the same PR, and the
    zero-residual test extends to it.
 7. Realtime is enabled for **`question_responses` only**, filtered to one family. Adding
@@ -375,7 +376,7 @@ app/lib/
 ```
 
 **The flat structure of the 10 existing feature folders is permanent** (ADR 011). New
-features — learning games, content hub, forum — use the four-subfolder shape. Mixed
+features — learning games, content hub — use the four-subfolder shape. Mixed
 structure is the accepted, recorded trade: churn across 45 files in a barely-tested app
 buys nothing a reader can see.
 
@@ -428,8 +429,11 @@ Full records in [`docs/adr/`](adr/). Summary:
 | [007](adr/007-ai-provider-abstraction-on-device-later.md) | `AiProvider`/`AiRouter` now, on-device later |
 | [008](adr/008-learning-games-webview-bundled.md) | Learning games via WebView + bundled `dist/` |
 | [009](adr/009-games-spa-sealed-subsystem.md) | Games SPA sealed — no Supabase in the app's copy |
-| [010](adr/010-forum-shared-content-tables.md) | Forum introduces shared-content tables |
+| [010](adr/010-forum-shared-content-tables.md) | Forum introduces shared-content tables — *reversed by 014* |
 | [011](adr/011-grandfather-flat-feature-structure.md) | Grandfather the flat feature structure |
+| [012](adr/012-purpose-written-card-library.md) | Purpose-written card library |
+| [013](adr/013-shared-authored-content.md) | Shared-authored content — the fourth RLS pattern |
+| [014](adr/014-circle-removed-from-the-app.md) | The Circle is removed from the app |
 
 ---
 

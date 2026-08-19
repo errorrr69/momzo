@@ -107,8 +107,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
             _topicGrid(),
             // Florie's posts used to sit here, below seven shelves, which made
             // the freshest content in the app the least visible thing in it.
-            // They now open the Circle tab (UX plan §3.2). Learn's promise is
-            // one sentence again: everything Momzo has written, by topic.
+            // They have the fifth tab to themselves now (UX plan §3.2), and
+            // Learn's promise is one sentence again: everything Momzo has
+            // written, by topic.
           ],
         ),
       ),

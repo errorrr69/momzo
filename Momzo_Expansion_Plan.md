@@ -163,6 +163,12 @@ device; tags filter; RLS proves non-admin cannot write; reactions record per-use
 
 ## 2. Feature: Forum — "the Circle"
 
+> **Status (19 Aug 2026): built, then removed from the app.** Everything below
+> was implemented and tested, shipped switched off, and then taken out — see
+> ADR 014 and PRD §4.10. The tables are still in the database. This section is
+> kept as the record of what was built, not as a plan.
+
+
 ### 2.1 Scope: lean, warm, moderated
 Threads + replies. No DMs, no images in v1 (text + optional link), no algorithmic
 feed. Categories seeded to match the community's rhythm and the app's topics, e.g.:
